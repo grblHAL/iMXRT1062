@@ -1,0 +1,30 @@
+[submodule "grblHAL_Teensy4/src/grbl"]
+	path = grblHAL_Teensy4/src/grbl
+	url = https://github.com/grblHAL/core
+[submodule "grblHAL_Teensy4/src/eeprom"]
+	path = grblHAL_Teensy4/src/eeprom
+	url = https://github.com/grblHAL/Plugin_EEPROM
+[submodule "grblHAL_Teensy4/src/keypad"]
+	path = grblHAL_Teensy4/src/keypad
+	url = https://github.com/grblHAL/Plugin_I2C_keypad
+[submodule "grblHAL_Teensy4/src/networking"]
+	path = grblHAL_Teensy4/src/networking
+	url = https://github.com/grblHAL/Plugin_networking
+[submodule "grblHAL_Teensy4/src/sdcard"]
+	path = grblHAL_Teensy4/src/sdcard
+	url = https://github.com/grblHAL/Plugin_SD_card
+[submodule "grblHAL_Teensy4/src/spindle"]
+	path = grblHAL_Teensy4/src/spindle
+	url = https://github.com/grblHAL/Plugins_spindle
+[submodule "grblHAL_Teensy4/src/odometer"]
+	path = grblHAL_Teensy4/src/odometer
+	url = https://github.com/grblHAL/Plugin_odometer
+[submodule "grblHAL_Teensy4/src/encoder"]
+	path = grblHAL_Teensy4/src/encoder
+	url = https://github.com/grblHAL/Plugin_encoder
+[submodule "grblHAL_Teensy4/src/laser"]
+	path = grblHAL_Teensy4/src/laser
+	url = https://github.com/grblHAL/Plugins_laser
+[submodule "grblHAL_Teensy4/src/plasma"]
+	path = grblHAL_Teensy4/src/plasma
+	url = https://github.com/grblHAL/Plugin_plasma
