@@ -1,7 +1,9 @@
 /*
-  T41U5XBB_map.h - driver code for IMXRT1062 processor (on Teensy 4.1 board)
+  T41U5XBB_ss_map.h - driver code for IMXRT1062 processor (on Teensy 4.1 board)
 
   Part of grblHAL
+
+  !!IMPORTANT!! This map is for a modified board, see https://github.com/terjeio/grblHAL/discussions/289 for details.
 
   Board by Phil Barrett: https://github.com/phil-barrett/grblHAL-teensy-4.x
 
@@ -28,8 +30,8 @@
 #error Max number of axes is 5 for T41U5XBB
 #endif
 
-#if SPINDLE_SYNC_ENABLE
-#error Spindle sync is not supported for T41U5XBB
+#if QEI_ENABLE && SPINDLE_SYNC_ENABLE
+#error Quadrature encoder and spindle sync cannot be enabled at the same time
 #endif
 
 // Default pin assignments allow only one axis to be ganged or auto squared.
@@ -109,7 +111,7 @@
 #define COOLANT_MIST_PIN    (18u)
 
 // Define user-control CONTROLs (cycle start, reset, feed hold, door) input pins.
-#define RESET_PIN           (14u)
+#define RESET_PIN           (35u)
 #define FEED_HOLD_PIN       (16u)
 #define CYCLE_START_PIN     (17u)
 #define SAFETY_DOOR_PIN     (29u)
@@ -123,12 +125,19 @@
 #define QEI_SELECT_PIN      (35u) // ST3
 #endif
 
+#if SPINDLE_SYNC_ENABLE
+#define SPINDLE_INDEX_PIN   (34u) // ST2
+#define SPINDLE_PULSE_PIN   (14u) // ST3
+#endif
+
 // Define auxillary input pins
 #define AUXINPUT0_PIN       (36u) // ST0
 #if !QEI_ENABLE
 #define AUXINPUT1_PIN       (30u) // ST1
+#if !SPINDLE_SYNC_ENABLE
 #define AUXINPUT2_PIN       (34u) // ST2
-#define AUXINPUT3_PIN       (35u) // ST3
+#define AUXINPUT3_PIN       (14u) // ST3
+#endif
 #endif
 
 #define AUXOUTPUT0_PIN      (31u) // AUX0
