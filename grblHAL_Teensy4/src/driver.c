@@ -410,6 +410,7 @@ static void enetStreamWriteS (const char *data)
         .read = TCPStreamGetC,
         .write = TCPStreamWriteS,
         .write_all = enetStreamWriteS,
+        .write_char = TCPStreamPutC,
         .get_rx_buffer_available = TCPStreamRxFree,
         .reset_read_buffer = TCPStreamRxFlush,
         .cancel_read_buffer = TCPStreamRxCancel,
@@ -424,6 +425,7 @@ static void enetStreamWriteS (const char *data)
         .read = WsStreamGetC,
         .write = WsStreamWriteS,
         .write_all = enetStreamWriteS,
+        .write_char = WsStreamPutC,
         .get_rx_buffer_available = WsStreamRxFree,
         .reset_read_buffer = WsStreamRxFlush,
         .cancel_read_buffer = WsStreamRxCancel,
@@ -439,6 +441,7 @@ static void enetStreamWriteS (const char *data)
         .type = StreamType_Serial,
         .read = usb_serialGetC,
         .write = usb_serialWriteS,
+        .write_char = usb_serialPutC,
     #if ETHERNET_ENABLE
         .write_all = enetStreamWriteS,
     #else
@@ -455,6 +458,7 @@ const io_stream_t serial_stream = {
     .type = StreamType_Serial,
     .read = serialGetC,
     .write = serialWriteS,
+    .write_char = serialPutC,
 #if ETHERNET_ENABLE
     .write_all = enetStreamWriteS,
 #else
@@ -2098,7 +2102,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "210414";
+    hal.driver_version = "210423";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
