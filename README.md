@@ -10,11 +10,6 @@ Available driver options can be found [here](main/my_machine.h).
 
 ---
 
-2020-08-11 : added [plugin support](../../plugins) for networking, SD card and I2C keypad.
-
----
-
-Initial default pin assignments can be found in [driver.h](main/driver.h).
 
 #### Networking plugin
 
@@ -43,15 +38,15 @@ Download the libraries above as zip files and add to your Arduino installation w
 ---
 #### Board maps:
 
-|                      |Processor|Ethernet|SD card|Keypad|EEPROM|N_AXIS|Ganged axes<sup>1</sup>|Encoders|Digital I/O|Analog I/O|
-|----------------------|---------|--------|-------|------|------|------|-----------------------|--------|-----------|----------|
-|Generic|All|no|no|yes|yes<sup>2</sup>|3|||||
-|[BOARD_T40X101](https://github.com/phil-barrett/grbl-teensy-4)|Teensy 4.0|no|no|yes|yes<sup>2</sup>|max 4|max 1|max 1|||
-|[BOARD_T41U5XBB](https://github.com/phil-barrett/grbl-teensy-4)|Teensy 4.1|yes|yes|yes|yes<sup>2</sup>|max 5|max 2|max 1|4/3 or 1/3<sup>3</sup>||
+|                                                                              |N_AXIS|Ganged&nbsp;axes<sup>1</sup>|Ethernet|EEPROM         |SD&nbsp;card|I2C Keypad|Encoders|Digital I/O|Analog I/O|
+|------------------------------------------------------------------------------|------|----------------------------|--------|---------------|------------|----------|--------|-----------|----------|
+|Generic                                                                       | 3    |no                          |no      |yes<sup>2</sup>|yes         |yes       | -      | -         | -        |
+|[BOARD_T40X101](https://github.com/phil-barrett/grbl-teensy-4) for Teensy 4.0 |max 4 |max 1                       |no      |yes<sup>2</sup>|no          |yes       | max 1  | -         | -        |
+|[BOARD_T41U5XBB](https://github.com/phil-barrett/grbl-teensy-4) for Teensy 4.1|max 5 |max 2                       |yes     |yes<sup>2</sup>|yes         |yes       | max 1  |4/3 or 1/3<sup>3</sup>|-|
 
 <sup>1</sup> Each enabled reduces N_AXIS with one. Currently the board map file must be edited to enable ganged/auto squared axes.  
-<sup>2</sup> I<sup>2</sup>C EEPROM \(or FRAM\) is [optional](https://github.com/terjeio/grblHAL/blob/master/plugins/eeprom/README.md) and must be added to the board. FRAM is recommended when the [Odometer plugin](https://github.com/terjeio/grblHAL/blob/master/plugins/odometer/README.md) is added to the build.  
-<sup>3</sup> Number of digital input pins available is reduced when the [Encoder plugin](https://github.com/terjeio/grblHAL/blob/master/plugins/encoder/README.md) is added to the build.
+<sup>2</sup> I<sup>2</sup>C EEPROM \(or FRAM\) is [optional](https://github.com/grblHAL/Plugin_EEPROM/blob/master/README.md) and must be added to the board. FRAM is recommended when the [Odometer plugin](https://github.com/grblHAL/Plugin_odometer/blob/master/README.md) is added to the build.  
+<sup>3</sup> Number of digital input pins available is reduced when the [Encoder plugin](https://github.com/grblHAL/Plugin_encoder/blob/master/README.md) is added to the build.
 
 ---
-2021-01-03
+2021-04-28
