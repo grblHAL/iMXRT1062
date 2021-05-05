@@ -78,7 +78,9 @@
 #if Z_GANGED || Z_AUTO_SQUARE
 #define Z2_STEP_PIN      (8u)
 #define Z2_DIRECTION_PIN (9u)
-#define Z2_LIMIT_PIN     (23u)
+#if Z_AUTO_SQUARE
+  #define Z2_LIMIT_PIN   (23u)
+#endif
 #endif
 
 #if N_AXIS > 3

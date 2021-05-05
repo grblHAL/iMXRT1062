@@ -41,7 +41,7 @@
 #define X_GANGED        0
 #define X_AUTO_SQUARE   0
 #define Y_GANGED        0
-#define Y_AUTO_SQUARE   1
+#define Y_AUTO_SQUARE   0
 #define Z_GANGED        0
 #define Z_AUTO_SQUARE   0
 //
@@ -84,7 +84,9 @@
 #define Z2_STEP_PIN      (26u)
 #define Z2_DIRECTION_PIN (27u)
 #define Z2_ENABLE_PIN    (37u)
-#define Z2_LIMIT_PIN     (28u)
+#if Z_AUTO_SQUARE
+  #define Z2_LIMIT_PIN   (28u)
+#endif
 #endif
 
 #if N_AXIS > 3
@@ -122,7 +124,7 @@
 #if QEI_ENABLE
 #define QEI_A_PIN           (30u) // ST1
 #define QEI_B_PIN           (34u) // ST2
-#define QEI_SELECT_PIN      (35u) // ST3
+#define QEI_SELECT_PIN      (14u) // ST3
 #endif
 
 #if SPINDLE_SYNC_ENABLE
