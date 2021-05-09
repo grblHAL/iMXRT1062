@@ -28,3 +28,6 @@
 [submodule "grblHAL_Teensy4/src/plasma"]
 	path = grblHAL_Teensy4/src/plasma
 	url = https://github.com/grblHAL/Plugin_plasma
+[submodule "grblHAL_Teensy4/src/openpnp"]
+	path = grblHAL_Teensy4/src/openpnp
+	url = https://github.com/grblHAL/Plugin_OpenPNP
