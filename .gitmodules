@@ -31,3 +31,4 @@
 [submodule "grblHAL_Teensy4/src/openpnp"]
 	path = grblHAL_Teensy4/src/openpnp
 	url = https://github.com/grblHAL/Plugin_OpenPNP
+
