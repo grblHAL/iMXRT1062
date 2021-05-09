@@ -23,7 +23,7 @@
 
 #include "driver.h"
 
-#if defined(BOARD_T41U5XBB) || defined(BOARD_T41U5XBB_SS)
+#if defined(BOARD_T41U5XBB) || defined(BOARD_T41U5XBB_SS) || defined(BOARD_T41BB5X_PRO)
 
 //#include "Arduino.h"
 #include <math.h>

@@ -63,6 +63,10 @@ static void ppi_timeout_isr (void);
 #include "odometer/odometer.h"
 #endif
 
+#if OPENPNP_ENABLE
+#include "openpnp/openpnp.h"
+#endif
+
 #if ETHERNET_ENABLE
   #include "enet.h"
   #if TELNET_ENABLE
@@ -2102,7 +2106,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "210423";
+    hal.driver_version = "210509";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -2290,7 +2294,9 @@ bool driver_init (void)
     plasma_init();
 #endif
 
-    my_plugin_init();
+#if OPENPNP_ENABLE
+    openpnp_init();
+#endif
 
 #if ODOMETER_ENABLE
     odometer_init(); // NOTE: this *must* be last plugin to be initialized as it claims storage at the end of NVS.

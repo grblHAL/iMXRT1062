@@ -66,6 +66,9 @@
 #ifndef ODOMETER_ENABLE
 #define ODOMETER_ENABLE     0
 #endif
+#ifndef OPENPNP_ENABLE
+#define OPENPNP_ENABLE      0
+#endif
 
 #ifndef ETHERNET_ENABLE
 #define ETHERNET_ENABLE     0
@@ -165,8 +168,8 @@
   #include "T41U5XBB_map.h"
 #elif defined(BOARD_T41U5XBB_SS)
   #include "T41U5XBB_ss_map.h"
-#elif defined(BOARD_T41PROBB)
-  #include "T41ProBB_map.h"
+#elif defined(BOARD_T41BB5X_PRO)
+  #include "T41BB5X_Pro_map.h"
 #elif defined(BOARD_MY_MACHINE)
   #include "my_machine_map.h"
 #else // default board
