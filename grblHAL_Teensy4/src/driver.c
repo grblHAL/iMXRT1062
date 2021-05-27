@@ -267,6 +267,16 @@ static gpio_t QEI_A, QEI_B;
   static gpio_t AuxIn3;
 #endif
 
+#ifdef AUXOUTPUT0_PIN
+  static gpio_t AuxOut0;
+#endif
+#ifdef AUXOUTPUT1_PIN
+  static gpio_t AuxOut1;
+#endif
+#ifdef AUXOUTPUT2_PIN
+  static gpio_t AuxOut2;
+#endif
+
 input_signal_t inputpin[] = {
 #if ESTOP_ENABLE
     { .id = Input_EStop,          .port = &Reset,          .pin = RESET_PIN,           .group = PinGroup_Control },
@@ -339,7 +349,103 @@ input_signal_t inputpin[] = {
 #endif
 };
 
-static pin_group_pins_t aux_inputs = {0}, limit_inputs = {0};
+static output_signal_t outputpin[] = {
+    { .id = Output_StepX,           .port = &stepX,         .pin = X_STEP_PIN,              .group = PinGroup_StepperStep },
+    { .id = Output_StepY,           .port = &stepY,         .pin = Y_STEP_PIN,              .group = PinGroup_StepperStep },
+    { .id = Output_StepZ,           .port = &stepZ,         .pin = Z_STEP_PIN,              .group = PinGroup_StepperStep },
+#ifdef A_AXIS
+    { .id = Output_StepA,           .port = &stepA,         .pin = A_STEP_PIN,              .group = PinGroup_StepperStep },
+#endif
+#ifdef B_AXIS
+    { .id = Output_StepB,           .port = &stepB,         .pin = B_STEP_PIN,              .group = PinGroup_StepperStep },
+#endif
+#ifdef C_AXIS
+    { .id = Output_StepC,           .port = &stepC,         .pin = C_STEP_PIN,              .group = PinGroup_StepperStep },
+#endif
+#ifdef X2_STEP_PIN
+    { .id = Output_StepX,           .port = &stepX2,        .pin = X2_STEP_PIN,             .group = PinGroup_StepperStep },
+#endif
+#ifdef Y2_STEP_PIN
+    { .id = Output_StepY,           .port = &stepY2,        .pin = Y2_STEP_PIN,             .group = PinGroup_StepperStep },
+#endif
+#ifdef Z2_STEP_PIN
+    { .id = Output_StepZ,           .port = &stepZ2,        .pin = Z2_STEP_PIN,             .group = PinGroup_StepperStep },
+#endif
+    { .id = Output_DirX,            .port = &dirX,          .pin = X_DIRECTION_PIN,         .group = PinGroup_StepperDir },
+    { .id = Output_DirY,            .port = &dirY,          .pin = Y_DIRECTION_PIN,         .group = PinGroup_StepperDir },
+    { .id = Output_DirZ,            .port = &dirZ,          .pin = Z_DIRECTION_PIN,         .group = PinGroup_StepperDir },
+#ifdef A_AXIS
+    { .id = Output_DirA,            .port = &dirA,          .pin = A_DIRECTION_PIN,         .group = PinGroup_StepperDir },
+#endif
+#ifdef B_AXIS
+    { .id = Output_DirB,            .port = &dirB,          .pin = B_DIRECTION_PIN,         .group = PinGroup_StepperDir },
+#endif
+#ifdef C_AXIS
+    { .id = Output_DirC,            .port = &dirC,          .pin = C_DIRECTION_PIN,         .group = PinGroup_StepperDir },
+#endif
+#ifdef X2_DIRECTION_PIN
+    { .id = Output_DirX,            .port = &dirX2,         .pin = X2_DIRECTION_PIN,        .group = PinGroup_StepperDir },
+#endif
+#ifdef Y2_DIRECTION_PIN
+    { .id = Output_DirY,            .port = &dirY2,         .pin = Y2_DIRECTION_PIN,        .group = PinGroup_StepperDir },
+#endif
+#ifdef Z2_DIRECTION_PIN
+    { .id = Output_DirZ,            .port = &dirZ2,         .pin = Z2_DIRECTION_PIN,        .group = PinGroup_StepperDir },
+#endif
+#if !TRINAMIC_ENABLE
+#ifdef STEPPERS_ENABLE_PIN
+    { .id = Output_StepperEnable,   .port = &steppersEnable, .pin = STEPPERS_ENABLE_PIN,    .group = PinGroup_StepperEnable },
+#endif
+#ifdef X_ENABLE_PIN
+    { .id = Output_StepperEnableX,  .port = &enableX,       .pin = X_ENABLE_PIN,            .group = PinGroup_StepperEnable },
+#endif
+#ifdef Y_ENABLE_PIN
+    { .id = Output_StepperEnableY,  .port = &enableY,       .pin = Y_ENABLE_PIN,            .group = PinGroup_StepperEnable },
+#endif
+#ifdef Z_ENABLE_PIN
+    { .id = Output_StepperEnableZ,  .port = &enableZ,       .pin = Z_ENABLE_PIN,            .group = PinGroup_StepperEnable },
+#endif
+#ifdef A_ENABLE_PIN
+    { .id = Output_StepperEnableA,  .port = &enableA,       .pin = A_ENABLE_PIN,            .group = PinGroup_StepperEnable },
+#endif
+#ifdef B_ENABLE_PIN
+    { .id = Output_StepperEnableB,  .port = &enableB,       .pin = B_ENABLE_PIN,            .group = PinGroup_StepperEnable },
+#endif
+#ifdef C_ENABLE_PIN
+    { .id = Output_StepperEnableC,  .port = &enableC,       .pin = C_ENABLE_PIN,            .group = PinGroup_StepperEnable },
+#endif
+#ifdef X2_ENABLE_PIN
+    { .id = Output_StepperEnableX,  .port = &enableX2,      .pin = X2_ENABLE_PIN,           .group = PinGroup_StepperEnable },
+#endif
+#ifdef Y2_ENABLE_PIN
+    { .id = Output_StepperEnableY,  .port = &enableY2,      .pin = Y2_ENABLE_PIN,           .group = PinGroup_StepperEnable },
+#endif
+#ifdef Z2_ENABLE_PIN
+    { .id = Output_StepperEnableZ,  .port = &enableZ2,      .pin = Z2_ENABLE_PIN,           .group = PinGroup_StepperEnable },
+#endif
+#endif
+#if !VFD_SPINDLE
+    { .id = Output_SpindleOn,       .port = &spindleEnable, .pin = SPINDLE_ENABLE_PIN,      .group = PinGroup_SpindleControl },
+#ifdef SPINDLE_DIRECTION_PIN
+    { .id = Output_SpindleDir,      .port = &spindleDir,    .pin = SPINDLE_DIRECTION_PIN,   .group = PinGroup_SpindleControl },
+#endif
+#endif
+    { .id = Output_CoolantMist,     .port = &Mist,          .pin = COOLANT_FLOOD_PIN,       .group = PinGroup_Coolant },
+#ifdef COOLANT_MIST_PIN
+    { .id = Output_CoolantFlood,    .port = &Flood,         .pin = COOLANT_MIST_PIN,        .group = PinGroup_Coolant },
+#endif
+#ifdef AUXOUTPUT0_PIN
+    { .id = Output_Aux0,            .port = &AuxOut0,       .pin = AUXOUTPUT0_PIN,          .group = PinGroup_AuxOutput },
+#endif
+#ifdef AUXOUTPUT1_PIN
+    { .id = Output_Aux1,            .port = &AuxOut1,       .pin = AUXOUTPUT1_PIN,          .group = PinGroup_AuxOutput },
+#endif
+#ifdef AUXOUTPUT2_PIN
+    { .id = Output_Aux2,            .port = &AuxOut2,       .pin = AUXOUTPUT2_PIN,          .group = PinGroup_AuxOutput }
+#endif
+};
+
+static pin_group_pins_t limit_inputs = {0};
 
 #if USB_SERIAL_CDC || QEI_ENABLE
 #define ADD_MSEVENT 1
@@ -1010,11 +1116,11 @@ static void limitsEnable (bool on, bool homing)
 
     do {
         i--;
-        limit_inputs.pins[i].gpio.reg->ISR = limit_inputs.pins[i].gpio.bit;       // Clear interrupt.
+        limit_inputs.pins.inputs[i].gpio.reg->ISR = limit_inputs.pins.inputs[i].gpio.bit;       // Clear interrupt.
         if(on)
-            limit_inputs.pins[i].gpio.reg->IMR |= limit_inputs.pins[i].gpio.bit;  // Enable interrupt.
+            limit_inputs.pins.inputs[i].gpio.reg->IMR |= limit_inputs.pins.inputs[i].gpio.bit;  // Enable interrupt.
         else
-            limit_inputs.pins[i].gpio.reg->IMR &= ~limit_inputs.pins[i].gpio.bit; // Disable interrupt.
+            limit_inputs.pins.inputs[i].gpio.reg->IMR &= ~limit_inputs.pins.inputs[i].gpio.bit; // Disable interrupt.
     } while(i);
 }
 
@@ -1738,6 +1844,14 @@ static bool driver_setup (settings_t *settings)
     driver_settings.trinamic.driver_enable.mask = AXES_BITMASK;
 #endif
 
+    /*************************
+     *  Output signals init  *
+     *************************/
+
+    uint32_t i;
+    for(i = 0 ; i < sizeof(outputpin) / sizeof(output_signal_t); i++)
+        pinModeOutput(outputpin[i].port, outputpin[i].pin);
+
     /******************
      *  Stepper init  *
      ******************/
@@ -1771,79 +1885,6 @@ static bool driver_setup (settings_t *settings)
     NVIC_ENABLE_IRQ(IRQ_QTIMER2);
 
     TMR2_ENBL = 1;
-#endif
-
-    pinModeOutput(&stepX, X_STEP_PIN);
-    pinModeOutput(&dirX, X_DIRECTION_PIN);
-#ifdef X_ENABLE_PIN
-    pinModeOutput(&enableX, X_ENABLE_PIN);
-#endif
-#ifdef X2_STEP_PIN
-    pinModeOutput(&stepX2, X2_STEP_PIN);
-#endif
-#ifdef X2_DIRECTION_PIN
-    pinModeOutput(&dirX2, X2_DIRECTION_PIN);
-#endif
-#ifdef X2_ENABLE_PIN
-    pinModeOutput(&enableX2, X2_ENABLE_PIN);
-#endif
-
-    pinModeOutput(&stepY, Y_STEP_PIN);
-    pinModeOutput(&dirY, Y_DIRECTION_PIN);
-#ifdef Y_ENABLE_PIN
-    pinModeOutput(&enableY, Y_ENABLE_PIN);
-#endif
-#ifdef Y2_STEP_PIN
-    pinModeOutput(&stepY2, Y2_STEP_PIN);
-#endif
-#ifdef Y2_DIRECTION_PIN
-    pinModeOutput(&dirY2, Y2_DIRECTION_PIN);
-#endif
-#ifdef Y2_ENABLE_PIN
-    pinModeOutput(&enableY2, Y2_ENABLE_PIN);
-#endif
-
-    pinModeOutput(&stepZ, Z_STEP_PIN);
-    pinModeOutput(&dirZ, Z_DIRECTION_PIN);
-#ifdef Z_ENABLE_PIN
-    pinModeOutput(&enableZ, Z_ENABLE_PIN);
-#endif
-#ifdef Z2_STEP_PIN
-    pinModeOutput(&stepZ2, Z2_STEP_PIN);
-#endif
-#ifdef Z2_DIRECTION_PIN
-    pinModeOutput(&dirZ2, Z2_DIRECTION_PIN);
-#endif
-#ifdef Z2_ENABLE_PIN
-    pinModeOutput(&enableZ2, Z2_ENABLE_PIN);
-#endif
-
-#ifdef A_AXIS
-    pinModeOutput(&stepA, A_STEP_PIN);
-    pinModeOutput(&dirA, A_DIRECTION_PIN);
-  #ifdef A_ENABLE_PIN
-    pinModeOutput(&enableA, A_ENABLE_PIN);
-  #endif
-#endif
-
-#ifdef B_AXIS
-    pinModeOutput(&stepB, B_STEP_PIN);
-    pinModeOutput(&dirB, B_DIRECTION_PIN);
-  #ifdef B_ENABLE_PIN
-    pinModeOutput(&enableB, B_ENABLE_PIN);
-  #endif
-#endif
-
-#ifdef C_AXIS
-    pinModeOutput(&stepC, C_STEP_PIN);
-    pinModeOutput(&dirC, C_DIRECTION_PIN);
-  #ifdef C_ENABLE_PIN
-    pinModeOutput(&enableC, C_ENABLE_PIN);
-  #endif
-#endif
-
-#ifdef STEPPERS_ENABLE_PIN
-    pinModeOutput(&steppersEnable, STEPPERS_ENABLE_PIN);
 #endif
 
    /****************************
@@ -2106,7 +2147,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "210509";
+    hal.driver_version = "210526";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -2256,25 +2297,36 @@ bool driver_init (void)
 
     uint32_t i;
     input_signal_t *signal;
+    static pin_group_pins_t aux_inputs = {0}, aux_outputs = {0};
 
     for(i = 0 ; i < sizeof(inputpin) / sizeof(input_signal_t); i++) {
         signal = &inputpin[i];
 
         if(signal->group == PinGroup_AuxInput) {
-            if(aux_inputs.pins == NULL)
-                aux_inputs.pins = signal;
+            if(aux_inputs.pins.inputs == NULL)
+                aux_inputs.pins.inputs = signal;
             aux_inputs.n_pins++;
         }
 
         if(signal->group == PinGroup_Limit) {
-            if(limit_inputs.pins == NULL)
-                limit_inputs.pins = signal;
+            if(limit_inputs.pins.inputs == NULL)
+                limit_inputs.pins.inputs = signal;
             limit_inputs.n_pins++;
         }
     }
 
+    output_signal_t *output;
+    for(i = 0 ; i < sizeof(outputpin) / sizeof(output_signal_t); i++) {
+        output = &outputpin[i];
+        if(output->group == PinGroup_AuxOutput) {
+            if(aux_outputs.pins.outputs == NULL)
+                aux_outputs.pins.outputs = output;
+            aux_outputs.n_pins++;
+        }
+    }
+
 #ifdef HAS_BOARD_INIT
-    board_init(&aux_inputs);
+    board_init(&aux_inputs, &aux_outputs);
 #endif
 
 #if ETHERNET_ENABLE

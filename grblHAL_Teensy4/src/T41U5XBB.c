@@ -31,13 +31,15 @@
 
 #include "grbl/protocol.h"
 
-static input_signal_t *stx;
-static gpio_t aux_out[AUX_N_OUT];
+static uint_fast8_t aux_n_in, aux_n_out;
+static input_signal_t *aux_in;
+static output_signal_t *aux_out;
+static ioport_bus_t out = {0};
+static char input_ports[56] = "", output_ports[56] = "";
 
 static void aux_settings_load (void);
 static status_code_t aux_set_invert_out (setting_id_t id, uint_fast16_t int_value);
 static uint32_t aux_get_invert_out (setting_id_t setting);
-static char input_ports[30]; //
 
 static const setting_group_detail_t aux_groups[] = {
     { Group_Root, Group_AuxPorts, "Aux ports"}
@@ -45,7 +47,7 @@ static const setting_group_detail_t aux_groups[] = {
 
 static const setting_detail_t aux_settings[] = {
     { Settings_IoPort_InvertIn, Group_AuxPorts, "Invert I/O Port inputs", NULL, Format_Bitfield, input_ports, NULL, NULL, Setting_NonCore, &settings.ioport.invert_in.mask },
-    { Settings_IoPort_InvertOut, Group_AuxPorts, "Invert I/O Port outputs", NULL, Format_Bitfield, "Port 0,Port 1,Port 2", NULL, NULL, Setting_NonCoreFn, aux_set_invert_out, aux_get_invert_out },
+    { Settings_IoPort_InvertOut, Group_AuxPorts, "Invert I/O Port outputs", NULL, Format_Bitfield, output_ports, NULL, NULL, Setting_NonCoreFn, aux_set_invert_out, aux_get_invert_out },
 };
 
 static setting_details_t details = {
@@ -64,25 +66,25 @@ static setting_details_t *on_get_settings (void)
 
 static void aux_settings_load (void)
 {
-    uint_fast8_t idx = AUX_N_OUT;
+    uint_fast8_t idx = aux_n_out;
 
     do {
         idx--;
-        DIGITAL_OUT(aux_out[idx], (settings.ioport.invert_out.mask >> idx) & 0x01);
+        DIGITAL_OUT((*(aux_out[idx].port)), (settings.ioport.invert_out.mask >> idx) & 0x01);
     } while(idx);
 }
 
 static status_code_t aux_set_invert_out (setting_id_t id, uint_fast16_t value)
 {
     ioport_bus_t invert;
-    invert.mask = (uint8_t)value & AUX_OUT_MASK;
+    invert.mask = (uint8_t)value & out.mask;
 
     if(invert.mask != settings.ioport.invert_out.mask) {
-        uint_fast8_t idx = AUX_N_OUT;
+        uint_fast8_t idx = aux_n_out;
         do {
             idx--;
             if(((settings.ioport.invert_out.mask >> idx) & 0x01) != ((invert.mask >> idx) & 0x01))
-                DIGITAL_OUT(aux_out[idx], !DIGITAL_IN(aux_out[idx]));
+                DIGITAL_OUT((*(aux_out[idx].port)), !DIGITAL_IN((*(aux_out[idx].port))));
         } while(idx);
 
         settings.ioport.invert_out.mask = invert.mask;
@@ -98,8 +100,8 @@ static uint32_t aux_get_invert_out (setting_id_t setting)
 
 static void digital_out (uint8_t port, bool on)
 {
-    if(port < AUX_N_OUT)
-        DIGITAL_OUT(aux_out[port], ((settings.ioport.invert_out.mask >> port) & 0x01) ? !on : on);
+    if(port < aux_n_out)
+        DIGITAL_OUT((*(aux_out[port].port)), ((settings.ioport.invert_out.mask >> port) & 0x01) ? !on : on);
 }
 
 inline static __attribute__((always_inline)) int32_t get_input (gpio_t *gpio, bool invert, wait_mode_t wait_mode, float timeout)
@@ -130,8 +132,8 @@ static int32_t wait_on_input (bool digital, uint8_t port, wait_mode_t wait_mode,
     int32_t value = -1;
 
     if(digital) {
-        if(port < hal.port.num_digital_in)
-            value = get_input(stx[port].port, (settings.ioport.invert_in.mask << port) & 0x01, wait_mode, timeout);
+        if(port < aux_n_in)
+            value = get_input(aux_in[port].port, (settings.ioport.invert_in.mask << port) & 0x01, wait_mode, timeout);
     }
 //    else if(port == 0)
 //        value = analogRead(41);
@@ -145,29 +147,31 @@ static int32_t wait_on_input (bool digital, uint8_t port, wait_mode_t wait_mode,
     return value;
 }
 
-void board_init (pin_group_pins_t *aux_inputs)
+void board_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs)
 {
-    stx = aux_inputs->pins;
+    aux_in = aux_inputs->pins.inputs;
+    aux_out = aux_outputs->pins.outputs;
 
-    hal.port.digital_out = digital_out;
     hal.port.wait_on_input = wait_on_input;
-//    hal.port.num_analog_in  = 1;
-    hal.port.num_digital_in = aux_inputs->n_pins;
-    hal.port.num_digital_out = AUX_N_OUT;
+    hal.port.digital_out = digital_out;
+    hal.port.num_digital_in = aux_n_in = aux_inputs->n_pins;
+    hal.port.num_digital_out = aux_n_out = aux_outputs->n_pins;
 
     details.on_get_settings = grbl.on_get_settings;
     grbl.on_get_settings = on_get_settings;
 
-    uint32_t i;
+    uint_fast8_t i;
 
-    for(i = 0; i < hal.port.num_digital_in; i++) {
+    for(i = 0; i < min(hal.port.num_digital_in, 8); i++) {
         strcat(input_ports, i == 0 ? "Port " : ",Port ");
         strcat(input_ports, uitoa(i));
     }
 
-    pinModeOutput(&aux_out[0], AUXOUTPUT0_PIN);
-    pinModeOutput(&aux_out[1], AUXOUTPUT1_PIN);
-    pinModeOutput(&aux_out[2], AUXOUTPUT2_PIN);
+    for(i = 0; i < min(hal.port.num_digital_out, 8) ; i++) {
+        out.mask = (out.mask << 1) | 1;
+        strcat(output_ports, i == 0 ? "Port " : ",Port ");
+        strcat(output_ports, uitoa(i));
+    }
 
 //    analog_init();
 }

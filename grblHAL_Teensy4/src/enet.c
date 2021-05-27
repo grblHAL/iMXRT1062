@@ -36,6 +36,7 @@
 #include "grbl/report.h"
 #include "grbl/nvs_buffer.h"
 
+#include "networking/ftpd.h"
 #include "networking/TCPStream.h"
 #include "networking/WsStream.h"
 
@@ -50,9 +51,12 @@ static void report_options (bool newopt)
 {
     on_report_options(newopt);
 
-    if(newopt)
+    if(newopt) {
         hal.stream.write(",ETH");
-    else {
+#if FTP_ENABLE
+        hal.stream.write(",FTP");
+#endif
+    } else {
         hal.stream.write("[IP:");
         hal.stream.write(IPAddress);
         hal.stream.write("]" ASCII_EOL);
@@ -81,6 +85,13 @@ static void netif_status_callback (struct netif *netif)
     }
 #endif
 
+#if FTP_ENABLE
+    if(network.services.ftp && !services.ftp) {
+        ftpd_init();
+        services.ftp = On;
+    }
+#endif
+
 #if WEBSOCKET_ENABLE
     if(network.services.websocket && !services.websocket) {
         WsStreamInit();
@@ -105,7 +116,11 @@ void grbl_enet_poll (void)
         if(services.telnet)
           TCPStreamPoll();
 #endif
-    #if WEBSOCKET_ENABLE
+#if FTP_ENABLE
+        if(services.ftp)
+            ftpd_poll();
+#endif
+#if WEBSOCKET_ENABLE
         if(services.websocket)
           WsStreamPoll();
 #endif
@@ -159,15 +174,27 @@ static const setting_group_detail_t ethernet_groups [] = {
     { Group_Root, Group_Networking, "Networking" }
 };
 
+#if TELNET_ENABLE && WEBSOCKET_ENABLE && FTP_ENABLE
+static const char netservices[] = "Telnet,Websocket,FTP";
+static const char servicemap[] = "11";
+#endif
 #if TELNET_ENABLE && WEBSOCKET_ENABLE && HTTP_ENABLE
 static const char netservices[] = "Telnet,Websocket,HTTP";
+static const char servicemap[] = "7";
 #endif
-#if TELNET_ENABLE && WEBSOCKET_ENABLE && !HTTP_ENABLE
+#if TELNET_ENABLE && WEBSOCKET_ENABLE && !FTP_ENABLE && !HTTP_ENABLE
 static const char netservices[] = "Telnet,Websocket";
+static const char servicemap[] = "2";
 #endif
 #if TELNET_ENABLE && !WEBSOCKET_ENABLE && !HTTP_ENABLE
 static const char netservices[] = "Telnet";
+static const char servicemap[] = "1";
 #endif
+
+static const network_services_t aserv = {
+    .telnet = 1,
+    .ftp = 1
+};
 
 PROGMEM static const setting_detail_t ethernet_settings[] = {
     { Setting_NetworkServices, Group_Networking, "Network Services", NULL, Format_Bitfield, netservices, NULL, NULL, Setting_NonCore, &ethernet.services.mask, NULL, NULL },
@@ -289,6 +316,10 @@ void ethernet_settings_restore (void)
 
 #if TELNET_ENABLE
     ethernet.services.telnet = On;
+#endif
+
+#if FTP_ENABLE
+    ethernet.services.ftp = On;
 #endif
 
 #if HTTP_ENABLE

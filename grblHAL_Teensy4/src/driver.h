@@ -284,8 +284,18 @@ typedef struct {
 } input_signal_t;
 
 typedef struct {
+    pin_function_t id;
+    gpio_t *port;
+    uint8_t pin;
+    pin_group_t group;
+} output_signal_t;
+
+typedef struct {
     uint8_t n_pins;
-    input_signal_t *pins;
+    union {
+        input_signal_t *inputs;
+        output_signal_t *outputs;
+    } pins;
 } pin_group_pins_t;
 
 // The following struct is pulled from the Teensy Library core, Copyright (c) 2019 PJRC.COM, LLC.
@@ -304,7 +314,7 @@ void pinModeOutput (gpio_t *gpio, uint8_t pin);
 uint32_t xTaskGetTickCount();
 
 #ifdef HAS_BOARD_INIT
-void board_init(pin_group_pins_t *aux_inputs);
+void board_init(pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs);
 #endif
 
 #ifdef UART_DEBUG

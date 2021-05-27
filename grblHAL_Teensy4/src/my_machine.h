@@ -69,6 +69,7 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 
 #if ETHERNET_ENABLE > 0
 #define TELNET_ENABLE           1 // Telnet daemon - requires Ethernet streaming enabled.
+#define FTP_ENABLE              0 // Ftp daemon - requires SD card enabled. !!DO NOT ENABLE - there is a bug in the FatFS library that has to be fixed first!!
 #define WEBSOCKET_ENABLE        1 // Websocket daemon - requires Ethernet streaming enabled.
 #define NETWORK_HOSTNAME        "GRBL"
 #define NETWORK_IPMODE          1 // 0 = static, 1 = DHCP, 2 = AutoIP
