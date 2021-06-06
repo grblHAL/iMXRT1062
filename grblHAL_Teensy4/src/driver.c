@@ -507,43 +507,11 @@ static void enetStreamWriteS (const char *data)
         WsStreamWriteS(data);
 #endif
 #if USB_SERIAL_CDC
-    if(!(services.telnet || services.websocket)) // TODO: check if usb connection is up?
-        usb_serialWriteS(data);
+    usb_serialWriteS(data);
 #else
     serialWriteS(data);
 #endif
 }
-
-  #if TELNET_ENABLE
-    const io_stream_t ethernet_stream = {
-        .type = StreamType_Telnet,
-        .read = TCPStreamGetC,
-        .write = TCPStreamWriteS,
-        .write_all = enetStreamWriteS,
-        .write_char = TCPStreamPutC,
-        .get_rx_buffer_available = TCPStreamRxFree,
-        .reset_read_buffer = TCPStreamRxFlush,
-        .cancel_read_buffer = TCPStreamRxCancel,
-        .suspend_read = TCPStreamSuspendInput,
-        .enqueue_realtime_command = protocol_enqueue_realtime_command
-    };
-  #endif
-
-  #if WEBSOCKET_ENABLE
-    const io_stream_t websocket_stream = {
-        .type = StreamType_WebSocket,
-        .read = WsStreamGetC,
-        .write = WsStreamWriteS,
-        .write_all = enetStreamWriteS,
-        .write_char = WsStreamPutC,
-        .get_rx_buffer_available = WsStreamRxFree,
-        .reset_read_buffer = WsStreamRxFlush,
-        .cancel_read_buffer = WsStreamRxCancel,
-        .suspend_read = WsStreamSuspendInput,
-        .enqueue_realtime_command = protocol_enqueue_realtime_command
-    };
-  #endif
-
 #endif // ETHERNET_ENABLE
 
 #if USB_SERIAL_CDC
@@ -615,32 +583,50 @@ static void driver_delay_ms (uint32_t ms, delay_callback_ptr callback)
     }
 }
 
-void selectStream (stream_type_t stream)
+static bool selectStream (const io_stream_t *stream)
 {
+    static bool serial_connected = false;
     static stream_type_t active_stream = StreamType_Serial;
 
-    switch(stream) {
+   if(hal.stream.type == StreamType_Serial)
+        serial_connected = hal.stream.connected;
+
+    if(!stream)
+        stream = &serial_stream;
+
+    memcpy(&hal.stream, stream, sizeof(io_stream_t));
+
+#if ETHERNET_ENABLE
+    if(!hal.stream.write_all)
+        hal.stream.write_all = serial_connected ? enetStreamWriteS : hal.stream.write;
+#else
+    if(!hal.stream.write_all)
+        hal.stream.write_all = hal.stream.write;
+#endif
+
+    if(!hal.stream.enqueue_realtime_command)
+        hal.stream.enqueue_realtime_command = protocol_enqueue_realtime_command;
+
+    switch(stream->type) {
 
 #if TELNET_ENABLE
         case StreamType_Telnet:
-            hal.stream.write_all("[MSG:TELNET STREAM ACTIVE]" ASCII_EOL);
-            memcpy(&hal.stream, &ethernet_stream, sizeof(io_stream_t));
             services.telnet = On;
+            hal.stream.write_all("[MSG:TELNET STREAM ACTIVE]" ASCII_EOL);
             break;
 #endif
 #if WEBSOCKET_ENABLE
         case StreamType_WebSocket:
-            hal.stream.write_all("[MSG:WEBSOCKET STREAM ACTIVE]" ASCII_EOL);
-            memcpy(&hal.stream, &websocket_stream, sizeof(io_stream_t));
             services.websocket = On;
+            hal.stream.write_all("[MSG:WEBSOCKET STREAM ACTIVE]" ASCII_EOL);
             break;
 #endif
         case StreamType_Serial:
-            memcpy(&hal.stream, &serial_stream, sizeof(io_stream_t));
 #if ETHERNET_ENABLE
             services.mask = 0;
 #endif
-            if(active_stream != StreamType_Serial)
+            hal.stream.connected = serial_connected;
+            if(active_stream != StreamType_Serial && hal.stream.connected)
                 hal.stream.write_all("[MSG:SERIAL STREAM ACTIVE]" ASCII_EOL);
             break;
 
@@ -648,7 +634,9 @@ void selectStream (stream_type_t stream)
             break;
     }
 
-    active_stream = stream;
+    active_stream = hal.stream.type;
+
+    return stream->type == hal.stream.type;
 }
 
 // Set stepper pulse output pins.
@@ -1778,6 +1766,36 @@ static void settings_changed (settings_t *settings)
     }
 }
 
+static void enumeratePins (bool low_level, pin_info_ptr pin_info)
+{
+    static xbar_t pin = {0};
+    uint32_t i = sizeof(inputpin) / sizeof(input_signal_t);
+
+    pin.mode.input = On;
+
+    for(i = 0; i < sizeof(inputpin) / sizeof(input_signal_t); i++) {
+        pin.pin = inputpin[i].pin;
+        pin.function = inputpin[i].id;
+        pin.group = inputpin[i].group;
+//        pin.port = low_level ? (void *)inputpin[i].port : (void *)port2char(inputpin[i].port);
+        pin.mode.pwm = pin.group == PinGroup_SpindlePWM;
+
+        pin_info(&pin);
+    };
+
+    pin.mode.mask = 0;
+    pin.mode.output = On;
+
+    for(i = 0; i < sizeof(outputpin) / sizeof(output_signal_t); i++) {
+        pin.pin = outputpin[i].pin;
+        pin.function = outputpin[i].id;
+        pin.group = outputpin[i].group;
+//        pin.port = low_level ? (void *)outputpin[i].port : (void *)port2char(outputpin[i].port);
+
+        pin_info(&pin);
+    };
+}
+
 void pinModeOutput (gpio_t *gpio, uint8_t pin)
 {
     pinMode(pin, OUTPUT);
@@ -2147,7 +2165,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "210526";
+    hal.driver_version = "210605";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -2201,13 +2219,14 @@ bool driver_init (void)
     grbl.on_report_options = reportIP;
 #endif
 
+    hal.stream_select = selectStream;
+    hal.stream_select(&serial_stream);
+
 #if USB_SERIAL_CDC
     usb_serialInit();
 #else
     serialInit(115200);
 #endif
-
-    selectStream(StreamType_Serial);
 
 #ifdef I2C_PORT
     i2c_init();
@@ -2229,6 +2248,7 @@ bool driver_init (void)
     hal.clear_bits_atomic = bitsClearAtomic;
     hal.set_value_atomic = valueSetAtomic;
     hal.get_elapsed_ticks = millis;
+    hal.enumerate_pins = enumeratePins;
 
 #if ETHERNET_ENABLE || ADD_MSEVENT
     grbl.on_execute_realtime = execute_realtime;
@@ -2474,7 +2494,7 @@ inline static input_signal_t *get_debounce (void)
 
 static void debounce_isr (void)
 {
-    uint8_t grp = 0;
+    uint32_t grp = 0;
     input_signal_t *signal;
 
     TMR3_CSCTRL0 &= ~TMR_CSCTRL_TCF1;
@@ -2512,8 +2532,7 @@ static void debounce_isr (void)
 static void gpio_isr (void)
 {
     bool debounce = false;
-    uint8_t grp = 0;
-    uint32_t intr_status[4];
+    uint32_t grp = 0, intr_status[4];
 
     // Get masked interrupt status
     intr_status[0] = ((gpio_reg_t *)&GPIO6_DR)->ISR & ((gpio_reg_t *)&GPIO6_DR)->IMR;
@@ -2566,9 +2585,8 @@ static void gpio_isr (void)
         }
     } while(i);
 
-    if(debounce) {
+    if(debounce)
         TMR3_CTRL0 |= TMR_CTRL_CM(0b001); 
-    }
 
     if(grp & PinGroup_Limit) {
         limit_signals_t state = limitsGetState();

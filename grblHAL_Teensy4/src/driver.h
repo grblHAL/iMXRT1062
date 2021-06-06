@@ -51,35 +51,6 @@
 #ifndef USB_SERIAL_WAIT
 #define USB_SERIAL_WAIT     0
 #endif
-#ifndef PLASMA_ENABLE
-#define PLASMA_ENABLE       0
-#endif
-#ifndef PPI_ENABLE
-#define PPI_ENABLE          0
-#endif
-#ifndef SPINDLE_HUANYANG
-#define SPINDLE_HUANYANG    0
-#endif
-#ifndef QEI_ENABLE
-#define QEI_ENABLE          0
-#endif
-#ifndef ODOMETER_ENABLE
-#define ODOMETER_ENABLE     0
-#endif
-#ifndef OPENPNP_ENABLE
-#define OPENPNP_ENABLE      0
-#endif
-
-#ifndef ETHERNET_ENABLE
-#define ETHERNET_ENABLE     0
-#endif
-#ifndef TELNET_ENABLE
-#define TELNET_ENABLE       0
-#endif
-#ifndef WEBSOCKET_ENABLE
-#define WEBSOCKET_ENABLE    0
-#endif
-
 #ifndef SDCARD_ENABLE
 #define SDCARD_ENABLE       0
 #endif
@@ -104,6 +75,24 @@
 #ifndef TRINAMIC_DEV
 #define TRINAMIC_DEV        0
 #endif
+#ifndef PLASMA_ENABLE
+#define PLASMA_ENABLE       0
+#endif
+#ifndef PPI_ENABLE
+#define PPI_ENABLE          0
+#endif
+#ifndef SPINDLE_HUANYANG
+#define SPINDLE_HUANYANG    0
+#endif
+#ifndef QEI_ENABLE
+#define QEI_ENABLE          0
+#endif
+#ifndef ODOMETER_ENABLE
+#define ODOMETER_ENABLE     0
+#endif
+#ifndef OPENPNP_ENABLE
+#define OPENPNP_ENABLE      0
+#endif
 
 #ifndef ESTOP_ENABLE
   #if COMPATIBILITY_LEVEL <= 1
@@ -113,6 +102,22 @@
   #endif
 #elif ESTOP_ENABLE && COMPATIBILITY_LEVEL > 1
   #warning "Enabling ESTOP may not work with all senders!"
+#endif
+
+#ifndef ETHERNET_ENABLE
+#define ETHERNET_ENABLE     0
+#endif
+#ifndef TELNET_ENABLE
+#define TELNET_ENABLE       0
+#endif
+#ifndef WEBSOCKET_ENABLE
+#define WEBSOCKET_ENABLE    0
+#endif
+#ifndef FTP_ENABLE
+#define FTP_ENABLE          0
+#elif !SDCARD_ENABLE
+#undef FTP_ENABLE
+#define FTP_ENABLE          0
 #endif
 
 #if ETHERNET_ENABLE
@@ -309,7 +314,6 @@ typedef struct {
 
 //
 
-void selectStream (stream_type_t stream);
 void pinModeOutput (gpio_t *gpio, uint8_t pin);
 uint32_t xTaskGetTickCount();
 

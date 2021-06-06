@@ -231,6 +231,7 @@ uint16_t format = 0;
     if ( format & 0x100) UART.port->BAUD |= LPUART_BAUD_SBNS;
 
 //transmitterEnable(1);
+    hal.stream.connected = true;
 }
 
 bool serialSetBaudRate (uint32_t baud_rate)

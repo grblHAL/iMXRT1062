@@ -48,6 +48,8 @@ void usb_serialInit(void)
 
 #if USB_SERIAL_WAIT
     while(!SerialUSB); // Wait for connection
+
+    hal.stream.connected = true;
 #endif
 
     txbuf.max_length = SerialUSB.availableForWrite(); // 6144 bytes
