@@ -29,7 +29,13 @@ to
 
 `#define USE_MSC 0	// will be used in sd_msc.cpp`
 
-or add the MSC library as well \(not needed\).
+or add the MSC library as well \(not needed\). 2021-06-08: This is now changed in the latest version.
+
+**NOTE:**
+
+If enabling ftp transfer to the SD card then [utility/sd_sdhc.c](https://github.com/WMXZ-EU/uSDFS/blob/master/src/utility/sd_sdhc.c) has to be replaced with [this patched](patches/sd_sdhc.zip) version \(zip download\).  
+I submitted a PR for this but it was rejected with no explanation, this is why I have added it here. The maintainer has made a similar change but that does not fix the underlying issue, and it may even crash the controller.  
+In addition to this [ffconf.h](https://github.com/WMXZ-EU/uSDFS/blob/master/src/ffconf.h) has to be edited, `#define FF_FS_RPATH` value has to be changed to 2 \(from 1\) or you will get a compiler error.
 
 ---
 
@@ -50,4 +56,4 @@ Download the libraries above as zip files and add to your Arduino installation w
 <sup>3</sup> Number of digital input pins available is reduced when the [Encoder plugin](https://github.com/grblHAL/Plugin_encoder/blob/master/README.md) is added to the build.
 
 ---
-2021-05-09
+2021-06-08

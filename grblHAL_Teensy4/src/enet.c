@@ -36,16 +36,15 @@
 #include "grbl/report.h"
 #include "grbl/nvs_buffer.h"
 
-#include "networking/ftpd.h"
-#include "networking/TCPStream.h"
-#include "networking/WsStream.h"
+#include "networking/networking.h"
 
 static volatile bool linkUp = false;
 static char IPAddress[IP4ADDR_STRLEN_MAX];
-static network_services_t services = {0};
+static network_services_t services = {0}, allowed_services;
 static nvs_address_t nvs_address;
 static network_settings_t ethernet, network;
-static on_report_options_ptr on_report_options;
+static on_report_options_ptr on_report_options;;
+static char netservices[30] = ""; // must be large enough to hold all service names
 
 static void report_options (bool newopt)
 {
@@ -169,35 +168,15 @@ static void ethernet_settings_load (void);
 static void ethernet_settings_restore (void);
 static status_code_t ethernet_set_ip (setting_id_t setting, char *value);
 static char *ethernet_get_ip (setting_id_t setting);
+static status_code_t ethernet_set_services (setting_id_t setting, uint_fast16_t int_value);
+static uint32_t ethernet_get_services (setting_id_t id);
 
 static const setting_group_detail_t ethernet_groups [] = {
     { Group_Root, Group_Networking, "Networking" }
 };
 
-#if TELNET_ENABLE && WEBSOCKET_ENABLE && FTP_ENABLE
-static const char netservices[] = "Telnet,Websocket,FTP";
-static const char servicemap[] = "11";
-#endif
-#if TELNET_ENABLE && WEBSOCKET_ENABLE && HTTP_ENABLE
-static const char netservices[] = "Telnet,Websocket,HTTP";
-static const char servicemap[] = "7";
-#endif
-#if TELNET_ENABLE && WEBSOCKET_ENABLE && !FTP_ENABLE && !HTTP_ENABLE
-static const char netservices[] = "Telnet,Websocket";
-static const char servicemap[] = "2";
-#endif
-#if TELNET_ENABLE && !WEBSOCKET_ENABLE && !HTTP_ENABLE
-static const char netservices[] = "Telnet";
-static const char servicemap[] = "1";
-#endif
-
-static const network_services_t aserv = {
-    .telnet = 1,
-    .ftp = 1
-};
-
 PROGMEM static const setting_detail_t ethernet_settings[] = {
-    { Setting_NetworkServices, Group_Networking, "Network Services", NULL, Format_Bitfield, netservices, NULL, NULL, Setting_NonCore, &ethernet.services.mask, NULL, NULL },
+    { Setting_NetworkServices, Group_Networking, "Network Services", NULL, Format_Bitfield, netservices, NULL, NULL, Setting_NonCoreFn, ethernet_set_services, ethernet_get_services, NULL },
     { Setting_Hostname, Group_Networking, "Hostname", NULL, Format_String, "x(64)", NULL, "64", Setting_NonCore, ethernet.hostname, NULL, NULL },
     { Setting_IpMode, Group_Networking, "IP Mode", NULL, Format_RadioButtons, "Static,DHCP,AutoIP", NULL, NULL, Setting_NonCore, &ethernet.ip_mode, NULL, NULL },
     { Setting_IpAddress, Group_Networking, "IP Address", NULL, Format_IPv4, NULL, NULL, NULL, Setting_NonCoreFn, ethernet_set_ip, ethernet_get_ip, NULL },
@@ -287,6 +266,18 @@ static char *ethernet_get_ip (setting_id_t setting)
     return ip;
 }
 
+static status_code_t ethernet_set_services (setting_id_t setting, uint_fast16_t int_value)
+{
+    ethernet.services.mask = int_value & allowed_services.mask;
+
+    return Status_OK;
+}
+
+static uint32_t ethernet_get_services (setting_id_t id)
+{
+    return (uint32_t)ethernet.services.mask;
+}
+
 void ethernet_settings_restore (void)
 {
     strcpy(ethernet.hostname, NETWORK_HOSTNAME);
@@ -309,26 +300,10 @@ void ethernet_settings_restore (void)
         set_addr(ethernet.mask, &addr);
 #endif
 
-    ethernet.services.mask = 0;
     ethernet.telnet_port = NETWORK_TELNET_PORT;
     ethernet.http_port = NETWORK_HTTP_PORT;
     ethernet.websocket_port = NETWORK_WEBSOCKET_PORT;
-
-#if TELNET_ENABLE
-    ethernet.services.telnet = On;
-#endif
-
-#if FTP_ENABLE
-    ethernet.services.ftp = On;
-#endif
-
-#if HTTP_ENABLE
-    ethernet.services.http = On;
-#endif
-
-#if WEBSOCKET_ENABLE
-    ethernet.services.websocket = On;
-#endif
+    ethernet.services.mask = allowed_services.mask;
 
     hal.nvs.memcpy_to_nvs(nvs_address, (uint8_t *)&ethernet, sizeof(network_settings_t), true);
 }
@@ -337,6 +312,8 @@ static void ethernet_settings_load (void)
 {
     if(hal.nvs.memcpy_from_nvs((uint8_t *)&ethernet, nvs_address, sizeof(network_settings_t), true) != NVS_TransferResult_OK)
         ethernet_settings_restore();
+
+    ethernet.services.mask &= allowed_services.mask;
 }
 
 bool grbl_enet_init (network_settings_t *settings)
@@ -348,6 +325,8 @@ bool grbl_enet_init (network_settings_t *settings)
 
         details.on_get_settings = grbl.on_get_settings;
         grbl.on_get_settings = on_get_settings;
+
+        allowed_services.mask = networking_get_services_list((char *)netservices).mask;
     }
 
     return nvs_address != 0;
