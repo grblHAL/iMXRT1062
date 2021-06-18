@@ -38,17 +38,32 @@
 #define EEPROM_ENABLE   1
 #define EEPROM_IS_FRAM  1
 
-// Default pin assignments allow only one axis to be ganged or auto squared.
-// B axis pin numbers are used for the ganged/auto squared axis.
-// If a second axis is to be ganged/auto squared pin assignments needs to be changed!
-// Set to 1 to enable, 0 to disable.
-#define X_GANGED        1
-#define X_AUTO_SQUARE   1
-#define Y_GANGED        0
-#define Y_AUTO_SQUARE   0
-#define Z_GANGED        0
-#define Z_AUTO_SQUARE   0
+// Default pin assignments set the X axis ganged to the B axis
+//  If Y_GANGED / Y_AUTO_SQUARE is set, B pins will be used for the second axis
+//  If X_GANGED / X_AUTO_SQUARE is set, B pins will be used for the second axis
+//  If Z_GANGED / Z_AUTO_SQUARE is set, B pins will be used for the second axis
 //
+// If alternate behavior is desired, edit the pin mapping accordingly
+//
+// Set to 1 to enable, 0 to disable.
+#ifndef X_GANGED
+#define X_GANGED        1
+#endif
+#ifndef X_AUTO_SQUARE
+#define X_AUTO_SQUARE   1
+#endif
+#ifndef Y_GANGED
+#define Y_GANGED        0
+#endif
+#ifndef Y_AUTO_SQUARE
+#define Y_AUTO_SQUARE   0
+#endif
+#ifndef Z_GANGED
+#define Z_GANGED        0
+#endif
+#ifndef Z_AUTO_SQUARE
+#define Z_AUTO_SQUARE   0
+#endif
 
 #define X_STEP_PIN      (2u)
 #define X_DIRECTION_PIN (3u)
