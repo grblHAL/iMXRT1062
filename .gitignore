@@ -25,6 +25,9 @@ $RECYCLE.BIN/
 # Build folder
 
 build
+.pio*
+.pioenvs
+.piolibdeps
 
 #
 # =========================
