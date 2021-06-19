@@ -35,9 +35,13 @@
 #error Spindle sync is not supported for T40X101
 #endif
 
-// Default pin assignments allow only one axis to be ganged or auto squared.
-// A axis pin numbers are used for the ganged/auto squared axis.
-// If a second axis is to be ganged/auto squared pin assignments needs to be changed!
+// Default pin assignments set each axis to operate independently
+//  If Y_GANGED / Y_AUTO_SQUARE is set, A pins will be used for the second axis
+//  If X_GANGED / X_AUTO_SQUARE is set, A pins will be used for the second axis
+//  If Z_GANGED / Z_AUTO_SQUARE is set, A pins will be used for the second axis
+//
+// If alternate behavior is desired, edit the pin mapping accordingly
+//
 // Set to 1 to enable, 0 to disable.
 #define X_GANGED        0
 #define X_AUTO_SQUARE   0
@@ -45,7 +49,6 @@
 #define Y_AUTO_SQUARE   0
 #define Z_GANGED        0
 #define Z_AUTO_SQUARE   0
-//
 
 #define X_STEP_PIN      (2u)
 #define X_DIRECTION_PIN (3u)
