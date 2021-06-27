@@ -39,36 +39,20 @@ extern "C" {
 static stream_block_tx_buffer_t txbuf = {0};
 static char rxbuf[BLOCK_RX_BUFFER_SIZE];
 static stream_rx_buffer_t usb_rxbuffer;
-
-void usb_serialInit(void)
-{
-    txbuf.s = txbuf.data;
-
-    SerialUSB.begin(BAUD_RATE);
-
-#if USB_SERIAL_WAIT
-    while(!SerialUSB); // Wait for connection
-
-    hal.stream.connected = true;
-#endif
-
-    txbuf.max_length = SerialUSB.availableForWrite(); // 6144 bytes
-    txbuf.max_length = (txbuf.max_length > BLOCK_TX_BUFFER_SIZE ? BLOCK_TX_BUFFER_SIZE : txbuf.max_length) - 20;
-}
-
+/*
 //
 // Returns number of characters in serial input buffer
 //
-uint16_t usb_serialRxCount (void)
+static uint16_t usb_serialRxCount (void)
 {
     uint_fast16_t tail = usb_rxbuffer.tail, head = usb_rxbuffer.head;
     return (uint16_t)BUFCOUNT(head, tail, RX_BUFFER_SIZE);
 }
-
+*/
 //
 // Returns number of free characters in serial input buffer
 //
-uint16_t usb_serialRxFree (void)
+static uint16_t usb_serialRxFree (void)
 {
     uint_fast16_t tail = usb_rxbuffer.tail, head = usb_rxbuffer.head;
     return (uint16_t)((RX_BUFFER_SIZE - 1) - BUFCOUNT(head, tail, RX_BUFFER_SIZE));
@@ -86,7 +70,7 @@ void usb_serialRxFlush (void)
 //
 // Flushes and adds a CAN character to the serial input buffer
 //
-void usb_serialRxCancel (void)
+static void usb_serialRxCancel (void)
 {
     usb_rxbuffer.data[usb_rxbuffer.head] = CMD_RESET;
     usb_rxbuffer.tail = usb_rxbuffer.head;
@@ -96,7 +80,7 @@ void usb_serialRxCancel (void)
 //
 // Writes a character to the serial output stream
 //
-bool usb_serialPutC (const char c)
+static bool usb_serialPutC (const char c)
 {
     SerialUSB.write(c);
 
@@ -108,7 +92,7 @@ bool usb_serialPutC (const char c)
 // Buffers locally up to 40 characters or until the string is terminated with a ASCII_LF character.
 // NOTE: grbl always sends ASCII_LF terminated strings!
 //
-void usb_serialWriteS (const char *s)
+static void usb_serialWriteS (const char *s)
 {
     if(*s == '\0')
         return;
@@ -148,11 +132,11 @@ void usb_serialWriteS (const char *s)
         }
     }
 }
-
+/*
 //
 // Writes a null terminated string to the serial output stream followed by EOL, blocks if buffer full
 //
-void usb_serialWriteLn (const char *s)
+static void usb_serialWriteLn (const char *s)
 {
     usb_serialWriteS(s);
     usb_serialWriteS(ASCII_EOL);
@@ -161,18 +145,18 @@ void usb_serialWriteLn (const char *s)
 //
 // Writes a number of characters from string to the serial output stream followed by EOL, blocks if buffer full
 //
-void usb_serialWrite (const char *s, uint16_t length)
+static void usb_serialWrite (const char *s, uint16_t length)
 {
     char *ptr = (char *)s;
 
     while(length--)
         usb_serialPutC(*ptr++);
 }
-
+*/
 //
 // serialGetC - returns -1 if no data available
 //
-int16_t usb_serialGetC (void)
+static int16_t usb_serialGetC (void)
 {
     uint16_t bptr = usb_rxbuffer.tail;
 
@@ -185,10 +169,42 @@ int16_t usb_serialGetC (void)
     return (int16_t)data;
 }
 
-bool usb_serialSuspendInput (bool suspend)
+static bool usb_serialSuspendInput (bool suspend)
 {
     return stream_rx_suspend(&usb_rxbuffer, suspend);
 }
+
+const io_stream_t *usb_serialInit (void)
+{
+    PROGMEM static const io_stream_t stream = {
+        .type = StreamType_Serial,
+        .connected = false,
+        .get_rx_buffer_free = usb_serialRxFree,
+        .write = usb_serialWriteS,
+        .write_all = usb_serialWriteS,
+        .write_char = usb_serialPutC,
+        .read = usb_serialGetC,
+        .reset_read_buffer = usb_serialRxFlush,
+        .cancel_read_buffer = usb_serialRxCancel,
+        .suspend_read = usb_serialSuspendInput
+    };
+
+    txbuf.s = txbuf.data;
+
+    SerialUSB.begin(BAUD_RATE);
+
+#if USB_SERIAL_WAIT
+    while(!SerialUSB); // Wait for connection
+
+    hal.stream.connected = true;
+#endif
+
+    txbuf.max_length = SerialUSB.availableForWrite(); // 6144 bytes
+    txbuf.max_length = (txbuf.max_length > BLOCK_TX_BUFFER_SIZE ? BLOCK_TX_BUFFER_SIZE : txbuf.max_length) - 20;
+
+    return &stream;
+}
+
 
 //
 // This function get called from the systick interrupt handler,

@@ -19,38 +19,46 @@
   along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#if N_ABC_MOTORS > 2
+#error "Axis configuration is not supported!"
+#endif
+
 #if SPINDLE_SYNC_ENABLE
-#error Spindle sync is not supported
+#error "Spindle sync is not supported"
 #endif
 
 // Define step pulse output pins.
-#define X_STEP_PIN      (2u)
-#define Y_STEP_PIN      (4u)
-#define Z_STEP_PIN      (6u)
+#define X_STEP_PIN          (2u)
+#define Y_STEP_PIN          (4u)
+#define Z_STEP_PIN          (6u)
 
 // Define step direction output pins.
-#define X_DIRECTION_PIN (3u)
-#define Y_DIRECTION_PIN (5u)
-#define Z_DIRECTION_PIN (7u)
+#define X_DIRECTION_PIN     (3u)
+#define Y_DIRECTION_PIN     (5u)
+#define Z_DIRECTION_PIN     (7u)
 
 // Define stepper driver enable/disable output pin(s).
 #define STEPPERS_ENABLE_PIN (10u)
 
 // Define homing/hard limit switch input pins.
-#define X_LIMIT_PIN     (20u)
-#define Y_LIMIT_PIN     (21u)
-#define Z_LIMIT_PIN     (22u)
+#define X_LIMIT_PIN         (20u)
+#define Y_LIMIT_PIN         (21u)
+#define Z_LIMIT_PIN         (22u)
 
-#if N_AXIS > 3
-#define A_STEP_PIN      (8u)
-#define A_DIRECTION_PIN (9u)
-#define A_LIMIT_PIN     (23u)
+// Define ganged axis or A axis step pulse and step direction output pins.
+#if N_ABC_MOTORS > 0
+#define M3_AVAILABLE
+#define M3_STEP_PIN         (8u)
+#define M3_DIRECTION_PIN    (9u)
+#define M3_LIMIT_PIN        (23u)
 #endif
 
-#if N_AXIS > 4
-#define B_STEP_PIN      (26u)
-#define B_DIRECTION_PIN (27u)
-#define B_LIMIT_PIN     (28u)
+// Define ganged axis or B axis step pulse and step direction output pins.
+#if N_ABC_MOTORS == 2
+#define M4_AVAILABLE
+#define M4_STEP_PIN         (26u)
+#define M4_DIRECTION_PIN    (27u)
+#define M4_LIMIT_PIN        (28u)
 #endif
 
 // Define spindle enable and spindle direction output pins.

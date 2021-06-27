@@ -23,81 +23,49 @@
 
 #define BOARD_NAME "T40X101"
 
-#if N_AXIS > 4
-#error Max number of axes is 4 for T40X101
+#if N_ABC_MOTORS > 2
+#error "Axis configuration is not supported!"
 #endif
 
 #if QEI_ENABLE
-#error No pins available for encoder input!
+#error "No pins available for encoder input!"
 #endif
 
 #if SPINDLE_SYNC_ENABLE
-#error Spindle sync is not supported for T40X101
+#error "Spindle sync is not supported for T40X101!"
 #endif
 
-// Default pin assignments allow only one axis to be ganged or auto squared.
-// A axis pin numbers are used for the ganged/auto squared axis.
-// If a second axis is to be ganged/auto squared pin assignments needs to be changed!
-// Set to 1 to enable, 0 to disable.
-#define X_GANGED        0
-#define X_AUTO_SQUARE   0
-#define Y_GANGED        0
-#define Y_AUTO_SQUARE   0
-#define Z_GANGED        0
-#define Z_AUTO_SQUARE   0
-//
+#define X_STEP_PIN          (2u)
+#define X_DIRECTION_PIN     (3u)
+#define X_LIMIT_PIN         (20u)
 
-#define X_STEP_PIN      (2u)
-#define X_DIRECTION_PIN (3u)
-#define X_LIMIT_PIN     (20u)
+#define Y_STEP_PIN          (4u)
+#define Y_DIRECTION_PIN     (5u)
+#define Y_LIMIT_PIN         (21u)
 
-#if X_GANGED || X_AUTO_SQUARE
-#define X2_STEP_PIN      (8u)
-#define X2_DIRECTION_PIN (9u)
-#if X_AUTO_SQUARE
-  #define X2_LIMIT_PIN   (23u)
-#endif
+#define Z_STEP_PIN          (6u)
+#define Z_DIRECTION_PIN     (7u)
+#define Z_LIMIT_PIN         (22u)
+
+// Define ganged axis or A axis step pulse and step direction output pins.
+#if N_ABC_MOTORS > 0
+#define M3_AVAILABLE
+#define M3_STEP_PIN         (8u)
+#define M3_DIRECTION_PIN    (9u)
+#define M3_LIMIT_PIN        (23u)
 #endif
 
-#define Y_STEP_PIN      (4u)
-#define Y_DIRECTION_PIN (5u)
-#define Y_LIMIT_PIN     (21u)
-
-#if Y_GANGED || Y_AUTO_SQUARE
-#define Y2_STEP_PIN      (8u)
-#define Y2_DIRECTION_PIN (9u)
-#if Y_AUTO_SQUARE
-  #define Y2_LIMIT_PIN   (23u)
-#endif
-#endif
-
-#define Z_STEP_PIN      (6u)
-#define Z_DIRECTION_PIN (7u)
-#define Z_LIMIT_PIN     (22u)
-
-#if Z_GANGED || Z_AUTO_SQUARE
-#define Z2_STEP_PIN      (8u)
-#define Z2_DIRECTION_PIN (9u)
-#if Z_AUTO_SQUARE
-  #define Z2_LIMIT_PIN   (23u)
-#endif
-#endif
-
-#if N_AXIS > 3
-#define A_STEP_PIN      (8u)
-#define A_DIRECTION_PIN (9u)
-#define A_LIMIT_PIN     (23u)
-#endif
-
-#if N_AXIS > 4
-#define B_STEP_PIN      (26u)
-#define B_DIRECTION_PIN (27u)
-#define B_ENABLE_PIN    (37u)
-#define B_LIMIT_PIN     (28u)
+// Define ganged axis or B axis step pulse and step direction output pins.
+#if N_ABC_MOTORS == 2
+#define M4_AVAILABLE
+#define M4_STEP_PIN         (26u)
+#define M4_DIRECTION_PIN    (27u)
+#define M4_LIMIT_PIN        (28u)
+#define M4_ENABLE_PIN       (37u)
 #endif
 
 // Define stepper driver enable/disable output pin(s).
-#define STEPPERS_ENABLE_PIN     (10u)
+#define STEPPERS_ENABLE_PIN (10u)
 
 // Define spindle enable and spindle direction output pins.
 #define SPINDLE_ENABLE_PIN      (12u)

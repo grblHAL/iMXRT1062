@@ -38,13 +38,14 @@
 
 #include "networking/networking.h"
 
+static bool enet_started = false;
 static volatile bool linkUp = false;
 static char IPAddress[IP4ADDR_STRLEN_MAX];
 static network_services_t services = {0}, allowed_services;
 static nvs_address_t nvs_address;
 static network_settings_t ethernet, network;
 static on_report_options_ptr on_report_options;;
-static char netservices[30] = ""; // must be large enough to hold all service names
+static char netservices[40] = ""; // must be large enough to hold all service names
 
 static void report_options (bool newopt)
 {
@@ -105,6 +106,9 @@ void grbl_enet_poll (void)
     static uint32_t last_ms0, last_ms1;
     uint32_t ms;
 
+    if(!enet_started)
+        return;
+
     enet_proc_input();
 
     ms = millis();
@@ -154,6 +158,8 @@ bool grbl_enet_start (void)
     #endif
         if(network.ip_mode == IpMode_DHCP)
             dhcp_start(netif_default);
+
+        enet_started = true;
     }
 
     return nvs_address != 0;

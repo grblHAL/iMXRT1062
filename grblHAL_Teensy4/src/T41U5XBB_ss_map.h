@@ -23,84 +23,48 @@
   along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#define BOARD_NAME "T41U5XBB"
-#define HAS_BOARD_INIT
-
-#if N_AXIS > 5
-#error Max number of axes is 5 for T41U5XBB
+#if N_ABC_MOTORS > 2
+#error "Axis configuration is not supported!"
 #endif
 
 #if QEI_ENABLE && SPINDLE_SYNC_ENABLE
-#error Quadrature encoder and spindle sync cannot be enabled at the same time
+#error "Quadrature encoder and spindle sync cannot be enabled at the same time!"
 #endif
 
-// Default pin assignments allow only one axis to be ganged or auto squared.
-// B axis pin numbers are used for the ganged/auto squared axis.
-// If a second axis is to be ganged/auto squared pin assignments needs to be changed!
-// Set to 1 to enable, 0 to disable.
-#define X_GANGED        0
-#define X_AUTO_SQUARE   0
-#define Y_GANGED        0
-#define Y_AUTO_SQUARE   0
-#define Z_GANGED        0
-#define Z_AUTO_SQUARE   0
-//
+#define BOARD_NAME "T41U5XBB"
+#define HAS_IOPORTS
 
-#define X_STEP_PIN      (2u)
-#define X_DIRECTION_PIN (3u)
-#define X_ENABLE_PIN    (10u)
-#define X_LIMIT_PIN     (20u)
+#define X_STEP_PIN          (2u)
+#define X_DIRECTION_PIN     (3u)
+#define X_ENABLE_PIN        (10u)
+#define X_LIMIT_PIN         (20u)
 
-#if X_GANGED || X_AUTO_SQUARE
-#define X2_STEP_PIN      (26u)
-#define X2_DIRECTION_PIN (27u)
-#define X2_ENABLE_PIN    (37u)
-#if X_AUTO_SQUARE
-  #define X2_LIMIT_PIN   (28u)
-#endif
-#endif
+#define Y_STEP_PIN          (4u)
+#define Y_DIRECTION_PIN     (5u)
+#define Y_ENABLE_PIN        (40u)
+#define Y_LIMIT_PIN         (21u)
 
-#define Y_STEP_PIN      (4u)
-#define Y_DIRECTION_PIN (5u)
-#define Y_ENABLE_PIN    (40u)
-#define Y_LIMIT_PIN     (21u)
+#define Z_STEP_PIN          (6u)
+#define Z_DIRECTION_PIN     (7u)
+#define Z_ENABLE_PIN        (39u)
+#define Z_LIMIT_PIN         (22u)
 
-// Changed to use A pins rather than B pins
-#if Y_GANGED || Y_AUTO_SQUARE
-#define Y2_STEP_PIN      (8u)
-#define Y2_DIRECTION_PIN (9u)
-#define Y2_ENABLE_PIN    (38u)
-#if Y_AUTO_SQUARE
-  #define Y2_LIMIT_PIN   (23u)
-#endif
+// Define ganged axis or A axis step pulse and step direction output pins.
+#if N_ABC_MOTORS > 0
+#define M3_AVAILABLE
+#define M3_STEP_PIN         (8u)
+#define M3_DIRECTION_PIN    (9u)
+#define M3_LIMIT_PIN        (23u)
+#define M3_ENABLE_PIN       (38u)
 #endif
 
-#define Z_STEP_PIN      (6u)
-#define Z_DIRECTION_PIN (7u)
-#define Z_ENABLE_PIN    (39u)
-#define Z_LIMIT_PIN     (22u)
-
-#if Z_GANGED || Z_AUTO_SQUARE
-#define Z2_STEP_PIN      (26u)
-#define Z2_DIRECTION_PIN (27u)
-#define Z2_ENABLE_PIN    (37u)
-#if Z_AUTO_SQUARE
-  #define Z2_LIMIT_PIN   (28u)
-#endif
-#endif
-
-#if N_AXIS > 3
-#define A_STEP_PIN      (8u)
-#define A_DIRECTION_PIN (9u)
-#define A_ENABLE_PIN    (38u)
-#define A_LIMIT_PIN     (23u)
-#endif
-
-#if N_AXIS > 4
-#define B_STEP_PIN      (26u)
-#define B_DIRECTION_PIN (27u)
-#define B_ENABLE_PIN    (37u)
-#define B_LIMIT_PIN     (28u)
+// Define ganged axis or B axis step pulse and step direction output pins.
+#if N_ABC_MOTORS == 2
+#define M4_AVAILABLE
+#define M4_STEP_PIN         (26u)
+#define M4_DIRECTION_PIN    (27u)
+#define M4_LIMIT_PIN        (28u)
+#define M4_ENABLE_PIN       (37u)
 #endif
 
 // Define spindle enable and spindle direction output pins.

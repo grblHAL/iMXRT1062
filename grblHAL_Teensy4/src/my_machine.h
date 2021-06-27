@@ -51,10 +51,11 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 
 #define USB_SERIAL_CDC      2 // 1 for Arduino class library and 2 for PJRC C library. Comment out to use UART communication.
 //#define USB_SERIAL_WAIT     1 // Wait for USB connection before starting grblHAL.
+//#define BLUETOOTH_ENABLE   1 // Set to 1 for HC-05 module. Requires Bluetooth plugin.
 //#define SPINDLE_HUANYANG    1 // Set to 1 or 2 for Huanyang VFD spindle. Requires spindle plugin.
 //#define QEI_ENABLE          1 // Enable quadrature encoder interfaces. Max value is 1. Requires encoder plugin.
 //#define ETHERNET_ENABLE     1 // Ethernet streaming. Requires networking plugin.
-//#define SDCARD_ENABLE       2 // Run gcode programs from SD card, requires sdcard plugin.
+//#define SDCARD_ENABLE       1 // Run gcode programs from SD card, requires sdcard plugin.
 //#define KEYPAD_ENABLE       1 // I2C keypad for jogging etc., requires keypad plugin.
 //#define PLASMA_ENABLE       1 // Plasma/THC plugin. To be completed.
 //#define PPI_ENABLE          1 // Laser PPI plugin. To be completed.
@@ -67,9 +68,24 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 //#define ESTOP_ENABLE        0 // When enabled only real-time report requests will be executed when the reset pin is asserted.
                                 // Note: if left commented out the default setting is determined from COMPATIBILITY_LEVEL.
 
+// If the selected board map supports more than three motors ganging and/or auto-squaring
+// of axes can be enabled here.
+//#define X_GANGED            1
+//#define X_AUTO_SQUARE       1
+//#define Y_GANGED            1
+//#define Y_AUTO_SQUARE       1
+//#define Z_GANGED            1
+//#define Z_AUTO_SQUARE       1
+// For ganged axes the limit switch input (if available) can be configured to act as a max travel limit switch.
+// NOTE: If board map already has max limit inputs defined this configuration will be ignored.
+//#define X_GANGED_LIM_MAX    1
+//#define Y_GANGED_LIM_MAX    1
+//#define Z_GANGED_LIM_MAX    1
+//
+
 #if ETHERNET_ENABLE > 0
 #define TELNET_ENABLE           1 // Telnet daemon - requires Ethernet streaming enabled.
-#define FTP_ENABLE              0 // Ftp daemon - requires SD card enabled. !!DO NOT ENABLE - there is a bug in the FatFS library that has to be fixed first!!
+#define FTP_ENABLE              1 // Ftp daemon - requires SD card enabled.
 #define WEBSOCKET_ENABLE        1 // Websocket daemon - requires Ethernet streaming enabled.
 #define NETWORK_HOSTNAME        "GRBL"
 #define NETWORK_IPMODE          1 // 0 = static, 1 = DHCP, 2 = AutoIP

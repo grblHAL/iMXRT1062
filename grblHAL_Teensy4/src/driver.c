@@ -67,6 +67,10 @@ static void ppi_timeout_isr (void);
 #include "openpnp/openpnp.h"
 #endif
 
+#if BLUETOOTH_ENABLE
+#include "bluetooth/bluetooth.h"
+#endif
+
 #if ETHERNET_ENABLE
   #include "enet.h"
   #if TELNET_ENABLE
@@ -96,17 +100,7 @@ static void ppi_timeout_isr (void);
 
 #define F_BUS_MHZ (F_BUS_ACTUAL / 1000000)
 
-#if X_AUTO_SQUARE || Y_AUTO_SQUARE || Z_AUTO_SQUARE
-#define SQUARING_ENABLED
-#endif
-
-#if defined(X2_LIMIT_PIN) || defined(Y2_LIMIT_PIN) || defined(Z2_LIMIT_PIN) || defined(A2_LIMIT_PIN) || defined(B2_LIMIT_PIN)
-#define DUAL_LIMIT_SWITCHES
-#else
-  #ifdef SQUARING_ENABLED
-    #error "Squaring requires at least one axis with dual switch inputs!"
-  #endif
-#endif
+#include "grbl/motor_pins.h"
 
 typedef struct {
     volatile uint_fast8_t head;
@@ -224,6 +218,9 @@ static gpio_t QEI_A, QEI_B;
 #ifdef X2_LIMIT_PIN
   static gpio_t LimitX2;
 #endif
+#ifdef X_LIMIT_PIN_MAX
+  static gpio_t LimitXMax;
+#endif
 
 #ifdef Y2_STEP_PIN
   static gpio_t stepY2;
@@ -236,6 +233,9 @@ static gpio_t QEI_A, QEI_B;
 #endif
 #ifdef Y2_LIMIT_PIN
   static gpio_t LimitY2;
+#endif
+#ifdef Y_LIMIT_PIN_MAX
+  static gpio_t LimitYMax;
 #endif
 
 #ifdef Z2_STEP_PIN
@@ -250,6 +250,10 @@ static gpio_t QEI_A, QEI_B;
 #ifdef Z2_LIMIT_PIN
   static gpio_t LimitZ2;
 #endif
+#ifdef Z_LIMIT_PIN_MAX
+  static gpio_t LimitZMax;
+#endif
+
 #ifdef SPINDLE_INDEX_PIN
   static gpio_t SpindleIndex;
 #endif
@@ -295,15 +299,24 @@ input_signal_t inputpin[] = {
 // Limit input pins must be consecutive
     { .id = Input_LimitX,         .port = &LimitX,         .pin = X_LIMIT_PIN,         .group = PinGroup_Limit },
 #ifdef X2_LIMIT_PIN
-    { .id = Input_LimitX_Max,     .port = &LimitX2,        .pin = X2_LIMIT_PIN,        .group = PinGroup_Limit },
+    { .id = Input_LimitX_2,       .port = &LimitX2,        .pin = X2_LIMIT_PIN,        .group = PinGroup_Limit },
+#endif
+#ifdef X_LIMIT_PIN_MAX
+    { .id = Input_LimitX_Max,     .port = &LimitXMax,      .pin = X_LIMIT_PIN_MAX,     .group = PinGroup_Limit },
 #endif
     { .id = Input_LimitY,         .port = &LimitY,         .pin = Y_LIMIT_PIN,         .group = PinGroup_Limit },
 #ifdef Y2_LIMIT_PIN
-    { .id = Input_LimitY_Max,     .port = &LimitY2,        .pin = Y2_LIMIT_PIN,        .group = PinGroup_Limit },
+    { .id = Input_LimitY_2,       .port = &LimitY2,        .pin = Y2_LIMIT_PIN,        .group = PinGroup_Limit },
+#endif
+#ifdef Y_LIMIT_PIN_MAX
+    { .id = Input_LimitY_Max,     .port = &LimitYMax,      .pin = Y_LIMIT_PIN_MAX,     .group = PinGroup_Limit },
 #endif
     { .id = Input_LimitZ,         .port = &LimitZ,         .pin = Z_LIMIT_PIN,         .group = PinGroup_Limit }
 #ifdef Z2_LIMIT_PIN
-  , { .id = Input_LimitZ_Max,     .port = &LimitZ2,        .pin = Z2_LIMIT_PIN,        .group = PinGroup_Limit }
+  , { .id = Input_LimitZ_2,       .port = &LimitZ2,        .pin = Z2_LIMIT_PIN,        .group = PinGroup_Limit }
+#endif
+#ifdef Z_LIMIT_PIN_MAX
+  , { .id = Input_LimitZ_Max,     .port = &LimitZMax,      .pin = Z_LIMIT_PIN_MAX,     .group = PinGroup_Limit }
 #endif
 #ifdef A_LIMIT_PIN
   , { .id = Input_LimitA,         .port = &LimitA,         .pin = A_LIMIT_PIN,         .group = PinGroup_Limit }
@@ -471,10 +484,6 @@ static spindle_pwm_t spindle_pwm;
 static void spindle_set_speed (uint_fast16_t pwm_value);
 #endif
 
-#if MODBUS_ENABLE
-static modbus_stream_t modbus_stream = {0};
-#endif
-
 #if SPINDLE_SYNC_ENABLE
 
 #include "grbl/spindle_sync.h"
@@ -493,8 +502,11 @@ static void spindle_pulse_isr (void);
 
 #endif
 
+static const io_stream_t *serial_stream;
+
 #if ETHERNET_ENABLE
 static network_services_t services = {0};
+static stream_write_ptr write_serial;
 
 static void enetStreamWriteS (const char *data)
 {
@@ -506,49 +518,10 @@ static void enetStreamWriteS (const char *data)
     if(services.websocket)
         WsStreamWriteS(data);
 #endif
-#if USB_SERIAL_CDC
-    usb_serialWriteS(data);
-#else
-    serialWriteS(data);
-#endif
+    if(write_serial)
+        write_serial(data);
 }
 #endif // ETHERNET_ENABLE
-
-#if USB_SERIAL_CDC
-    const io_stream_t serial_stream = {
-        .type = StreamType_Serial,
-        .read = usb_serialGetC,
-        .write = usb_serialWriteS,
-        .write_char = usb_serialPutC,
-    #if ETHERNET_ENABLE
-        .write_all = enetStreamWriteS,
-    #else
-        .write_all = usb_serialWriteS,
-    #endif
-        .get_rx_buffer_available = usb_serialRxFree,
-        .reset_read_buffer = usb_serialRxFlush,
-        .cancel_read_buffer = usb_serialRxCancel,
-        .suspend_read = usb_serialSuspendInput,
-        .enqueue_realtime_command = protocol_enqueue_realtime_command
-    };
-#else
-const io_stream_t serial_stream = {
-    .type = StreamType_Serial,
-    .read = serialGetC,
-    .write = serialWriteS,
-    .write_char = serialPutC,
-#if ETHERNET_ENABLE
-    .write_all = enetStreamWriteS,
-#else
-    .write_all = serialWriteS,
-#endif
-    .get_rx_buffer_available = serialRxFree,
-    .reset_read_buffer = serialRxFlush,
-    .cancel_read_buffer = serialRxCancel,
-    .suspend_read = serialSuspendInput,
-    .enqueue_realtime_command = protocol_enqueue_realtime_command
-};
-#endif
 
 // Interrupt handler prototypes
 // Interrupt handlers needs to be registered, possibly by modifying a system specific startup file.
@@ -587,12 +560,13 @@ static bool selectStream (const io_stream_t *stream)
 {
     static bool serial_connected = false;
     static stream_type_t active_stream = StreamType_Serial;
+    static const io_stream_t *last_serial_stream;
 
-   if(hal.stream.type == StreamType_Serial)
+    if(hal.stream.type == StreamType_Serial || hal.stream.type == StreamType_Bluetooth)
         serial_connected = hal.stream.connected;
 
     if(!stream)
-        stream = &serial_stream;
+        stream = active_stream == StreamType_Bluetooth ? serial_stream : last_serial_stream;
 
     memcpy(&hal.stream, stream, sizeof(io_stream_t));
 
@@ -606,6 +580,9 @@ static bool selectStream (const io_stream_t *stream)
 
     if(!hal.stream.enqueue_realtime_command)
         hal.stream.enqueue_realtime_command = protocol_enqueue_realtime_command;
+
+    if(hal.stream.disable)
+        hal.stream.disable(false);
 
     switch(stream->type) {
 
@@ -624,12 +601,21 @@ static bool selectStream (const io_stream_t *stream)
         case StreamType_Serial:
 #if ETHERNET_ENABLE
             services.mask = 0;
+            write_serial = serial_connected ? hal.stream.write : NULL;
 #endif
             hal.stream.connected = serial_connected;
+            last_serial_stream = stream;
             if(active_stream != StreamType_Serial && hal.stream.connected)
                 hal.stream.write_all("[MSG:SERIAL STREAM ACTIVE]" ASCII_EOL);
             break;
 
+        case StreamType_Bluetooth:
+#if ETHERNET_ENABLE
+            services.mask = 0;
+            write_serial = hal.stream.write;
+#endif
+            last_serial_stream = stream;
+            break;
         default:
             break;
     }
@@ -643,6 +629,7 @@ static bool selectStream (const io_stream_t *stream)
 // step_outbits.value (or step_outbits.mask) are: bit0 -> X, bit1 -> Y...
 // Individual step bits can be accessed by step_outbits.x, step_outbits.y, ...
 #ifdef SQUARING_ENABLED
+
 inline static __attribute__((always_inline)) void set_step_outputs (axes_signals_t step_outbits_1)
 {
     axes_signals_t step_outbits_2;
@@ -672,7 +659,33 @@ inline static __attribute__((always_inline)) void set_step_outputs (axes_signals
     DIGITAL_OUT(stepB, step_outbits_1.b);
 #endif
 }
+
+static axes_signals_t getAutoSquaredAxes (void)
+{
+    axes_signals_t ganged = {0};
+
+#if X_AUTO_SQUARE
+    ganged.x = On;
+#endif
+#if Y_AUTO_SQUARE
+    ganged.y = On;
+#endif
+#if Z_AUTO_SQUARE
+    ganged.z = On;
+#endif
+
+    return ganged;
+}
+
+// Enable/disable motors for auto squaring of ganged axes
+static void StepperDisableMotors (axes_signals_t axes, squaring_mode_t mode)
+{
+    motors_1.mask = (mode == SquaringMode_A || mode == SquaringMode_Both ? axes.mask : 0) ^ AXES_BITMASK;
+    motors_2.mask = (mode == SquaringMode_B || mode == SquaringMode_Both ? axes.mask : 0) ^ AXES_BITMASK;
+}
+
 #else
+
 inline static __attribute__((always_inline)) void set_step_outputs (axes_signals_t step_outbits)
 {
     step_outbits.value ^= settings.steppers.step_invert.mask;
@@ -702,7 +715,8 @@ inline static __attribute__((always_inline)) void set_step_outputs (axes_signals
     DIGITAL_OUT(stepC, step_outbits.c);
 #endif
 }
-#endif
+
+#endif // SQUARING_ENABLED
 
 // Set stepper direction ouput pins.
 // dir_outbits.value (or dir_outbits.mask) are: bit0 -> X, bit1 -> Y...
@@ -988,8 +1002,6 @@ void stepperOutputStep (axes_signals_t step_outbits, axes_signals_t dir_outbits)
 
 #endif
 
-#ifdef DUAL_LIMIT_SWITCHES
-
 // Returns limit state as an axes_signals_t variable.
 // Each bitfield bit indicates an axis limit, where triggered is 1 and not triggered is 0.
 // Dual limit switch inputs per axis version. Only one needs to be dual input!
@@ -998,100 +1010,59 @@ inline static limit_signals_t limitsGetState()
     limit_signals_t signals = {0};
 
     signals.min.mask = signals.min2.mask = settings.limits.invert.mask;
+#ifdef DUAL_LIMIT_SWITCHES
+    signals.min2.mask = settings.limits.invert.mask;
+#endif
+#ifdef MAX_LIMIT_SWITCHES
+    signals.max.mask = settings.limits.invert.mask;
+#endif
 
-    signals.min.x = (LimitX.reg->DR & LimitX.bit) != 0;
+    signals.min.x = DIGITAL_IN(LimitX);
 #ifdef X2_LIMIT_PIN
-    signals.min2.x = (LimitX2.reg->DR & LimitX2.bit) != 0;
+    signals.min2.x = DIGITAL_IN(LimitX2);
+#endif
+#ifdef X_LIMIT_PIN_MAX
+    signals.max.x = DIGITAL_IN(LimitXMax);
 #endif
 
-    signals.min.y = (LimitY.reg->DR & LimitY.bit) != 0;
+    signals.min.y = DIGITAL_IN(LimitY);
 #ifdef Y2_LIMIT_PIN
-    signals.min2.y = (LimitY2.reg->DR & LimitY2.bit) != 0;
+    signals.min2.y = DIGITAL_IN(LimitY2);
+#endif
+#ifdef Y_LIMIT_PIN_MAX
+    signals.max.y = DIGITAL_IN(LimitYMax);
 #endif
 
-    signals.min.z = (LimitZ.reg->DR & LimitZ.bit) != 0;
+    signals.min.z = DIGITAL_IN(LimitZ);
 #ifdef Z2_LIMIT_PIN
-    signals.min2.z = (LimitZ2.reg->DR & LimitZ2.bit) != 0;
+    signals.min2.z = DIGITAL_IN(LimitZ2);
+#endif
+#ifdef Z_LIMIT_PIN_MAX
+    signals.max.z = DIGITAL_IN(LimitZMax);
 #endif
 
 #ifdef A_LIMIT_PIN
-    signals.min.a = (LimitA.reg->DR & LimitA.bit) != 0;
+    signals.min.a = DIGITAL_IN(LimitA);
 #endif
 #ifdef B_LIMIT_PIN
-    signals.min.b = (LimitB.reg->DR & LimitB.bit) != 0;
+    signals.min.b = DIGITAL_IN(LimitB);
 #endif
 #ifdef C_LIMIT_PIN
-    signals.min.c = (LimitC.reg->DR & LimitC.bit) != 0;
+    signals.min.c = DIGITAL_IN(LimitC);
 #endif
 
     if(settings.limits.invert.mask) {
         signals.min.value ^= settings.limits.invert.mask;
-        signals.min2.value ^= settings.limits.invert.mask;
+#ifdef DUAL_LIMIT_SWITCHES
+        signals.min2.mask ^= settings.limits.invert.mask;
+#endif
+#ifdef MAX_LIMIT_SWITCHES
+        signals.max.value ^= settings.limits.invert.mask;
+#endif
     }
 
     return signals;
 }
-#else // SINGLE INPUT LIMIT SWITCHES
-
-// Returns limit state as an axes_signals_t bitmap variable.
-// signals.value (or signals.mask) are: bit0 -> X, bit1 -> Y...
-// Individual signals bits can be accessed by signals.x, signals.y, ...
-// Each bit indicates a limit signal, where triggered is 1 and not triggered is 0.
-// axes_signals_t is defined in grbl/nuts_bolts.h.
-inline static limit_signals_t limitsGetState()
-{
-    limit_signals_t signals = {0};
-
-    signals.min.mask = settings.limits.invert.mask;
-
-    signals.min.x = (LimitX.reg->DR & LimitX.bit) != 0;
-    signals.min.y = (LimitY.reg->DR & LimitY.bit) != 0;
-    signals.min.z = (LimitZ.reg->DR & LimitZ.bit) != 0;
-#ifdef A_LIMIT_PIN
-    signals.min.a = (LimitA.reg->DR & LimitA.bit) != 0;
-#endif
-#ifdef B_LIMIT_PIN
-    signals.min.b = (LimitB.reg->DR & LimitB.bit) != 0;
-#endif
-#ifdef C_LIMIT_PIN
-    signals.min.c = (LimitC.reg->DR & LimitC.bit) != 0;
-#endif
-
-    if (settings.limits.invert.mask)
-        signals.min.value ^= settings.limits.invert.mask;
-
-    return signals;
-}
-
-#endif
-
-#ifdef SQUARING_ENABLED
-
-static axes_signals_t getAutoSquaredAxes (void)
-{
-    axes_signals_t ganged = {0};
-
-    #if X_AUTO_SQUARE
-    ganged.x = On;
-#endif
-#if Y_AUTO_SQUARE
-    ganged.y = On;
-#endif
-#if Z_AUTO_SQUARE
-    ganged.z = On;
-#endif
-
-    return ganged;
-}
-
-// Enable/disable motors for auto squaring of ganged axes
-static void StepperDisableMotors (axes_signals_t axes, squaring_mode_t mode)
-{
-    motors_1.mask = (mode == SquaringMode_A || mode == SquaringMode_Both ? axes.mask : 0) ^ AXES_BITMASK;
-    motors_2.mask = (mode == SquaringMode_B || mode == SquaringMode_Both ? axes.mask : 0) ^ AXES_BITMASK;
-}
-
-#endif
 
 // Enable/disable limit pins interrupt.
 // NOTE: the homing parameter is indended for configuring advanced
@@ -1633,6 +1604,7 @@ static void settings_changed (settings_t *settings)
                     break;
 
                 case Input_LimitX:
+                case Input_LimitX_2:
                 case Input_LimitX_Max:
                     pullup = !settings->limits.disable_pullup.x;
                     signal->debounce = hal.driver_cap.software_debounce;
@@ -1640,12 +1612,14 @@ static void settings_changed (settings_t *settings)
                     break;
 
                 case Input_LimitY:
+                case Input_LimitY_2:
                 case Input_LimitY_Max:
                     pullup = !settings->limits.disable_pullup.y;
                     signal->irq_mode = limit_fei.y ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                     break;
 
                 case Input_LimitZ:
+                case Input_LimitZ_2:
                 case Input_LimitZ_Max:
                     pullup = !settings->limits.disable_pullup.z;
                     signal->irq_mode = limit_fei.z ? IRQ_Mode_Falling : IRQ_Mode_Rising;
@@ -1718,42 +1692,30 @@ static void settings_changed (settings_t *settings)
                     break;
             }
 
+            if(signal->group == PinGroup_AuxInput) {
+                signal->cap.pull_mode = (PullMode_Up|PullMode_Down);
+                signal->cap.irq_mode = (IRQ_Mode_Rising|IRQ_Mode_Falling);
+            }
+
             pinMode(signal->pin, pullup ? INPUT_PULLUP : INPUT_PULLDOWN);
             signal->gpio.reg = (gpio_reg_t *)digital_pin_to_info_PGM[signal->pin].reg;
             signal->gpio.bit = digital_pin_to_info_PGM[signal->pin].mask;
+
+            if(signal->gpio.reg == (gpio_reg_t *)&GPIO6_DR)
+                signal->offset = 0;
+            else if(signal->gpio.reg == (gpio_reg_t *)&GPIO7_DR)
+                signal->offset = 1;
+            else if(signal->gpio.reg == (gpio_reg_t *)&GPIO8_DR)
+                signal->offset = 2;
+            else
+                signal->offset = 3;
 
             if(signal->port != NULL)
                 memcpy(signal->port, &signal->gpio, sizeof(gpio_t));
 
             if(signal->irq_mode != IRQ_Mode_None) {
 
-                if(signal->gpio.reg == (gpio_reg_t *)&GPIO6_DR)
-                    signal->offset = 0;
-                else if(signal->gpio.reg == (gpio_reg_t *)&GPIO7_DR)
-                    signal->offset = 1;
-                else if(signal->gpio.reg == (gpio_reg_t *)&GPIO8_DR)
-                    signal->offset = 2;
-                else
-                    signal->offset = 3;
-
-                if(signal->irq_mode == IRQ_Mode_Change)
-                    signal->gpio.reg->EDGE_SEL |= signal->gpio.bit;
-                else {
-                    signal->gpio.reg->EDGE_SEL &= ~signal->gpio.bit;
-                    uint32_t iopin = __builtin_ctz(signal->gpio.bit);
-                    if(iopin < 16) {
-                       uint32_t shift = iopin << 1;
-                       signal->gpio.reg->ICR1 = (signal->gpio.reg->ICR1 & ~(0b11 << shift)) | (signal->irq_mode << shift);
-                    } else {
-                       uint32_t shift = (iopin - 16) << 1;
-                       signal->gpio.reg->ICR2 = (signal->gpio.reg->ICR2 & ~(0b11 << shift)) | (signal->irq_mode << shift);
-                    }
-                }
-
-                signal->gpio.reg->ISR = signal->gpio.bit;       // Clear interrupt.
-
-                if(signal->group != PinGroup_Limit)          // If pin is not a limit pin
-                    signal->gpio.reg->IMR |= signal->gpio.bit;  // enable interrupt
+                pinEnableIRQ(signal, signal->irq_mode);
 
                 signal->active = (signal->gpio.reg->DR & signal->gpio.bit) != 0;
 
@@ -1801,6 +1763,45 @@ void pinModeOutput (gpio_t *gpio, uint8_t pin)
     pinMode(pin, OUTPUT);
     gpio->reg = (gpio_reg_t *)digital_pin_to_info_PGM[pin].reg;
     gpio->bit = digital_pin_to_info_PGM[pin].mask;
+}
+
+void pinEnableIRQ (const input_signal_t *signal, pin_irq_mode_t irq_mode)
+{
+    if(irq_mode == IRQ_Mode_None)
+        signal->gpio.reg->IMR &= ~signal->gpio.bit; // Disable interrupt
+    else if(irq_mode == IRQ_Mode_Change)
+        signal->gpio.reg->EDGE_SEL |= signal->gpio.bit;
+    else {
+        uint32_t iopin = __builtin_ctz(signal->gpio.bit), shift, mode = 0;
+
+        switch(irq_mode) {
+            case IRQ_Mode_Rising:
+                mode = 0b10;
+                break;
+            case IRQ_Mode_Falling:
+                mode = 0b11;
+                break;
+            case IRQ_Mode_High:
+                mode = 0b10;
+                break;
+            default: // Low
+                mode = 0b00;
+                break;
+        }
+        signal->gpio.reg->EDGE_SEL &= ~signal->gpio.bit;
+        if(iopin < 16) {
+           shift = iopin << 1;
+           signal->gpio.reg->ICR1 = (signal->gpio.reg->ICR1 & ~(0b11 << shift)) | (mode << shift);
+        } else {
+           shift = (iopin - 16) << 1;
+           signal->gpio.reg->ICR2 = (signal->gpio.reg->ICR2 & ~(0b11 << shift)) | (mode << shift);
+        }
+    }
+
+    signal->gpio.reg->ISR = signal->gpio.bit;       // Clear interrupt.
+
+    if(!(irq_mode == IRQ_Mode_None || signal->group == PinGroup_Limit)) // If pin is not a limit pin
+        signal->gpio.reg->IMR |= signal->gpio.bit;                      // enable interrupt
 }
 
 #if QEI_ENABLE
@@ -2165,7 +2166,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "210605";
+    hal.driver_version = "210617";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -2219,14 +2220,14 @@ bool driver_init (void)
     grbl.on_report_options = reportIP;
 #endif
 
-    hal.stream_select = selectStream;
-    hal.stream_select(&serial_stream);
-
 #if USB_SERIAL_CDC
-    usb_serialInit();
+    serial_stream = usb_serialInit();
 #else
-    serialInit(115200);
+    serial_stream = serialInit(115200);
 #endif
+
+    hal.stream_select = selectStream;
+    hal.stream_select(serial_stream);
 
 #ifdef I2C_PORT
     i2c_init();
@@ -2259,28 +2260,11 @@ bool driver_init (void)
     hal.encoder.on_event = encoder_event;
 #endif
 
-#if MODBUS_ENABLE
-    modbus_stream.write = serialWrite;
-    modbus_stream.read = serialGetC;
-    modbus_stream.flush_rx_buffer = serialRxFlush;
-    modbus_stream.flush_tx_buffer = serialTxFlush;
-    modbus_stream.get_rx_buffer_count = serialRxCount;
-    modbus_stream.get_tx_buffer_count = serialTxCount;
-    modbus_stream.set_baud_rate = serialSetBaudRate;
-
-    bool modbus = modbus_init(&modbus_stream);
-
-#if SPINDLE_HUANYANG
-    if(modbus)
-        huanyang_init(&modbus_stream);
-#endif
-
-#endif
-
   // Driver capabilities, used for announcing and negotiating (with Grbl) driver functionality.
   // See driver_cap_t union i grbl/hal.h for available flags.
 
 #if ESTOP_ENABLE
+    hal.signals_cap.reset = Off;
     hal.signals_cap.e_stop = On;
 #endif
 #if SAFETY_DOOR_ENABLE
@@ -2321,13 +2305,13 @@ bool driver_init (void)
 
     for(i = 0 ; i < sizeof(inputpin) / sizeof(input_signal_t); i++) {
         signal = &inputpin[i];
-
+#ifdef HAS_IOPORTS
         if(signal->group == PinGroup_AuxInput) {
             if(aux_inputs.pins.inputs == NULL)
                 aux_inputs.pins.inputs = signal;
             aux_inputs.n_pins++;
         }
-
+#endif
         if(signal->group == PinGroup_Limit) {
             if(limit_inputs.pins.inputs == NULL)
                 limit_inputs.pins.inputs = signal;
@@ -2335,6 +2319,7 @@ bool driver_init (void)
         }
     }
 
+#ifdef HAS_IOPORTS
     output_signal_t *output;
     for(i = 0 ; i < sizeof(outputpin) / sizeof(output_signal_t); i++) {
         output = &outputpin[i];
@@ -2345,12 +2330,15 @@ bool driver_init (void)
         }
     }
 
-#ifdef HAS_BOARD_INIT
-    board_init(&aux_inputs, &aux_outputs);
+    ioports_init(&aux_inputs, &aux_outputs);
 #endif
 
 #if ETHERNET_ENABLE
     grbl_enet_init();
+#endif
+
+#if SPINDLE_HUANYANG
+   huanyang_init(modbus_init(serialInit(115200), NULL));
 #endif
 
 #if KEYPAD_ENABLE
@@ -2368,6 +2356,10 @@ bool driver_init (void)
 
 #if OPENPNP_ENABLE
     openpnp_init();
+#endif
+
+#if BLUETOOTH_ENABLE
+    bluetooth_init(serialInit(115200));
 #endif
 
 #if ODOMETER_ENABLE
@@ -2548,16 +2540,17 @@ static void gpio_isr (void)
 
     uint32_t i = sizeof(inputpin) / sizeof(input_signal_t);
     do {
-        if(inputpin[--i].irq_mode != IRQ_Mode_None) {
+        if(inputpin[--i].irq_mode != IRQ_Mode_None || inputpin[i].group == PinGroup_AuxInput) {
 
             if(intr_status[inputpin[i].offset] & inputpin[i].gpio.bit) {
                 inputpin[i].active = true;
+
                 if(inputpin[i].debounce && enqueue_debounce(&inputpin[i])) {
                     inputpin[i].gpio.reg->IMR &= ~inputpin[i].gpio.bit;
                     debounce = true;
-                } else {
+                }  else switch(inputpin[i].group) {
 #if QEI_ENABLE
-                    if(inputpin[i].group & PinGroup_QEI) {
+                    casePinGroup_QEI:
                         qei_update();
                         /*
                         QEI_A.reg->IMR &= ~QEI_A.bit;       // Switch off
@@ -2567,19 +2560,33 @@ static void gpio_isr (void)
                         qei.debounce = QEI_DEBOUNCE;
                         qei.initial_debounce = true;
                         */
-                    } else
+                        break;
 #endif
 
 #if SPINDLE_SYNC_ENABLE && defined(SPINDLE_INDEX_PIN)
-                    if(inputpin[i].group & PinGroup_SpindleIndex) {
+                    case PinGroup_SpindleIndex:
                         spindleLock = true;
                         spindle_encoder.counter.index_count++;
                         spindle_encoder.counter.last_index = GPT2_CNT;
                         spindle_encoder.timer.last_index = GPT1_CNT;
                         spindleLock = false;
-                    } else
+                        break;
 #endif
+
+#if KEYPAD_ENABLE
+                    case PinGroup_Keypad:
+                        keypad_keyclick_handler(!(KeypadStrobe.reg->DR & KeypadStrobe.bit));
+                        break;
+#endif
+
+#ifdef HAS_IOPORTS
+                    case PinGroup_AuxInput:
+                        ioports_event(&inputpin[i]);
+                        break;
+#endif
+                    default:
                         grp |= inputpin[i].group;
+                        break;
                 }
             }
         }
@@ -2621,11 +2628,6 @@ static void gpio_isr (void)
         // hal.delay_ms(50, modeChange);
         mpg_mutex = false;
     }
-#endif
-
-#if KEYPAD_ENABLE
-    if(grp & PinGroup_Keypad)
-        keypad_keyclick_handler(!(KeypadStrobe.reg->DR & KeypadStrobe.bit));
 #endif
 }
 

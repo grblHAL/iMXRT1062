@@ -21,12 +21,12 @@
 
 #define BOARD_NAME "CNC BoosterPack"
 
-#if N_AXIS > 3
-#error Max number of axes is 3 for CNC BoosterPack
+#if N_ABC_MOTORS
+#error "Axis configuration is not supported!"
 #endif
 
 #if SPINDLE_SYNC_ENABLE
-#error Spindle sync is not supported for CNC BoosterPack
+#error "Spindle sync is not supported for CNC BoosterPack"
 #endif
 
 #ifdef EEPROM_ENABLE
