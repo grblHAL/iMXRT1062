@@ -31,3 +31,6 @@
 [submodule "grblHAL_Teensy4/src/openpnp"]
 	path = grblHAL_Teensy4/src/openpnp
 	url = https://github.com/grblHAL/Plugin_OpenPNP
+[submodule "grblHAL_Teensy4/src/bluetooth"]
+	path = grblHAL_Teensy4/src/bluetooth
+	url = https://github.com/grblHAL/Plugins_Bluetooth

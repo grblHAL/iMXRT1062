@@ -13,7 +13,7 @@ See [Compiling](#Compiling) for more information on building.
 
 The networking plugin is for Teensy 4.1 and needs the [teensy41_ethernet lwIP library](https://github.com/ddrown/teensy41_ethernet) forked by ddrown.
 
-Telnet and websocket protocols are currently supported, http is on the long term roadmap.
+Telnet, websocket and ftp protocols are currently supported, http is on the long term roadmap.
 
 #### SD card plugin
 
