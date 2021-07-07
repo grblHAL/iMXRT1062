@@ -94,7 +94,7 @@ static void aux_settings_load (void)
 {
     uint_fast8_t idx = aux_n_out;
 
-    do {
+    if(aux_n_out) do {
         idx--;
         pinModeOutput(aux_out[idx].port, aux_out[idx].pin);
         DIGITAL_OUT((*(aux_out[idx].port)), (settings.ioport.invert_out.mask >> idx) & 0x01);
@@ -216,7 +216,7 @@ static bool register_interrupt_handler (uint8_t port, pin_irq_mode_t irq_mode, i
 
         input_signal_t *input = &aux_in[port];
 
-        if(irq_mode != IRQ_Mode_None && (ok = interrupt_callback != NULL)) {
+        if((ok = (irq_mode & aux_in[port].cap.irq_mode) == irq_mode && interrupt_callback != NULL)) {
             input->irq_mode = irq_mode;
             input->interrupt_callback = interrupt_callback;
             pinEnableIRQ(input, irq_mode);
@@ -233,6 +233,17 @@ static bool register_interrupt_handler (uint8_t port, pin_irq_mode_t irq_mode, i
     return ok;
 }
 
+static void set_pin_description (bool digital, bool output, uint8_t port, const char *s)
+{
+    if(digital) {
+        if(!output && port < aux_n_in)
+            aux_in[port].description = s;
+
+        if(output && port < aux_n_out)
+            aux_out[port].description = s;
+    }
+}
+
 void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs)
 {
     aux_in = aux_inputs->pins.inputs;
@@ -245,6 +256,8 @@ void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs)
 
     if((hal.port.num_digital_out = aux_n_out = aux_outputs->n_pins))
         hal.port.digital_out = digital_out;
+
+    hal.port.set_pin_description = set_pin_description;
 
     details.on_get_settings = grbl.on_get_settings;
     grbl.on_get_settings = on_get_settings;

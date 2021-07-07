@@ -183,6 +183,7 @@ typedef struct {
     volatile bool debounce;
     pin_mode_t cap;
     ioport_interrupt_callback_ptr interrupt_callback;
+    const char *description;
 } input_signal_t;
 
 typedef struct {
@@ -190,6 +191,7 @@ typedef struct {
     gpio_t *port;
     uint8_t pin;
     pin_group_t group;
+    const char *description;
 } output_signal_t;
 
 typedef struct {

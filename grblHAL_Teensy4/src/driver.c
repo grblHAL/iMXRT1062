@@ -46,25 +46,9 @@
 #include "sdcard/sdcard.h"
 #endif
 
-#if KEYPAD_ENABLE
-#include "keypad/keypad.h"
-#endif
-
-#if PLASMA_ENABLE
-#include "plasma/thc.h"
-#endif
-
 #if PPI_ENABLE
 #include "laser/ppi.h"
 static void ppi_timeout_isr (void);
-#endif
-
-#if ODOMETER_ENABLE
-#include "odometer/odometer.h"
-#endif
-
-#if OPENPNP_ENABLE
-#include "openpnp/openpnp.h"
 #endif
 
 #if BLUETOOTH_ENABLE
@@ -443,9 +427,9 @@ static output_signal_t outputpin[] = {
     { .id = Output_SpindleDir,      .port = &spindleDir,    .pin = SPINDLE_DIRECTION_PIN,   .group = PinGroup_SpindleControl },
 #endif
 #endif
-    { .id = Output_CoolantMist,     .port = &Mist,          .pin = COOLANT_FLOOD_PIN,       .group = PinGroup_Coolant },
+    { .id = Output_CoolantFlood,    .port = &Mist,          .pin = COOLANT_FLOOD_PIN,       .group = PinGroup_Coolant },
 #ifdef COOLANT_MIST_PIN
-    { .id = Output_CoolantFlood,    .port = &Flood,         .pin = COOLANT_MIST_PIN,        .group = PinGroup_Coolant },
+    { .id = Output_CoolantMist,     .port = &Flood,         .pin = COOLANT_MIST_PIN,        .group = PinGroup_Coolant },
 #endif
 #ifdef AUXOUTPUT0_PIN
     { .id = Output_Aux0,            .port = &AuxOut0,       .pin = AUXOUTPUT0_PIN,          .group = PinGroup_AuxOutput },
@@ -568,7 +552,7 @@ static bool selectStream (const io_stream_t *stream)
     if(!stream)
         stream = active_stream == StreamType_Bluetooth ? serial_stream : last_serial_stream;
 
-    memcpy(&hal.stream, stream, sizeof(io_stream_t));
+    memcpy(&hal.stream, stream, offsetof(io_stream_t, enqueue_realtime_command));
 
 #if ETHERNET_ENABLE
     if(!hal.stream.write_all)
@@ -1564,39 +1548,33 @@ static void settings_changed (settings_t *settings)
 #if ESTOP_ENABLE
                 case Input_EStop:
                     pullup = !settings->control_disable_pullup.e_stop;
-                    signal->debounce = hal.driver_cap.software_debounce;
                     signal->irq_mode = control_fei.e_stop ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                     break;
 #else
                 case Input_Reset:
                     pullup = !settings->control_disable_pullup.reset;
-                    signal->debounce = hal.driver_cap.software_debounce;
                     signal->irq_mode = control_fei.reset ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                     break;
 #endif
                 case Input_FeedHold:
                     pullup = !settings->control_disable_pullup.feed_hold;
-                    signal->debounce = hal.driver_cap.software_debounce;
                     signal->irq_mode = control_fei.feed_hold ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                     break;
 
                 case Input_CycleStart:
                     pullup = !settings->control_disable_pullup.cycle_start;
-                    signal->debounce = hal.driver_cap.software_debounce;
                     signal->irq_mode = control_fei.cycle_start ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                     break;
 
 #if SAFETY_DOOR_ENABLE
                 case Input_SafetyDoor:
                     pullup = !settings->control_disable_pullup.safety_door_ajar;
-                    signal->debounce = hal.driver_cap.software_debounce;
                     signal->irq_mode = control_fei.safety_door_ajar ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                     break;
 #endif
 #ifdef LIMITS_OVERRIDE_PIN
                 case Input_LimitsOverride:
                     pullup = true;
-                    signal->debounce = false;
                     break;
 #endif
                 case Input_Probe:
@@ -1607,7 +1585,6 @@ static void settings_changed (settings_t *settings)
                 case Input_LimitX_2:
                 case Input_LimitX_Max:
                     pullup = !settings->limits.disable_pullup.x;
-                    signal->debounce = hal.driver_cap.software_debounce;
                     signal->irq_mode = limit_fei.x ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                     break;
 
@@ -1682,7 +1659,7 @@ static void settings_changed (settings_t *settings)
 
   #if QEI_SELECT_ENABLED
                 case Input_QEI_Select:
-                    signal->debounce = hal.driver_cap.software_debounce;
+                    signal->debounce = true;
                     if(qei_enable)
                         signal->irq_mode = IRQ_Mode_Falling;
                     break;
@@ -1692,9 +1669,11 @@ static void settings_changed (settings_t *settings)
                     break;
             }
 
+            signal->debounce = hal.driver_cap.software_debounce && (signal->debounce || signal->group == PinGroup_Control);
+
             if(signal->group == PinGroup_AuxInput) {
                 signal->cap.pull_mode = (PullMode_Up|PullMode_Down);
-                signal->cap.irq_mode = (IRQ_Mode_Rising|IRQ_Mode_Falling);
+                signal->cap.irq_mode = IRQ_Mode_All;
             }
 
             pinMode(signal->pin, pullup ? INPUT_PULLUP : INPUT_PULLDOWN);
@@ -1731,7 +1710,7 @@ static void settings_changed (settings_t *settings)
 static void enumeratePins (bool low_level, pin_info_ptr pin_info)
 {
     static xbar_t pin = {0};
-    uint32_t i = sizeof(inputpin) / sizeof(input_signal_t);
+    uint32_t i;
 
     pin.mode.input = On;
 
@@ -1741,6 +1720,7 @@ static void enumeratePins (bool low_level, pin_info_ptr pin_info)
         pin.group = inputpin[i].group;
 //        pin.port = low_level ? (void *)inputpin[i].port : (void *)port2char(inputpin[i].port);
         pin.mode.pwm = pin.group == PinGroup_SpindlePWM;
+        pin.description = inputpin[i].description;
 
         pin_info(&pin);
     };
@@ -1753,6 +1733,7 @@ static void enumeratePins (bool low_level, pin_info_ptr pin_info)
         pin.function = outputpin[i].id;
         pin.group = outputpin[i].group;
 //        pin.port = low_level ? (void *)outputpin[i].port : (void *)port2char(outputpin[i].port);
+        pin.description = outputpin[i].description;
 
         pin_info(&pin);
     };
@@ -2166,7 +2147,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "210617";
+    hal.driver_version = "210703";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -2341,10 +2322,6 @@ bool driver_init (void)
    huanyang_init(modbus_init(serialInit(115200), NULL));
 #endif
 
-#if KEYPAD_ENABLE
-    keypad_init();
-#endif
-
 #if QEI_ENABLE
     qei_enable = encoder_init(QEI_ENABLE);
 #endif
@@ -2354,17 +2331,11 @@ bool driver_init (void)
     plasma_init();
 #endif
 
-#if OPENPNP_ENABLE
-    openpnp_init();
-#endif
-
 #if BLUETOOTH_ENABLE
     bluetooth_init(serialInit(115200));
 #endif
 
-#if ODOMETER_ENABLE
-    odometer_init(); // NOTE: this *must* be last plugin to be initialized as it claims storage at the end of NVS.
-#endif
+#include "grbl/plugins_init.h"
 
     // No need to move version check before init.
     // Compiler will fail any signature mismatch for existing entries.
