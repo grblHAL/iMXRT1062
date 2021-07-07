@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Some parts of this code is Copyright (c) 2020 Terje Io
+  Some parts of this code is Copyright (c) 2020-2021 Terje Io
 
   Some parts are derived/pulled from WireIMXRT.cpp in the Teensyduino Core Library (no copyright header)
 
@@ -166,6 +166,7 @@ typedef enum {
     I2CState_ReceiveNext,
     I2CState_ReceiveNextToLast,
     I2CState_ReceiveLast,
+    I2CState_Poll,
     I2CState_Error
 } i2c_state_t;
 
@@ -273,7 +274,7 @@ uint8_t *I2C_Receive (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block
     return i2c.buffer;
 }
 
-void I2C_Send (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block)
+bool I2C_Send (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block)
 {
     i2c.count = bytes;
     i2c.data  = buf ? buf : i2c.buffer;
@@ -290,8 +291,19 @@ void I2C_Send (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block)
 
     i2c.state = i2c.count == 0 ? I2CState_AwaitCompletion : (i2c.count == 1 ? I2CState_SendLast : I2CState_SendNext);
 
-    if(block)
-        while(i2cIsBusy);
+    if(block) {
+        while(i2cIsBusy) {
+            if(bytes == 0) {
+                hal.delay_ms(2, 0);
+                if(port->MSR & LPI2C_MSR_PLTF) {
+                    wait_ready();
+                    i2c.state = I2CState_Error;
+                }
+            }
+        }
+    }
+
+    return !block || i2c.state != I2CState_Error;
 }
 
 uint8_t *I2C_ReadRegister (uint32_t i2cAddr, uint8_t *buf, uint8_t abytes, uint16_t bytes, bool block)

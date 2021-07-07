@@ -39,6 +39,10 @@
 #define DIGITAL_IN(gpio) (!!(gpio.reg->DR & gpio.bit))
 #define DIGITAL_OUT(gpio, on) { if(on) gpio.reg->DR_SET = gpio.bit; else gpio.reg->DR_CLEAR = gpio.bit; }
 
+#ifndef MCP3221_ENABLE
+#define MCP3221_ENABLE 0
+#endif
+
 #if USB_SERIAL_CDC > 0
 //#define UART_DEBUG // For development only - enable only with USB_SERIAL_CDC enabled and SPINDLE_HUANYANG disabled
 #endif
@@ -136,6 +140,9 @@
   #endif
   #if KEYPAD_ENABLE
   #error "KEYPAD_ENABLE requires I2C_PORT to be defined!"
+  #endif
+  #if MCP3221_ENABLE
+  #error "MCP3221_ENABLE requires I2C_PORT to be defined!"
   #endif
 #endif
 

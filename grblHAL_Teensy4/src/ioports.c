@@ -22,6 +22,7 @@
 */
 
 #include "driver.h"
+#include "mcp3221.h"
 
 #ifdef HAS_IOPORTS
 
@@ -31,7 +32,7 @@
 
 #include "grbl/protocol.h"
 
-static uint_fast8_t aux_n_in, aux_n_out;
+static uint_fast8_t aux_n_in, aux_n_out, analog_n_in;
 static volatile uint32_t event_bits;
 static volatile bool spin_lock = false;
 static input_signal_t *aux_in;
@@ -202,8 +203,10 @@ static int32_t wait_on_input (bool digital, uint8_t port, wait_mode_t wait_mode,
         if(port < aux_n_in)
             value = get_input(&aux_in[port], (settings.ioport.invert_in.mask << port) & 0x01, wait_mode, timeout);
     }
-//    else if(port == 0)
-//        value = analogRead(41);
+#if MCP3221_ENABLE
+    else if(port < analog_n_in)
+        value = (int32_t)MCP3221_read();
+#endif
 
     return value;
 }
@@ -256,6 +259,11 @@ void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs)
 
     if((hal.port.num_digital_out = aux_n_out = aux_outputs->n_pins))
         hal.port.digital_out = digital_out;
+
+#if MCP3221_ENABLE
+    if(MCP3221_init())
+        hal.port.num_analog_in = analog_n_in = 1;
+#endif
 
     hal.port.set_pin_description = set_pin_description;
 

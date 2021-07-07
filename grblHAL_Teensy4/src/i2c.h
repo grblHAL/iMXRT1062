@@ -1,7 +1,7 @@
 /*
   i2c.h - I2C interface
 
-  Driver code for IMXRT1062 processor (on Teensy 4.0 board)
+  Driver code for IMXRT1062 processor (on Teensy 4.x board)
 
   Part of grblHAL
 
@@ -29,7 +29,7 @@
 
 void i2c_init (void);
 uint8_t *I2C_Receive (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block);
-void I2C_Send (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block);
+bool I2C_Send (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block);
 uint8_t *I2C_ReadRegister (uint32_t i2cAddr, uint8_t *buf, uint8_t abytes, uint16_t bytes, bool block);
 
 #if TRINAMIC_ENABLE && TRINAMIC_I2C
