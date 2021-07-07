@@ -34,6 +34,6 @@
 [submodule "grblHAL_Teensy4/src/bluetooth"]
 	path = grblHAL_Teensy4/src/bluetooth
 	url = https://github.com/grblHAL/Plugins_Bluetooth
-[submodule "grblHAL_Teensy4\\src\\fans"]
-	path = grblHAL_Teensy4\\src\\fans
+[submodule "grblHAL_Teensy4/src/fans"]
+	path = grblHAL_Teensy4/src/fans
 	url = https://github.com/grblHAL/Plugin_fans
