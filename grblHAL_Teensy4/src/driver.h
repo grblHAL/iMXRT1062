@@ -43,10 +43,6 @@
 #define MCP3221_ENABLE 0
 #endif
 
-#if USB_SERIAL_CDC > 0
-//#define UART_DEBUG // For development only - enable only with USB_SERIAL_CDC enabled and SPINDLE_HUANYANG disabled
-#endif
-
 // Timer assignments (for reference, Arduino libs does not follow the CMSIS style...)
 
 //#define STEPPER_TIMER     PIT0 (32 bit)
@@ -225,10 +221,6 @@ uint32_t xTaskGetTickCount();
 #ifdef HAS_IOPORTS
 void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs);
 void ioports_event (input_signal_t *input);
-#endif
-
-#ifdef UART_DEBUG
-void uart_debug_write (char *s);
 #endif
 
 #endif // __DRIVER_H__

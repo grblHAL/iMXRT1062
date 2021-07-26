@@ -360,13 +360,13 @@ static output_signal_t outputpin[] = {
     { .id = Output_StepC,           .port = &stepC,         .pin = C_STEP_PIN,              .group = PinGroup_StepperStep },
 #endif
 #ifdef X2_STEP_PIN
-    { .id = Output_StepX,           .port = &stepX2,        .pin = X2_STEP_PIN,             .group = PinGroup_StepperStep },
+    { .id = Output_StepX_2,         .port = &stepX2,        .pin = X2_STEP_PIN,             .group = PinGroup_StepperStep },
 #endif
 #ifdef Y2_STEP_PIN
-    { .id = Output_StepY,           .port = &stepY2,        .pin = Y2_STEP_PIN,             .group = PinGroup_StepperStep },
+    { .id = Output_StepY_2,         .port = &stepY2,        .pin = Y2_STEP_PIN,             .group = PinGroup_StepperStep },
 #endif
 #ifdef Z2_STEP_PIN
-    { .id = Output_StepZ,           .port = &stepZ2,        .pin = Z2_STEP_PIN,             .group = PinGroup_StepperStep },
+    { .id = Output_StepZ_2,         .port = &stepZ2,        .pin = Z2_STEP_PIN,             .group = PinGroup_StepperStep },
 #endif
     { .id = Output_DirX,            .port = &dirX,          .pin = X_DIRECTION_PIN,         .group = PinGroup_StepperDir },
     { .id = Output_DirY,            .port = &dirY,          .pin = Y_DIRECTION_PIN,         .group = PinGroup_StepperDir },
@@ -381,13 +381,13 @@ static output_signal_t outputpin[] = {
     { .id = Output_DirC,            .port = &dirC,          .pin = C_DIRECTION_PIN,         .group = PinGroup_StepperDir },
 #endif
 #ifdef X2_DIRECTION_PIN
-    { .id = Output_DirX,            .port = &dirX2,         .pin = X2_DIRECTION_PIN,        .group = PinGroup_StepperDir },
+    { .id = Output_DirX_2,          .port = &dirX2,         .pin = X2_DIRECTION_PIN,        .group = PinGroup_StepperDir },
 #endif
 #ifdef Y2_DIRECTION_PIN
-    { .id = Output_DirY,            .port = &dirY2,         .pin = Y2_DIRECTION_PIN,        .group = PinGroup_StepperDir },
+    { .id = Output_DirY_2,          .port = &dirY2,         .pin = Y2_DIRECTION_PIN,        .group = PinGroup_StepperDir },
 #endif
 #ifdef Z2_DIRECTION_PIN
-    { .id = Output_DirZ,            .port = &dirZ2,         .pin = Z2_DIRECTION_PIN,        .group = PinGroup_StepperDir },
+    { .id = Output_DirZ_2,          .port = &dirZ2,         .pin = Z2_DIRECTION_PIN,        .group = PinGroup_StepperDir },
 #endif
 #if !TRINAMIC_ENABLE
 #ifdef STEPPERS_ENABLE_PIN
@@ -552,7 +552,7 @@ static bool selectStream (const io_stream_t *stream)
     if(!stream)
         stream = active_stream == StreamType_Bluetooth ? serial_stream : last_serial_stream;
 
-    memcpy(&hal.stream, stream, offsetof(io_stream_t, enqueue_realtime_command));
+    memcpy(&hal.stream, stream, sizeof(io_stream_t));
 
 #if ETHERNET_ENABLE
     if(!hal.stream.write_all)
@@ -562,8 +562,7 @@ static bool selectStream (const io_stream_t *stream)
         hal.stream.write_all = hal.stream.write;
 #endif
 
-    if(!hal.stream.enqueue_realtime_command)
-        hal.stream.enqueue_realtime_command = protocol_enqueue_realtime_command;
+    hal.stream.set_enqueue_rt_handler(protocol_enqueue_realtime_command);
 
     if(hal.stream.disable)
         hal.stream.disable(false);
@@ -993,7 +992,7 @@ inline static limit_signals_t limitsGetState()
 {
     limit_signals_t signals = {0};
 
-    signals.min.mask = signals.min2.mask = settings.limits.invert.mask;
+    signals.min.mask = settings.limits.invert.mask;
 #ifdef DUAL_LIMIT_SWITCHES
     signals.min2.mask = settings.limits.invert.mask;
 #endif
@@ -1036,7 +1035,7 @@ inline static limit_signals_t limitsGetState()
 #endif
 
     if(settings.limits.invert.mask) {
-        signals.min.value ^= settings.limits.invert.mask;
+        signals.min.mask ^= settings.limits.invert.mask;
 #ifdef DUAL_LIMIT_SWITCHES
         signals.min2.mask ^= settings.limits.invert.mask;
 #endif
@@ -2098,18 +2097,12 @@ static void execute_realtime (uint_fast16_t state)
 #endif
 
 #ifdef DEBUGOUT
+
 void debugOut (bool on)
 {
     digitalWrite(13, on); // LED
 }
-#endif
 
-#ifdef UART_DEBUG
-void uart_debug_write (char *s)
-{
-    serialWriteS(s);
-    while(serialTxCount()); // Wait until message is delivered
-}
 #endif
 
 // Cold restart (T4.x has no reset button)
@@ -2147,7 +2140,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "210703";
+    hal.driver_version = "210725";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -2271,13 +2264,8 @@ bool driver_init (void)
     hal.driver_cap.limits_pull_up = On;
     hal.driver_cap.probe_pull_up = On;
 
-#ifdef DEBUGOUT
-    hal.debug_out = debugOut;
-#endif
-
-#ifdef UART_DEBUG
-    serialInit(115200);
-    uart_debug_write(ASCII_EOL "UART Debug:" ASCII_EOL);
+#if defined(DEBUGOUT) && USB_SERIAL_CDC > 0
+    debug_stream_init(serialInit(115200));
 #endif
 
     uint32_t i;

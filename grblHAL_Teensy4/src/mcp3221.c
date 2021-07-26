@@ -30,7 +30,7 @@ uint16_t MCP3221_read (void)
 
     I2C_Receive(MCP3221_ADDRESS, value, 2, true);
 
-    return value[0] << 8 | value[1];
+    return (value[0] << 8) | value[1];
 }
 
 bool MCP3221_init (void)

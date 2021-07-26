@@ -8,6 +8,11 @@ See [Compiling](#Compiling) for more information on building.
 
 ---
 
+__Important!__ There is a "bug" in Teensyduino prior to v1.54 that may cause [periodic stalls](https://github.com/grblHAL/iMXRT1062/issues/6) in processing.
+It is possible that this is only happening when networking is enabled and then not always so.  
+Regardless of whether networking is enabled or not it is recommended that [Teensyduino v1.54](https://www.pjrc.com/teensy/td_download.html) is used to build this driver.
+
+---
 
 #### Networking plugin
 
@@ -188,4 +193,4 @@ git pull --recurse-submodules
 [pio-teensy41]: https://docs.platformio.org/en/latest/boards/teensy/teensy41.html
 
 ---
-2021-06-08
+2021-07-11

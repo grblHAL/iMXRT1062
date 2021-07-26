@@ -42,6 +42,7 @@
 #include <string.h>
 
 #include "driver.h"
+#include "grbl/protocol.h"
 
 #define UART_CLOCK 24000000
 #define CTRL_ENABLE         (LPUART_CTRL_TE | LPUART_CTRL_RE | LPUART_CTRL_RIE | LPUART_CTRL_ILIE)
@@ -142,20 +143,20 @@ void transmitterEnable(uint8_t pin)
 static uint16_t tx_fifo_size;
 static stream_tx_buffer_t txbuffer = {0};
 static stream_rx_buffer_t rxbuffer = {0};
+static enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_realtime_command;
 
 //
 // serialGetC - returns -1 if no data available
 //
 static int16_t serialGetC (void)
 {
-    int16_t data;
-    uint_fast16_t bptr = rxbuffer.tail;
+    uint_fast16_t tail = rxbuffer.tail;         // Get buffer pointer
 
-    if(bptr == rxbuffer.head)
-        return -1; // no data available else EOF
+    if(tail == rxbuffer.head)
+        return -1; // no data available
 
-    data = rxbuffer.data[bptr++];                   // Get next character, increment tmp pointer
-    rxbuffer.tail = bptr & (RX_BUFFER_SIZE - 1);    // and update pointer
+    int16_t data = rxbuffer.data[tail];         // Get next character, increment tmp pointer
+    rxbuffer.tail = BUFNEXT(tail, rxbuffer);    // and update pointer
 
     return data;
 }
@@ -187,34 +188,27 @@ static void serialRxCancel (void)
 {
     serialRxFlush();
     rxbuffer.data[rxbuffer.head] = ASCII_CAN;
-    rxbuffer.head = (rxbuffer.tail + 1) & (RX_BUFFER_SIZE - 1);
+    rxbuffer.head = BUFNEXT(rxbuffer.head, rxbuffer);
 }
 
 static bool serialPutC (const char c)
 {
-    uint_fast16_t next_head;
-
-//  swr(c); return true;
-
-//  if (transmit_pin_baseReg_) DIRECT_WRITE_HIGH(transmit_pin_baseReg_, transmit_pin_bitmask_);
-
     if(txbuffer.head == txbuffer.tail && ((UART.port->WATER >> 8) & 0x7) < tx_fifo_size) {
         UART.port->DATA  = c;
         return true;
     }
 
-    next_head = (txbuffer.head + 1) & (TX_BUFFER_SIZE - 1);     // Get and update head pointer
+    uint_fast16_t next_head = BUFNEXT(txbuffer.head, txbuffer);   // Get next head pointer
 
-    while(txbuffer.tail == next_head) {                         // Buffer full, block until space is available...
+    while(txbuffer.tail == next_head) {             // Buffer full, block until space is available...
         if(!hal.stream_blocking_callback())
             return false;
     }
 
-    txbuffer.data[txbuffer.head] = c;                           // Add data to buffer
-    txbuffer.head = next_head;                                  // and update head pointer
+    txbuffer.data[txbuffer.head] = c;               // Add data to buffer
+    txbuffer.head = next_head;                      // and update head pointer
 
     __disable_irq();
-//    transmitting_ = 1;
     UART.port->CTRL |= LPUART_CTRL_TIE; // (may need to handle this issue)BITBAND_SET_BIT(LPUART0_CTRL, TIE_BIT); // Enable TX interrupts
     __enable_irq();
 
@@ -287,6 +281,16 @@ static bool serialDisable (bool disable)
     return true;
 }
 
+static enqueue_realtime_command_ptr serialSetRtHandler (enqueue_realtime_command_ptr handler)
+{
+    enqueue_realtime_command_ptr prev = enqueue_realtime_command;
+
+    if(handler)
+        enqueue_realtime_command = handler;
+
+    return prev;
+}
+
 const io_stream_t *serialInit (uint32_t baud_rate)
 {
     PROGMEM static const io_stream_t stream = {
@@ -305,7 +309,8 @@ const io_stream_t *serialInit (uint32_t baud_rate)
         .cancel_read_buffer = serialRxCancel,
         .suspend_read = serialSuspendInput,
         .disable = serialDisable,
-        .set_baud_rate = serialSetBaudRate
+        .set_baud_rate = serialSetBaudRate,
+        .set_enqueue_rt_handler = serialSetRtHandler
     };
 
     *UART.ccm_register |= UART.ccm_value;
@@ -376,69 +381,44 @@ uint16_t format = 0;
     if (format & 0x100)
         UART.port->BAUD |= LPUART_BAUD_SBNS;
 
-//transmitterEnable(1);
-
     return &stream;
 }
 
 static void uart_interrupt_handler (void)
 {
-    uint_fast16_t bptr;
-    uint32_t data, ctrl = UART.port->CTRL;
+    uint32_t ctrl = UART.port->CTRL;
 
-    if ((ctrl & LPUART_CTRL_TIE) && (UART.port->STAT & LPUART_STAT_TDRE))
+    if((ctrl & LPUART_CTRL_TIE) && (UART.port->STAT & LPUART_STAT_TDRE))
     {
-        bptr = txbuffer.tail;
+        uint_fast16_t tail = txbuffer.tail;                 // Get buffer pointer
 
         do {
-            if(txbuffer.head != bptr) {
-
-                UART.port->DATA = txbuffer.data[bptr++];    // Put character in TXT register
-                bptr &= (TX_BUFFER_SIZE - 1);               // and update tmp tail pointer
-
+            if(txbuffer.head != tail) {
+                UART.port->DATA = txbuffer.data[tail];      // Put character in TXT register
+                tail = BUFNEXT(tail, txbuffer);             // and update tmp tail pointer
             } else
                 break;
-
         } while(((UART.port->WATER >> 8) & 0x7) < tx_fifo_size);
 
-        txbuffer.tail = bptr;                                       //  Update tail pinter
-
-        if(bptr == txbuffer.head)      {                            // Disable TX interrups
+        if((txbuffer.tail = tail) == txbuffer.head)  // Disable TX interrups
             UART.port->CTRL &= ~LPUART_CTRL_TIE;
-//            UART.port->CTRL |= LPUART_CTRL_TCIE; // Actually wondering if we can just leave this one on...
-        }
     }
 
     if ((ctrl & LPUART_CTRL_TCIE) && (UART.port->STAT & LPUART_STAT_TC))
-    {
-//        transmitting_ = 0;
-//      if (transmit_pin_baseReg_) DIRECT_WRITE_LOW(transmit_pin_baseReg_, transmit_pin_bitmask_);
-
         UART.port->CTRL &= ~LPUART_CTRL_TCIE;
-    }
 
-    if (UART.port->STAT & (LPUART_STAT_RDRF | LPUART_STAT_IDLE)) {
+    if(UART.port->STAT & (LPUART_STAT_RDRF | LPUART_STAT_IDLE)) {
 
-        while ((UART.port->WATER >> 24) & 0x7) {
-
-            bptr = (rxbuffer.head + 1) & (RX_BUFFER_SIZE - 1);  // Get next head pointer
-            data = UART.port->DATA & 0xFF;                      // and read input (use only 8 bits of data)
-
-            if(bptr == rxbuffer.tail) {                         // If buffer full
-                rxbuffer.overflow = true;                       // flag overflow
-            } else {
-#if MODBUS_ENABLE
-                rxbuffer.data[rxbuffer.head] = (char)data;  // Add data to buffer
-                rxbuffer.head = bptr;                       // and update pointer
-#else
-                if(data == CMD_TOOL_ACK && !rxbuffer.backup) {
-                    stream_rx_backup(&rxbuffer);
-                    hal.stream.read = serialGetC; // restore normal input
-                } else if(!hal.stream.enqueue_realtime_command((char)data)) {
-                    rxbuffer.data[rxbuffer.head] = (char)data;  // Add data to buffer
-                    rxbuffer.head = bptr;                       // and update pointer
+        while((UART.port->WATER >> 24) & 0x7) {
+            uint32_t data = UART.port->DATA & 0xFF;                         // Read input (use only 8 bits of data)
+            if(!enqueue_realtime_command((char)data)) {
+                uint_fast16_t next_head = BUFNEXT(rxbuffer.head, rxbuffer); // Get next head pointer
+                if(next_head == rxbuffer.tail)                              // If buffer full
+                    rxbuffer.overflow = true;                               // flag overflow
+                else {
+                    rxbuffer.data[rxbuffer.head] = (char)data;              // Add data to buffer
+                    rxbuffer.head = next_head;                              // and update pointer
                 }
-#endif
             }
         }
 
