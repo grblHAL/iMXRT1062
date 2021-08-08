@@ -968,9 +968,7 @@ static void stepperPulseStartSynchronized (stepper_t *stepper)
 
 #if PLASMA_ENABLE
 
-#if PLASMA_ENABLE
 static void output_pulse_isr(void);
-#endif
 
 static axes_signals_t pulse_output = {0};
 
