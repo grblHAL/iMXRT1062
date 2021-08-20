@@ -37,11 +37,12 @@
 #endif
 
 // Board has 2K FRAM
+/* supply problems...
 #undef EEPROM_ENABLE
 #undef EEPROM_IS_FRAM
 #define EEPROM_ENABLE   1
 #define EEPROM_IS_FRAM  1
-
+*/
 #define X_STEP_PIN          (2u)
 #define X_DIRECTION_PIN     (3u)
 #define X_ENABLE_PIN        (10u)

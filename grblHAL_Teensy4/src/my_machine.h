@@ -49,7 +49,7 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 
 */
 
-//#define USB_SERIAL_CDC      2 // 1 for Arduino class library and 2 for PJRC C library. Comment out to use UART communication.
+#define USB_SERIAL_CDC      2 // 1 for Arduino class library and 2 for PJRC C library. Comment out to use UART communication.
 //#define USB_SERIAL_WAIT     1 // Wait for USB connection before starting grblHAL.
 //#define BLUETOOTH_ENABLE    1 // Set to 1 for HC-05 module. Requires Bluetooth plugin.
 //#define SPINDLE_HUANYANG    1 // Set to 1 or 2 for Huanyang VFD spindle. Requires spindle plugin.
