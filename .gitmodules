@@ -15,7 +15,7 @@
 	url = https://github.com/grblHAL/Plugin_SD_card
 [submodule "grblHAL_Teensy4/src/spindle"]
 	path = grblHAL_Teensy4/src/spindle
-	url = https://github.com/grblHAL/Plugins_spindle
+	url = https://github.com/Expatria-Technologies/Plugins_spindle
 [submodule "grblHAL_Teensy4/src/odometer"]
 	path = grblHAL_Teensy4/src/odometer
 	url = https://github.com/grblHAL/Plugin_odometer
