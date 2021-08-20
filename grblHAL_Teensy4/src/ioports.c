@@ -54,11 +54,24 @@ static const setting_detail_t aux_settings[] = {
     { Settings_IoPort_InvertOut, Group_AuxPorts, "Invert I/O Port outputs", NULL, Format_Bitfield, output_ports, NULL, NULL, Setting_NonCoreFn, aux_set_invert_out, aux_get_invert_out, is_setting_available },
 };
 
+#ifndef NO_SETTINGS_DESCRIPTIONS
+
+static const setting_descr_t aux_settings_descr[] = {
+    { Settings_IoPort_InvertIn, "Invert IOPort inputs." },
+    { Settings_IoPort_InvertOut, "Invert IOPort output." },
+};
+
+#endif
+
 static setting_details_t details = {
     .groups = aux_groups,
     .n_groups = sizeof(aux_groups) / sizeof(setting_group_detail_t),
     .settings = aux_settings,
     .n_settings = sizeof(aux_settings) / sizeof(setting_detail_t),
+#ifndef NO_SETTINGS_DESCRIPTIONS
+    .descriptions = aux_settings_descr,
+    .n_descriptions = sizeof(aux_settings_descr) / sizeof(setting_descr_t),
+#endif
     .load = aux_settings_load,
     .save = settings_write_global
 };

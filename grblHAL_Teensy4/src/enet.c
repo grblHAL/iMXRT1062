@@ -195,6 +195,43 @@ PROGMEM static const setting_detail_t ethernet_settings[] = {
     { Setting_WebSocketPort, Group_Networking, "Websocket port", NULL, Format_Int16, "####0", "1", "65535", Setting_NonCore, &ethernet.websocket_port, NULL, NULL }
 };
 
+#ifndef NO_SETTINGS_DESCRIPTIONS
+
+static const setting_descr_t ethernet_settings_descr[] = {
+    { Setting_NetworkServices, "Network services to enable. Consult driver documentation for availability.\\n\\n"
+                               "NOTE: A hard reset of the controller is required after changing network settings."
+    },
+    { Setting_Hostname, "Network hostname.\\n\\n"
+                        "NOTE: A hard reset of the controller is required after changing network settings."
+    },
+    { Setting_IpMode, "IP Mode.\\n\\n"
+                      "NOTE: A hard reset of the controller is required after changing network settings."
+    },
+    { Setting_IpAddress, "Static IP address.\\n\\n"
+                         "NOTE: A hard reset of the controller is required after changing network settings."
+    },
+    { Setting_Gateway, "Static gateway address.\\n\\n"
+                       "NOTE: A hard reset of the controller is required after changing network settings."
+    },
+    { Setting_NetMask, "Static netmask.\\n\\n"
+                       "NOTE: A hard reset of the controller is required after changing network settings."
+    },
+    { Setting_TelnetPort, "(Raw) Telnet port number listening for incoming connections.\\n\\n"
+                          "NOTE: A hard reset of the controller is required after changing network settings."
+    },
+#if HTTP_ENABLE
+    { Setting_HttpPort, "HTTP port number listening for incoming connections.\\n\\n"
+                        "NOTE: A hard reset of the controller is required after changing network settings."
+    },
+#endif
+    { Setting_WebSocketPort, "Websocket port number listening for incoming connections.\\n\\n"
+                             "NOTE: A hard reset of the controller is required after changing network settings.\\n"
+                             "NOTE: WebUI requires this to be HTTP port number + 1."
+    }
+};
+
+#endif
+
 static void ethernet_settings_save (void)
 {
     hal.nvs.memcpy_to_nvs(nvs_address, (uint8_t *)&ethernet, sizeof(network_settings_t), true);
@@ -205,6 +242,10 @@ static setting_details_t details = {
     .n_groups = sizeof(ethernet_groups) / sizeof(setting_group_detail_t),
     .settings = ethernet_settings,
     .n_settings = sizeof(ethernet_settings) / sizeof(setting_detail_t),
+#ifndef NO_SETTINGS_DESCRIPTIONS
+    .descriptions = ethernet_settings_descr,
+    .n_descriptions = sizeof(ethernet_settings_descr) / sizeof(setting_descr_t),
+#endif
     .save = ethernet_settings_save,
     .load = ethernet_settings_load,
     .restore = ethernet_settings_restore
