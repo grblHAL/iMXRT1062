@@ -1,12 +1,12 @@
 [submodule "grblHAL_Teensy4/src/grbl"]
 	path = grblHAL_Teensy4/src/grbl
-	url = https://github.com/grblHAL/core
+	url = https://github.com/Expatria-Technologies/core
 [submodule "grblHAL_Teensy4/src/eeprom"]
 	path = grblHAL_Teensy4/src/eeprom
 	url = https://github.com/grblHAL/Plugin_EEPROM
 [submodule "grblHAL_Teensy4/src/keypad"]
 	path = grblHAL_Teensy4/src/keypad
-	url = https://github.com/grblHAL/Plugin_I2C_keypad
+	url = https://github.com/Expatria-Technologies/Plugin_I2C_keypad
 [submodule "grblHAL_Teensy4/src/networking"]
 	path = grblHAL_Teensy4/src/networking
 	url = https://github.com/grblHAL/Plugin_networking
