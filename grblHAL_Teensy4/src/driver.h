@@ -72,7 +72,7 @@
 #include "generic_map.h"
 #endif
 
-#if SPINDLEPWMPIN == 12
+#if SPINDLE_PWM_PIN == 12
 #define PPI_TIMER       (IMXRT_TMR2)
 #define PPI_TIMERIRQ    IRQ_QTIMER2
 #else
@@ -142,8 +142,8 @@
   #endif
 #endif
 
-#if !(SPINDLEPWMPIN == 12 || SPINDLEPWMPIN == 13)
-  #error "SPINDLEPWMPIN can only be routed to pin 12 or 13!"
+#if !(SPINDLE_PWM_PIN == 12 || SPINDLE_PWM_PIN == 13)
+  #error "SPINDLE_PWM_PIN can only be routed to pin 12 or 13!"
 #endif
 
 #if QEI_ENABLE > 1

@@ -1161,7 +1161,7 @@ static void spindle_set_speed (uint_fast16_t pwm_value)
             spindle_off();
         pwmEnabled = false;
         if(spindle_pwm.always_on) {
-#if SPINDLEPWMPIN == 12
+#if SPINDLE_PWM_PIN == 12
             TMR1_COMP21 = spindle_pwm.off_value;
             TMR1_CMPLD11 = spindle_pwm.period - spindle_pwm.off_value;
             TMR1_CTRL1 |= TMR_CTRL_CM(0b001);
@@ -1172,13 +1172,14 @@ static void spindle_set_speed (uint_fast16_t pwm_value)
 #endif
 
         } else {
-#if SPINDLEPWMPIN == 12
+#if SPINDLE_PWM_PIN == 12
             TMR1_CTRL1 &= ~TMR_CTRL_CM(0b111);
-            TMR1_SCTRL1 &= ~TMR_SCTRL_VAL; //  set TMR_SCTRL_VAL || TMR_SCTRL_OPS if inverted PWM
+            if(settings.sp)
+            TMR1_SCTRL1 &= ~TMR_SCTRL_VAL;
             TMR1_SCTRL1 |= TMR_SCTRL_FORCE;
 #else // 13
             TMR2_CTRL0 &= ~TMR_CTRL_CM(0b111);
-            TMR2_SCTRL0 &= ~TMR_SCTRL_VAL; //  set TMR_SCTRL_VAL || TMR_SCTRL_OPS if inverted PWM
+            TMR2_SCTRL0 &= ~TMR_SCTRL_VAL;
             TMR2_SCTRL0 |= TMR_SCTRL_FORCE;
 #endif
         }
@@ -1187,7 +1188,7 @@ static void spindle_set_speed (uint_fast16_t pwm_value)
             spindle_on();
             pwmEnabled = true;
         }
-#if SPINDLEPWMPIN == 12
+#if SPINDLE_PWM_PIN == 12
         TMR1_COMP21 = pwm_value;
         TMR1_CMPLD11 = spindle_pwm.period - pwm_value;
         TMR1_CTRL1 |= TMR_CTRL_CM(0b001);
@@ -1457,12 +1458,20 @@ static void settings_changed (settings_t *settings)
 #if !PLASMA_ENABLE && !defined(SPINDLE_RPM_CONTROLLED)
 
         if(hal.driver_cap.variable_spindle && spindle_precompute_pwm_values(&spindle_pwm, F_BUS_ACTUAL / 2)) {
-  #if SPINDLEPWMPIN == 12
+  #if SPINDLE_PWM_PIN == 12
             TMR1_COMP11 = spindle_pwm.period;
             TMR1_CMPLD11 = spindle_pwm.period;
+            if(settings->spindle.invert.pwm)
+                TMR1_SCTRL0 |= TMR_SCTRL_OPS;
+            else
+                TMR1_SCTRL0 &= ~TMR_SCTRL_OPS;
   #else // 13
             TMR2_COMP10 = spindle_pwm.period;
             TMR2_CMPLD10 = spindle_pwm.period;
+            if(settings->spindle.invert.pwm)
+                TMR2_SCTRL0 |= TMR_SCTRL_OPS;
+            else
+                TMR2_SCTRL0 &= ~TMR_SCTRL_OPS;
   #endif
             hal.spindle.set_state = spindleSetStateVariable;
         } else
@@ -1715,7 +1724,6 @@ static void enumeratePins (bool low_level, pin_info_ptr pin_info)
         pin.pin = inputpin[i].pin;
         pin.function = inputpin[i].id;
         pin.group = inputpin[i].group;
-//        pin.port = low_level ? (void *)inputpin[i].port : (void *)port2char(inputpin[i].port);
         pin.mode.pwm = pin.group == PinGroup_SpindlePWM;
         pin.description = inputpin[i].description;
 
@@ -1729,11 +1737,18 @@ static void enumeratePins (bool low_level, pin_info_ptr pin_info)
         pin.pin = outputpin[i].pin;
         pin.function = outputpin[i].id;
         pin.group = outputpin[i].group;
-//        pin.port = low_level ? (void *)outputpin[i].port : (void *)port2char(outputpin[i].port);
         pin.description = outputpin[i].description;
 
         pin_info(&pin);
     };
+
+#ifdef SPINDLE_PWM_PIN
+    pin.pin = SPINDLE_PWM_PIN;
+    pin.function = Output_SpindlePWM;
+    pin.group = PinGroup_SpindlePWM;
+    pin.description = NULL;
+    pin_info(&pin);
+#endif
 }
 
 void pinModeOutput (gpio_t *gpio, uint8_t pin)
@@ -1927,21 +1942,21 @@ static bool driver_setup (settings_t *settings)
 
 #if !PLASMA_ENABLE
 
-#if SPINDLEPWMPIN == 12
+#if SPINDLE_PWM_PIN == 12
     TMR1_ENBL = 0;
     TMR1_LOAD1 = 0;
     TMR1_CTRL1 = TMR_CTRL_PCS(0b1001) | TMR_CTRL_OUTMODE(0b100) | TMR_CTRL_LENGTH;
-    TMR1_SCTRL1 = TMR_SCTRL_OEN | TMR_SCTRL_FORCE; //  set TMR_SCTRL_VAL || TMR_SCTRL_OPS if inverted PWM
+    TMR1_SCTRL1 = TMR_SCTRL_OEN | TMR_SCTRL_FORCE;
     TMR1_ENBL = 1 << 1;
 #else // 13
     TMR2_ENBL = 0;
     TMR2_LOAD0 = 0;
     TMR2_CTRL0 = TMR_CTRL_PCS(0b1001) | TMR_CTRL_OUTMODE(0b100) | TMR_CTRL_LENGTH;
-    TMR2_SCTRL0 = TMR_SCTRL_OEN | TMR_SCTRL_FORCE; //  set TMR_SCTRL_VAL || TMR_SCTRL_OPS if inverted PWM
+    TMR2_SCTRL0 = TMR_SCTRL_OEN | TMR_SCTRL_FORCE;
     TMR2_ENBL = 1;
 #endif
 
-    *(portConfigRegister(SPINDLEPWMPIN)) = 1;
+    *(portConfigRegister(SPINDLE_PWM_PIN)) = 1;
 
 #if SPINDLE_SYNC_ENABLE
 
@@ -2138,7 +2153,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "210725";
+    hal.driver_version = "210908";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -2172,6 +2187,7 @@ bool driver_init (void)
 #if !VFD_SPINDLE
     hal.spindle.set_state = spindleSetState;
     hal.spindle.get_state = spindleGetState;
+    hal.driver_cap.spindle_pwm_invert = On;
   #ifdef SPINDLE_PWM_DIRECT
     hal.spindle.get_pwm = spindleGetPWM;
     hal.spindle.update_pwm = spindle_set_speed;
@@ -2507,7 +2523,7 @@ static void gpio_isr (void)
                     debounce = true;
                 }  else switch(inputpin[i].group) {
 #if QEI_ENABLE
-                    casePinGroup_QEI:
+                    case PinGroup_QEI:
                         qei_update();
                         /*
                         QEI_A.reg->IMR &= ~QEI_A.bit;       // Switch off
