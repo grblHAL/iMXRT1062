@@ -2022,7 +2022,11 @@ static bool driver_setup (settings_t *settings)
 
   // Set defaults
 
+#if N_AXIS > 3
+    IOInitDone = settings->version == 20;
+#else
     IOInitDone = settings->version == 19;
+#endif
 
     hal.settings_changed(settings);
     hal.stepper.go_idle(true);
@@ -2153,7 +2157,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "210908";
+    hal.driver_version = "210911";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
