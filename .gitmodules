@@ -37,3 +37,6 @@
 [submodule "grblHAL_Teensy4/src/fans"]
 	path = grblHAL_Teensy4/src/fans
 	url = https://github.com/grblHAL/Plugin_fans
+[submodule "grblHAL_Teensy4/src/webui"]
+	path = grblHAL_Teensy4/src/webui
+	url = https://github.com/grblHAL/Plugin_WebUI
