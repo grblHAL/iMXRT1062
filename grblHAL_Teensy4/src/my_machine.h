@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020 Terje Io
+  Copyright (c) 2020-2021 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -53,9 +53,10 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 //#define USB_SERIAL_WAIT     1 // Wait for USB connection before starting grblHAL.
 //#define BLUETOOTH_ENABLE    1 // Set to 1 for HC-05 module. Requires Bluetooth plugin.
 //#define SPINDLE_HUANYANG    1 // Set to 1 or 2 for Huanyang VFD spindle. Requires spindle plugin.
-//#define QEI_ENABLE          1 // Enable quadrature encoder interfaces. Max value is 1. Requires encoder plugin.
+//#define WEBUI_ENABLE        1 // Enable ESP3D-WEBUI plugin along with networking and SD card plugins.
 //#define ETHERNET_ENABLE     1 // Ethernet streaming. Requires networking plugin.
 //#define SDCARD_ENABLE       1 // Run gcode programs from SD card, requires sdcard plugin.
+//#define QEI_ENABLE          1 // Enable quadrature encoder interfaces. Max value is 1. Requires encoder plugin.
 //#define KEYPAD_ENABLE       1 // I2C keypad for jogging etc., requires keypad plugin.
 //#define PLASMA_ENABLE       1 // Plasma/THC plugin. To be completed.
 //#define MCP3221_ENABLE      1 // Enable analog input via MCP3221 ADC.
@@ -87,14 +88,24 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 
 #if ETHERNET_ENABLE > 0
 #define TELNET_ENABLE           1 // Telnet daemon - requires Ethernet streaming enabled.
-#define FTP_ENABLE              1 // Ftp daemon - requires SD card enabled.
 #define WEBSOCKET_ENABLE        1 // Websocket daemon - requires Ethernet streaming enabled.
-#define NETWORK_HOSTNAME        "GRBL"
-#define NETWORK_IPMODE          1 // 0 = static, 1 = DHCP, 2 = AutoIP
-#define NETWORK_IP              "192.168.5.1"
-#define NETWORK_GATEWAY         "192.168.5.1"
-#define NETWORK_MASK            "255.255.255.0"
-#define NETWORK_TELNET_PORT     23
-#define NETWORK_WEBSOCKET_PORT  80
-#define NETWORK_HTTP_PORT       80
+#ifdef SDCARD_ENABLE
+#define FTP_ENABLE              1 // Ftp daemon - requires SD card enabled.
+#define HTTP_ENABLE             1 // http daemon - requires SD card enabled.
 #endif
+// The following symbols have the default values as shown, uncomment and change as needed.
+//#define NETWORK_HOSTNAME        "GRBL"
+//#define NETWORK_IPMODE          1 // 0 = static, 1 = DHCP, 2 = AutoIP
+//#define NETWORK_IP              "192.168.5.1"
+//#define NETWORK_GATEWAY         "192.168.5.1"
+//#define NETWORK_MASK            "255.255.255.0"
+//#define NETWORK_FTP_PORT        21
+//#define NETWORK_TELNET_PORT     23
+//#define NETWORK_HTTP_PORT       80
+#if HTTP_ENABLE
+//#define NETWORK_WEBSOCKET_PORT  81
+#else
+//#define NETWORK_WEBSOCKET_PORT  80
+#endif
+#endif
+
