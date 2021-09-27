@@ -37,6 +37,9 @@
 #include "grbl/nvs_buffer.h"
 
 #include "networking/networking.h"
+#if HTTP_ENABLE
+#include "networking/httpd.h"
+#endif
 
 static bool enet_started = false;
 static volatile bool linkUp = false;
@@ -69,7 +72,9 @@ static void link_status_callback (struct netif *netif)
 
     if(isLinkUp != linkUp) {
         linkUp = isLinkUp;
+#if TELNET_ENABLE
         TCPStreamNotifyLinkStatus(linkUp);
+#endif
     }
 }
 
@@ -92,10 +97,21 @@ static void netif_status_callback (struct netif *netif)
     }
 #endif
 
+#if HTTP_ENABLE
+    if(network.services.http && !services.http) {
+        httpd_init(network.http_port == 0 ? 80 : network.http_port);
+        services.http = On;
+    }
+#endif
+
 #if WEBSOCKET_ENABLE
     if(network.services.websocket && !services.websocket) {
         WsStreamInit();
+  #if HTTP_ENABLE
+        WsStreamListen(network.websocket_port == 0 ? 81 : network.websocket_port);
+  #else
         WsStreamListen(network.websocket_port == 0 ? 80 : network.websocket_port);
+  #endif
         services.websocket = On;
     }
 #endif
@@ -348,6 +364,7 @@ void ethernet_settings_restore (void)
 #endif
 
     ethernet.telnet_port = NETWORK_TELNET_PORT;
+//    ethernet.ftp_port = NETWORK_FTP_PORT;
     ethernet.http_port = NETWORK_HTTP_PORT;
     ethernet.websocket_port = NETWORK_WEBSOCKET_PORT;
     ethernet.services.mask = allowed_services.mask;

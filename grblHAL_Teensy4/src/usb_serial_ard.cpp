@@ -175,6 +175,11 @@ static bool usb_serialSuspendInput (bool suspend)
     return stream_rx_suspend(&rxbuf, suspend);
 }
 
+static bool usb_serialEnqueueRtCommand (char c)
+{
+    return enqueue_realtime_command(c);
+}
+
 static enqueue_realtime_command_ptr usb_serialSetRtHandler (enqueue_realtime_command_ptr handler)
 {
     enqueue_realtime_command_ptr prev = enqueue_realtime_command;
@@ -194,6 +199,7 @@ const io_stream_t *usb_serialInit (void)
         .write = usb_serialWriteS,
         .write_all = usb_serialWriteS,
         .write_char = usb_serialPutC,
+        .enqueue_rt_command = usb_serialEnqueueRtCommand,
         .read = usb_serialGetC,
         .reset_read_buffer = usb_serialRxFlush,
         .cancel_read_buffer = usb_serialRxCancel,
