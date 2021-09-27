@@ -18,7 +18,8 @@ Regardless of whether networking is enabled or not it is recommended that [Teens
 
 The networking plugin is for Teensy 4.1 and needs the [teensy41_ethernet lwIP library](https://github.com/ddrown/teensy41_ethernet) forked by ddrown.
 
-Telnet, websocket and ftp protocols are currently supported, http is on the long term roadmap.
+Telnet, websocket, ftp and http protocols \(server side daemons\) are currently supported.  
+The lwIP library needs to be patched before enabling the http daemon, the files and instructions are [here](https://github.com/grblHAL/Plugin_WebUI/tree/3bc2b569057495f66e891c88bd073bc71ace8b83/lwIP%20patch).
 
 #### SD card plugin
 
@@ -193,4 +194,4 @@ git pull --recurse-submodules
 [pio-teensy41]: https://docs.platformio.org/en/latest/boards/teensy/teensy41.html
 
 ---
-2021-07-11
+2021-09-27
