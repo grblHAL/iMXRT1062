@@ -73,7 +73,7 @@
 // Define spindle enable and spindle direction output pins.
 #define SPINDLE_ENABLE_PIN      (12u)
 #define SPINDLE_DIRECTION_PIN   (11u)
-#define SPINDLEPWMPIN           (13u) // NOTE: only pin 12 or pin 13 can be assigned!
+#define SPINDLE_PWM_PIN           (13u) // NOTE: only pin 12 or pin 13 can be assigned!
 
 // Define flood and mist coolant enable output pins.
 #define COOLANT_FLOOD_PIN   (19u)
