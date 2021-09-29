@@ -37,7 +37,7 @@ or add the MSC library as well \(not needed\). 2021-06-08: This is now changed i
 
 **NOTE:**
 
-If enabling ftp transfer to the SD card then [utility/sd_sdhc.c](https://github.com/WMXZ-EU/uSDFS/blob/master/src/utility/sd_sdhc.c) has to be replaced with [this patched](patches/sd_sdhc.zip) version \(zip download\).  
+If enabling ftp and/or http upload \(the WebUI plugin uses http upload\) to the SD card then [utility/sd_sdhc.c](https://github.com/WMXZ-EU/uSDFS/blob/master/src/utility/sd_sdhc.c) has to be replaced with [this patched](patches/sd_sdhc.zip) version \(zip download\).  
 I submitted a PR for this but it was rejected with no explanation, this is why I have added it here. The maintainer has made a similar change but that does not fix the underlying issue, and it may even crash the controller.  
 In addition to this [ffconf.h](https://github.com/WMXZ-EU/uSDFS/blob/master/src/ffconf.h) has to be edited, `#define FF_FS_RPATH` value has to be changed to 2 \(from 1\) or you will get a compiler error.
 
@@ -194,4 +194,4 @@ git pull --recurse-submodules
 [pio-teensy41]: https://docs.platformio.org/en/latest/boards/teensy/teensy41.html
 
 ---
-2021-09-27
+2021-09-29
