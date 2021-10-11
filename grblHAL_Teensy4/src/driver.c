@@ -2157,7 +2157,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "210919";
+    hal.driver_version = "210930";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif

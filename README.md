@@ -48,12 +48,13 @@ Download the libraries above as zip files and add to your Arduino installation w
 ---
 #### Board maps:
 
-|                                                                              |N_AXIS|Ganged&nbsp;axes<sup>1</sup>|Ethernet|EEPROM         |SD&nbsp;card|I2C Keypad|Encoders|Digital I/O|Analog I/O|
-|---------------------------------------------------------------------------------|------|----------------------------|--------|---------------|------------|----------|--------|-----------|----------|
-|Generic                                                                          | 3    |no                          |no      |yes<sup>2</sup>|yes         |yes       | -      | -         | -        |
-|[BOARD_T40X101](https://github.com/phil-barrett/grbl-teensy-4) for Teensy 4.0    |max 4 |max 1                       |no      |yes<sup>2</sup>|no          |yes       | max 1  | -         | -        |
-|[BOARD_T41U5XBB](https://github.com/phil-barrett/grbl-teensy-4) for Teensy 4.1   |max 5 |max 2                       |yes     |yes<sup>2</sup>|yes         |yes       | max 1  |4/3 or 1/3<sup>3</sup>|-|
-|[BOARD_T41BB5X_PRO](https://github.com/phil-barrett/grbl-teensy-4) for Teensy 4.1|max 5 |max 2                       |yes     |yes \(FRAM\)   |yes         |yes       | max 1  |4/3 or 1/3<sup>3</sup>|-|
+|                                                                                                 |N_AXIS|Ganged&nbsp;axes<sup>1</sup>|Ethernet|EEPROM         |SD&nbsp;card|I2C Keypad|Encoders|Digital I/O|Analog I/O|
+|-------------------------------------------------------------------------------------------------|------|----------------------------|--------|---------------|------------|----------|--------|-----------|----------|
+|Generic                                                                                          | 3    |no                          |no      |yes<sup>2</sup>|yes         |yes       | -      | -         | -        |
+|[BOARD_T40X101](https://github.com/phil-barrett/grbl-teensy-4) for Teensy 4.0                    |max 4 |max 1                       |no      |yes<sup>2</sup>|no          |yes       | max 1  | -         | -        |
+|[BOARD_T41U5XBB](https://github.com/phil-barrett/grbl-teensy-4) for Teensy 4.1                   |max 5 |max 2                       |yes     |yes<sup>2</sup>|yes         |yes       | max 1  |4/3 or 1/3<sup>3</sup>|-|
+|[BOARD_T41BB5X_PRO](https://github.com/phil-barrett/grbl-teensy-4) for Teensy 4.1                |max 5 |max 2                       |yes     |yes \(FRAM\)   |yes         |yes       | max 1  |4/3 or 1/3<sup>3</sup>|-|
+|[BOARD_GRBLHAL2000](https://github.com/Expatria-Technologies/grblhal_2000_PrintNC) for Teensy 4.1|max 5 |max 2?                      |yes     |               |yes         |yes       |        |4/?        |          |
 
 <sup>1</sup> Each enabled reduces N_AXIS with one. Currently the board map file must be edited to enable ganged/auto squared axes.  
 <sup>2</sup> I<sup>2</sup>C EEPROM \(or FRAM\) is [optional](https://github.com/grblHAL/Plugin_EEPROM/blob/master/README.md) and must be added to the board. FRAM is recommended when the [Odometer plugin](https://github.com/grblHAL/Plugin_odometer/blob/master/README.md) is added to the build.  
@@ -194,4 +195,4 @@ git pull --recurse-submodules
 [pio-teensy41]: https://docs.platformio.org/en/latest/boards/teensy/teensy41.html
 
 ---
-2021-09-29
+2021-10-10

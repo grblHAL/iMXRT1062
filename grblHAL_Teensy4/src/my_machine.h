@@ -54,6 +54,7 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 //#define BLUETOOTH_ENABLE    1 // Set to 1 for HC-05 module. Enables Bluetooth plugin.
 //#define SPINDLE_HUANYANG    1 // Set to 1 or 2 for Huanyang VFD spindle. Enables spindle plugin.
 //#define WEBUI_ENABLE        1 // Enable ESP3D-WEBUI plugin along with networking and SD card plugins.
+//#define WEBUI_INFLASH       1 // Store WebUI files in flash instead of on SD card.
 //#define ETHERNET_ENABLE     1 // Ethernet streaming. Enables networking plugin.
 //#define SDCARD_ENABLE       1 // Run gcode programs from SD card, enables sdcard plugin.
 //#define QEI_ENABLE          1 // Enable quadrature encoder interfaces. Max value is 1. Requires encoder plugin.
@@ -64,7 +65,7 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 //#define ODOMETER_ENABLE     1 // Odometer plugin.
 //#define OPENPNP_ENABLE      1 // OpenPNP plugin. To be completed.
 //#define FANS_ENABLE         1 // Enable fan control via M106/M107. Enables fans plugin.
-//#define EEPROM_ENABLE       1 // I2C EEPROM support. Set to 1 for 24LC16(2K), 2 for larger sizes. Enables eeprom plugin.
+//#define EEPROM_ENABLE       1 // I2C EEPROM support. Set to 1 for 24LC16 (2K), 3 for 24C32 (4K - 32 byte page) and 2 for other sizes. Enables eeprom plugin.
 //#define EEPROM_IS_FRAM      1 // Uncomment when EEPROM is enabled and chip is FRAM, this to remove write delay.
 //#define SPINDLE_SYNC_ENABLE 1 // Enable spindle sync support (G33, G76). !! NOTE: Alpha quality - enable only for test or verification.
                                 // Currently only available for BOARD_T41BB5X_PRO and BOARD_T41U5XBB_SS.
