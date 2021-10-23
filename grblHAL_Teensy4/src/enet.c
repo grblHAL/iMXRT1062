@@ -37,9 +37,6 @@
 #include "grbl/nvs_buffer.h"
 
 #include "networking/networking.h"
-#if HTTP_ENABLE
-#include "networking/httpd.h"
-#endif
 
 static bool enet_started = false;
 static volatile bool linkUp = false;

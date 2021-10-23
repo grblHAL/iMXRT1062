@@ -18,7 +18,8 @@ Regardless of whether networking is enabled or not it is recommended that [Teens
 
 The networking plugin is for Teensy 4.1 and needs the [teensy41_ethernet lwIP library](https://github.com/ddrown/teensy41_ethernet) forked by ddrown.
 
-Telnet, websocket and ftp protocols are currently supported, http is on the long term roadmap.
+Telnet, websocket, ftp and http protocols \(server side daemons\) are currently supported.  
+The lwIP library needs to be patched before enabling the http daemon, the files and instructions are [here](https://github.com/grblHAL/Plugin_WebUI/tree/3bc2b569057495f66e891c88bd073bc71ace8b83/lwIP%20patch).
 
 #### SD card plugin
 
@@ -36,7 +37,7 @@ or add the MSC library as well \(not needed\). 2021-06-08: This is now changed i
 
 **NOTE:**
 
-If enabling ftp transfer to the SD card then [utility/sd_sdhc.c](https://github.com/WMXZ-EU/uSDFS/blob/master/src/utility/sd_sdhc.c) has to be replaced with [this patched](patches/sd_sdhc.zip) version \(zip download\).  
+If enabling ftp and/or http upload \(the WebUI plugin uses http upload\) to the SD card then [utility/sd_sdhc.c](https://github.com/WMXZ-EU/uSDFS/blob/master/src/utility/sd_sdhc.c) has to be replaced with [this patched](patches/sd_sdhc.zip) version \(zip download\).  
 I submitted a PR for this but it was rejected with no explanation, this is why I have added it here. The maintainer has made a similar change but that does not fix the underlying issue, and it may even crash the controller.  
 In addition to this [ffconf.h](https://github.com/WMXZ-EU/uSDFS/blob/master/src/ffconf.h) has to be edited, `#define FF_FS_RPATH` value has to be changed to 2 \(from 1\) or you will get a compiler error.
 
@@ -47,12 +48,13 @@ Download the libraries above as zip files and add to your Arduino installation w
 ---
 #### Board maps:
 
-|                                                                              |N_AXIS|Ganged&nbsp;axes<sup>1</sup>|Ethernet|EEPROM         |SD&nbsp;card|I2C Keypad|Encoders|Digital I/O|Analog I/O|
-|---------------------------------------------------------------------------------|------|----------------------------|--------|---------------|------------|----------|--------|-----------|----------|
-|Generic                                                                          | 3    |no                          |no      |yes<sup>2</sup>|yes         |yes       | -      | -         | -        |
-|[BOARD_T40X101](https://github.com/phil-barrett/grbl-teensy-4) for Teensy 4.0    |max 4 |max 1                       |no      |yes<sup>2</sup>|no          |yes       | max 1  | -         | -        |
-|[BOARD_T41U5XBB](https://github.com/phil-barrett/grbl-teensy-4) for Teensy 4.1   |max 5 |max 2                       |yes     |yes<sup>2</sup>|yes         |yes       | max 1  |4/3 or 1/3<sup>3</sup>|-|
-|[BOARD_T41BB5X_PRO](https://github.com/phil-barrett/grbl-teensy-4) for Teensy 4.1|max 5 |max 2                       |yes     |yes \(FRAM\)   |yes         |yes       | max 1  |4/3 or 1/3<sup>3</sup>|-|
+|                                                                                                 |N_AXIS|Ganged&nbsp;axes<sup>1</sup>|Ethernet|EEPROM         |SD&nbsp;card|I2C Keypad|Encoders|Digital I/O|Analog I/O|
+|-------------------------------------------------------------------------------------------------|------|----------------------------|--------|---------------|------------|----------|--------|-----------|----------|
+|Generic                                                                                          | 3    |no                          |no      |yes<sup>2</sup>|yes         |yes       | -      | -         | -        |
+|[BOARD_T40X101](https://github.com/phil-barrett/grbl-teensy-4) for Teensy 4.0                    |max 4 |max 1                       |no      |yes<sup>2</sup>|no          |yes       | max 1  | -         | -        |
+|[BOARD_T41U5XBB](https://github.com/phil-barrett/grbl-teensy-4) for Teensy 4.1                   |max 5 |max 2                       |yes     |yes<sup>2</sup>|yes         |yes       | max 1  |4/3 or 1/3<sup>3</sup>|-|
+|[BOARD_T41BB5X_PRO](https://github.com/phil-barrett/grbl-teensy-4) for Teensy 4.1                |max 5 |max 2                       |yes     |yes \(FRAM\)   |yes         |yes       | max 1  |4/3 or 1/3<sup>3</sup>|-|
+|[BOARD_GRBLHAL2000](https://github.com/Expatria-Technologies/grblhal_2000_PrintNC) for Teensy 4.1|max 5 |max 2?                      |yes     |               |yes         |yes       |        |4/?        |          |
 
 <sup>1</sup> Each enabled reduces N_AXIS with one. Currently the board map file must be edited to enable ganged/auto squared axes.  
 <sup>2</sup> I<sup>2</sup>C EEPROM \(or FRAM\) is [optional](https://github.com/grblHAL/Plugin_EEPROM/blob/master/README.md) and must be added to the board. FRAM is recommended when the [Odometer plugin](https://github.com/grblHAL/Plugin_odometer/blob/master/README.md) is added to the build.  
@@ -193,4 +195,4 @@ git pull --recurse-submodules
 [pio-teensy41]: https://docs.platformio.org/en/latest/boards/teensy/teensy41.html
 
 ---
-2021-07-11
+2021-10-10

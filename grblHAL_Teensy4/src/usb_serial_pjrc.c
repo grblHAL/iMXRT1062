@@ -87,7 +87,71 @@ static bool usb_serialPutC (const char c)
 }
 
 //
-// Writes a null terminated string to the serial output stream, blocks if buffer full
+// Writes current buffer to the USB output stream, swaps buffers
+//
+static inline bool _usb_write (void)
+{
+    size_t length, txfree;
+
+    txbuf.s = txbuf.data;
+
+    while(txbuf.length) {
+
+        if((txfree = usb_serial_write_buffer_free()) > 10) {
+
+            length = txfree < txbuf.length ? txfree : txbuf.length;
+
+            usb_serial_write(txbuf.s, length); //
+
+            txbuf.length -= length;
+            txbuf.s += length;
+        }
+
+        if(txbuf.length && !hal.stream_blocking_callback()) {
+            txbuf.length = 0;
+            txbuf.s = txbuf.data;
+            return false;
+        }
+    }
+
+    txbuf.s = txbuf.data;
+
+    return true;
+}
+
+//
+// Writes a number of characters from string to the USB output stream, blocks if buffer full
+//
+static void usb_serialWrite (const char *s, uint16_t length)
+{
+    if(length == 0)
+        return;
+
+    if(txbuf.length && (txbuf.length + length) > txbuf.max_length) {
+        if(!_usb_write())
+            return;
+    }
+
+    while(length > txbuf.max_length) {
+        txbuf.length = txbuf.max_length;
+        memcpy(txbuf.s, s, txbuf.length);
+        if(!_usb_write())
+            return;
+        length -= txbuf.max_length;
+        s += txbuf.max_length;
+    }
+
+    if(length) {
+        memcpy(txbuf.s, s, length);
+        txbuf.length += length;
+        txbuf.s += length;
+        _usb_write();
+    }
+}
+
+//
+// Writes a null terminated string to the USB output stream, blocks if buffer full
+// Buffers string up to EOL (LF) before transmitting
 //
 static void usb_serialWriteS (const char *s)
 {
@@ -103,53 +167,13 @@ static void usb_serialWriteS (const char *s)
         txbuf.s += length;
 
         if(s[length - 1] == ASCII_LF || txbuf.length > txbuf.max_length) {
-
-            size_t txfree;
-            txbuf.s = txbuf.data;
-
-            while(txbuf.length) {
-
-                if((txfree = usb_serial_write_buffer_free()) > 10) {
-
-                    length = txfree < txbuf.length ? txfree : txbuf.length;
-
-                    usb_serial_write(txbuf.s, length); //
-
-                    txbuf.length -= length;
-                    txbuf.s += length;
-                }
-
-                if(txbuf.length && !hal.stream_blocking_callback()) {
-                    txbuf.length = 0;
-                    txbuf.s = txbuf.data;
-                    return;
-                }
-            }
-            txbuf.s = txbuf.data;
+            if(!_usb_write())
+                return;
         }
-    }
-}
-/*
-//
-// Writes a null terminated string to the serial output stream followed by EOL, blocks if buffer full
-//
-static void usb_serialWriteLn (const char *s)
-{
-    usb_serialWriteS(s);
-    usb_serialWriteS(ASCII_EOL);
+    } else
+        usb_serialWrite(s, (uint16_t)length);
 }
 
-//
-// Writes a number of characters from string to the serial output stream followed by EOL, blocks if buffer full
-//
-static void usb_serialWrite (const char *s, uint16_t length)
-{
-    char *ptr = (char *)s;
-
-    while(length--)
-        usb_serialPutC(*ptr++);
-}
-*/
 //
 // serialGetC - returns -1 if no data available
 //
@@ -191,6 +215,7 @@ const io_stream_t *usb_serialInit(void)
         .read = usb_serialGetC,
         .write = usb_serialWriteS,
         .write_char = usb_serialPutC,
+        .write_n = usb_serialWrite,
         .write_all = usb_serialWriteS,
         .enqueue_rt_command = usb_serialEnqueueRtCommand,
         .get_rx_buffer_free = usb_serialRxFree,
