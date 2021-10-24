@@ -28,6 +28,7 @@
 //#define BOARD_T41U5XBB_SS // For a modified T41U5XBB board, allows spindle sync to be enabled.
 //#define BOARD_T41BB5X_PRO
 //#define BOARD_CNC_BOOSTERPACK
+//#define BOARD_GRBLHAL2000
 //#define BOARD_MY_MACHINE // Add my_machine_map.h before enabling this!
 
 // Configuration
@@ -40,6 +41,7 @@ BOARD_T40X101         | no        | no      | yes    | yes³   | max 4  |
 BOARD_T41U5XBB        | yes       | yes     | yes    | yes³   | max 5  |
 BOARD_T41BB5X_PRO     | yes       | yes     | yes    | yes    | max 5  |
 BOARD_CNC_BOOSTERPACK | yes²      | yes     | yes    | yes    | max 3  |
+BOARD_GRBLHAL2000     | yes       | yes     | yes    | yes    | max 5  |
 
 ¹ Teensy 4.1 only
 ² External magjack.

@@ -2,7 +2,7 @@
 
 A grblHAL driver for the NXP iMXRT1062 processor on a [Teensy 4.x board](https://www.pjrc.com/store/teensy40.html).
 
-Available driver options can be found [here](main/my_machine.h).
+Available driver options can be found [here](https://github.com/grblHAL/iMXRT1062/blob/master/grblHAL_Teensy4/src/my_machine.h).
 
 See [Compiling](#Compiling) for more information on building.
 
@@ -195,4 +195,4 @@ git pull --recurse-submodules
 [pio-teensy41]: https://docs.platformio.org/en/latest/boards/teensy/teensy41.html
 
 ---
-2021-10-10
+2021-10-24
