@@ -116,6 +116,10 @@
 #include "spindle/huanyang.h"
 #endif
 
+#if MODBUS_ENABLE
+#include "spindle/modbus.h"
+#endif
+
 #ifndef VFD_SPINDLE
 #define VFD_SPINDLE 0
 #endif

@@ -1,5 +1,5 @@
 /*
-  uart.c - driver code for IMXRT1062 processor (on Teensy 4.0 board)
+  uart.c - driver code for IMXRT1062 processor (on Teensy 4.x board)
 
   Part of grblHAL
 
@@ -50,13 +50,7 @@
 #define CTRL_TX_COMPLETING  (CTRL_ENABLE | LPUART_CTRL_TCIE)
 #define CTRL_TX_INACTIVE    CTRL_ENABLE
 
-#ifndef UART_PORT
-#define UART uart1_hardware
-#elif UART_PORT == 5
-#define UART uart5_hardware
-#else
-#error "UART port not available!"
-#endif
+#define UART uart_hardware
 
 typedef struct {
     IMXRT_LPUART_t *port;
@@ -70,7 +64,9 @@ typedef struct {
 
 static void uart_interrupt_handler (void);
 
-static const uart_hardware_t uart1_hardware =
+#ifndef UART_PORT
+
+static const uart_hardware_t uart_hardware =
 {
     .port = &IMXRT_LPUART6,
     .ccm_register = &CCM_CCGR3,
@@ -91,7 +87,9 @@ static const uart_hardware_t uart1_hardware =
     }
 };
 
-static const uart_hardware_t uart5_hardware =
+#elif UART_PORT == 5
+
+static const uart_hardware_t uart_hardware =
 {
     .port = &IMXRT_LPUART8,
     .ccm_register = &CCM_CCGR6,
@@ -111,6 +109,33 @@ static const uart_hardware_t uart5_hardware =
         .select_val = 1
     }
 };
+
+#elif UART_PORT == 8
+
+static const uart_hardware_t uart_hardware =
+{
+    .port = &IMXRT_LPUART5,
+    .ccm_register = &CCM_CCGR3,
+    .ccm_value = CCM_CCGR3_LPUART5(CCM_CCGR_ON),
+    .irq = IRQ_LPUART5,
+    .irq_handler = uart_interrupt_handler,
+    .rx_pin = {
+        .pin = 34,
+        .mux_val = 1,
+        .select_reg = &IOMUXC_LPUART5_RX_SELECT_INPUT,
+        .select_val = 1
+    },
+    .tx_pin = {
+        .pin = 35,
+        .mux_val = 1,
+        .select_reg = &IOMUXC_LPUART5_TX_SELECT_INPUT,
+        .select_val = 1
+    }
+};
+
+#else
+#error "UART port not available!"
+#endif
 
 /*
 
@@ -314,7 +339,7 @@ const io_stream_t *serialInit (uint32_t baud_rate)
         .reset_read_buffer = serialRxFlush,
         .cancel_read_buffer = serialRxCancel,
         .suspend_read = serialSuspendInput,
-        .disable = serialDisable,
+        .disable_rx = serialDisable,
         .set_baud_rate = serialSetBaudRate,
         .set_enqueue_rt_handler = serialSetRtHandler
     };

@@ -562,11 +562,6 @@ static bool selectStream (const io_stream_t *stream)
         hal.stream.write_all = hal.stream.write;
 #endif
 
-    hal.stream.set_enqueue_rt_handler(protocol_enqueue_realtime_command);
-
-    if(hal.stream.disable)
-        hal.stream.disable(false);
-
     switch(stream->type) {
 
 #if TELNET_ENABLE
@@ -602,6 +597,14 @@ static bool selectStream (const io_stream_t *stream)
         default:
             break;
     }
+
+    hal.stream.set_enqueue_rt_handler(protocol_enqueue_realtime_command);
+
+    if(hal.stream.disable_rx)
+        hal.stream.disable_rx(false);
+
+    if(grbl.on_stream_changed)
+        grbl.on_stream_changed(hal.stream.type);
 
     active_stream = hal.stream.type;
 
@@ -2157,7 +2160,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "210930";
+    hal.driver_version = "211029";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -2324,8 +2327,12 @@ bool driver_init (void)
     grbl_enet_init();
 #endif
 
+#if MODBUS_ENABLE
+    modbus_init(serialInit(115200), NULL);
+#endif
+
 #if SPINDLE_HUANYANG
-   huanyang_init(modbus_init(serialInit(115200), NULL));
+    huanyang_init();
 #endif
 
 #if QEI_ENABLE
