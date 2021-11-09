@@ -61,7 +61,7 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 //#define ETHERNET_ENABLE     1 // Ethernet streaming. Enables networking plugin.
 //#define SDCARD_ENABLE       1 // Run gcode programs from SD card, enables sdcard plugin.
 //#define QEI_ENABLE          1 // Enable quadrature encoder interfaces. Max value is 1. Requires encoder plugin.
-//#define KEYPAD_ENABLE       1 // I2C keypad for jogging etc., enables keypad plugin.
+//#define KEYPAD_ENABLE       1 // Set to 1 for I2C keypad, 2 for other input such as serial data
 //#define PLASMA_ENABLE       1 // Plasma/THC plugin. To be completed.
 //#define MCP3221_ENABLE      1 // Enable analog input via MCP3221 ADC.
 //#define PPI_ENABLE          1 // Laser PPI plugin. To be completed.

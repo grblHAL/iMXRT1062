@@ -132,15 +132,17 @@
 #include "odometer/odometer.h"
 #endif
 
-#if KEYPAD_ENABLE && !defined(KEYPAD_STROBE_PIN)
-#error "KEYPAD_ENABLE requires KEYPAD_STROBE_PIN to be defined!"
+#if KEYPAD_ENABLE == 1 && !defined(I2C_STROBE_PIN)
+#error Keypad plugin not supported!
+#elif I2C_STROBE_ENABLE && !defined(I2C_STROBE_PIN)
+#error I2C strobe not supported!
 #endif
 
 #ifndef I2C_PORT
   #if EEPROM_ENABLE
   #error "EEPROM_ENABLE requires I2C_PORT to be defined!"
   #endif
-  #if KEYPAD_ENABLE
+  #if I2C_STROBE_ENABLE
   #error "KEYPAD_ENABLE requires I2C_PORT to be defined!"
   #endif
   #if MCP3221_ENABLE

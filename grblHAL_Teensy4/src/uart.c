@@ -66,6 +66,9 @@ static void uart_interrupt_handler (void);
 
 #ifndef UART_PORT
 
+#define RX_PIN 0
+#define TX_PIN 1
+
 static const uart_hardware_t uart_hardware =
 {
     .port = &IMXRT_LPUART6,
@@ -74,13 +77,13 @@ static const uart_hardware_t uart_hardware =
     .irq = IRQ_LPUART6,
     .irq_handler = uart_interrupt_handler,
     .rx_pin = {
-        .pin = 0,
+        .pin = RX_PIN,
         .mux_val = 2,
         .select_reg = &IOMUXC_LPUART6_RX_SELECT_INPUT,
         .select_val = 1
     },
     .tx_pin = {
-        .pin = 1,
+        .pin = TX_PIN,
         .mux_val = 2,
         .select_reg = NULL,
         .select_val = 0
@@ -88,6 +91,9 @@ static const uart_hardware_t uart_hardware =
 };
 
 #elif UART_PORT == 5
+
+#define RX_PIN 21
+#define TX_PIN 20
 
 static const uart_hardware_t uart_hardware =
 {
@@ -97,13 +103,13 @@ static const uart_hardware_t uart_hardware =
     .irq = IRQ_LPUART8,
     .irq_handler = uart_interrupt_handler,
     .rx_pin = {
-        .pin = 21,
+        .pin = RX_PIN,
         .mux_val = 2,
         .select_reg = &IOMUXC_LPUART8_RX_SELECT_INPUT,
         .select_val = 1
     },
     .tx_pin = {
-        .pin = 20,
+        .pin = TX_PIN,
         .mux_val = 2,
         .select_reg = &IOMUXC_LPUART8_TX_SELECT_INPUT,
         .select_val = 1
@@ -111,6 +117,9 @@ static const uart_hardware_t uart_hardware =
 };
 
 #elif UART_PORT == 8
+
+#define RX_PIN 34
+#define TX_PIN 35
 
 static const uart_hardware_t uart_hardware =
 {
@@ -120,13 +129,13 @@ static const uart_hardware_t uart_hardware =
     .irq = IRQ_LPUART5,
     .irq_handler = uart_interrupt_handler,
     .rx_pin = {
-        .pin = 34,
+        .pin = RX_PIN,
         .mux_val = 1,
         .select_reg = &IOMUXC_LPUART5_RX_SELECT_INPUT,
         .select_val = 1
     },
     .tx_pin = {
-        .pin = 35,
+        .pin = TX_PIN,
         .mux_val = 1,
         .select_reg = &IOMUXC_LPUART5_TX_SELECT_INPUT,
         .select_val = 1
@@ -411,6 +420,23 @@ const io_stream_t *serialInit (uint32_t baud_rate)
     // bit 8 can turn on 2 stop bit mode
     if (format & 0x100)
         UART.port->BAUD |= LPUART_BAUD_SBNS;
+
+    static const periph_pin_t tx = {
+        .function = Output_TX,
+        .group = PinGroup_UART,
+        .pin = TX_PIN,
+        .mode = { .mask = PINMODE_OUTPUT }
+    };
+
+    static const periph_pin_t rx = {
+        .function = Input_RX,
+        .group = PinGroup_UART,
+        .pin = RX_PIN,
+        .mode = { .mask = PINMODE_NONE }
+    };
+
+    hal.periph_port.register_pin(&rx);
+    hal.periph_port.register_pin(&tx);
 
     return &stream;
 }

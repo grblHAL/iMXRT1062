@@ -23,6 +23,7 @@
 #define BOARD_NAME "GRBLHAL2000 - PRINTNC"
 #define HAS_BOARD_INIT
 #define HAS_IOPORTS
+#define UART_PORT 8
 
 #ifdef NETWORK_HOSTNAME
     #undef NETWORK_HOSTNAME
@@ -122,11 +123,11 @@
 //#define AUX_N_OUT 3
 //#define AUX_OUT_MASK 0b111
 
-#if KEYPAD_ENABLE
-#define KEYPAD_STROBE_PIN   (41u)
+#if I2C_STROBE_ENABLE
+#define I2C_STROBE_PIN   (41u)
 #endif
 
-#if EEPROM_ENABLE || KEYPAD_ENABLE
+#if EEPROM_ENABLE || I2C_STROBE_ENABLE
 #define I2C_PORT    4
 #define I2C_SCL4    (24u) // Not used, for info only
 #define I2C_SDA4    (25u) // Not used, for info only

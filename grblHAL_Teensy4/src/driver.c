@@ -171,7 +171,7 @@ static gpio_t enableY;
 #ifdef Z_ENABLE_PIN
 static gpio_t enableZ;
 #endif
-#if KEYPAD_ENABLE
+#if I2C_STROBE_ENABLE
 static gpio_t KeypadStrobe;
 #endif
 #if MPG_MODE_ENABLE
@@ -265,6 +265,8 @@ static gpio_t QEI_A, QEI_B;
   static gpio_t AuxOut2;
 #endif
 
+static periph_signal_t *periph_pins = NULL;
+
 input_signal_t inputpin[] = {
 #if ESTOP_ENABLE
     { .id = Input_EStop,          .port = &Reset,          .pin = RESET_PIN,           .group = PinGroup_Control },
@@ -315,8 +317,8 @@ input_signal_t inputpin[] = {
 #if MPG_MODE_ENABLE
   ,  { .id = Input_ModeSelect,    .port = &ModeSelect,     .pin = MODE_PIN,            .group = PinGroup_MPG }
 #endif
-#if KEYPAD_ENABLE && defined(KEYPAD_STROBE_PIN)
-  , { .id = Input_KeypadStrobe,   .port = &KeypadStrobe,   .pin = KEYPAD_STROBE_PIN,   .group = PinGroup_Keypad }
+#if I2C_STROBE_ENABLE && defined(I2C_STROBE_PIN)
+  , { .id = Input_KeypadStrobe,   .port = &KeypadStrobe,   .pin = I2C_STROBE_PIN,      .group = PinGroup_Keypad }
 #endif
 #ifdef SPINDLE_INDEX_PIN
   , { .id = Input_SpindleIndex,   .port = &SpindleIndex,   .pin = SPINDLE_INDEX_PIN,   .group = PinGroup_SpindleIndex }
@@ -506,6 +508,22 @@ static void enetStreamWriteS (const char *data)
         write_serial(data);
 }
 #endif // ETHERNET_ENABLE
+
+#if I2C_STROBE_ENABLE
+
+static driver_irq_handler_t i2c_strobe = { .type = IRQ_I2C_Strobe };
+
+static bool irq_claim (irq_type_t irq, uint_fast8_t id, irq_callback_ptr handler)
+{
+    bool ok;
+
+    if((ok = irq == IRQ_I2C_Strobe && i2c_strobe.callback == NULL))
+        i2c_strobe.callback = handler;
+
+    return ok;
+}
+
+#endif
 
 // Interrupt handler prototypes
 // Interrupt handlers needs to be registered, possibly by modifying a system specific startup file.
@@ -1636,7 +1654,7 @@ static void settings_changed (settings_t *settings)
                     signal->irq_mode = IRQ_Mode_Change;
                     break;
 #endif
-#if KEYPAD_ENABLE
+#if I2C_STROBE_ENABLE
                 case Input_KeypadStrobe:
                     pullup = true;
                     signal->irq_mode = IRQ_Mode_Change;
@@ -1745,13 +1763,52 @@ static void enumeratePins (bool low_level, pin_info_ptr pin_info)
         pin_info(&pin);
     };
 
-#ifdef SPINDLE_PWM_PIN
-    pin.pin = SPINDLE_PWM_PIN;
-    pin.function = Output_SpindlePWM;
-    pin.group = PinGroup_SpindlePWM;
-    pin.description = NULL;
-    pin_info(&pin);
-#endif
+    periph_signal_t *ppin = periph_pins;
+
+    if(ppin) do {
+        pin.pin = ppin->pin.pin;
+        pin.function = ppin->pin.function;
+        pin.group = ppin->pin.group;
+        pin.description = ppin->pin.description;
+
+        pin_info(&pin);
+
+        ppin = ppin->next;
+    } while(ppin);
+
+}
+
+void registerPeriphPin (const periph_pin_t *pin)
+{
+    periph_signal_t *add_pin = malloc(sizeof(periph_signal_t));
+
+    if(!add_pin)
+        return;
+
+    memcpy(&add_pin->pin, pin, sizeof(periph_pin_t));
+    add_pin->next = NULL;
+
+    if(periph_pins == NULL) {
+        periph_pins = add_pin;
+    } else {
+        periph_signal_t *last = periph_pins;
+        while(last->next)
+            last = last->next;
+        last->next = add_pin;
+    }
+}
+
+void setPeriphPinDescription (const pin_function_t function, const pin_group_t group, const char *description)
+{
+    periph_signal_t *ppin = periph_pins;
+
+    if(ppin) do {
+        if(ppin->pin.function == function && ppin->pin.group == group) {
+            ppin->pin.description = description;
+            ppin = NULL;
+        } else
+            ppin = ppin->next;
+    } while(ppin);
 }
 
 void pinModeOutput (gpio_t *gpio, uint8_t pin)
@@ -1961,6 +2018,15 @@ static bool driver_setup (settings_t *settings)
 
     *(portConfigRegister(SPINDLE_PWM_PIN)) = 1;
 
+    static const periph_pin_t pwm = {
+        .function = Output_SpindlePWM,
+        .group = PinGroup_SpindlePWM,
+        .pin = SPINDLE_PWM_PIN,
+        .mode = { .mask = PINMODE_OUTPUT }
+    };
+
+    hal.periph_port.register_pin(&pwm);
+
 #if SPINDLE_SYNC_ENABLE
 
     CCM_CCGR1 |= CCM_CCGR1_GPT1_BUS(CCM_CCGR_ON);
@@ -2160,7 +2226,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "211029";
+    hal.driver_version = "211108";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -2224,6 +2290,20 @@ bool driver_init (void)
     hal.stream_select = selectStream;
     hal.stream_select(serial_stream);
 
+    hal.reboot = reboot;
+    hal.irq_enable = enable_irq;
+    hal.irq_disable = disable_irq;
+#if I2C_STROBE_ENABLE
+    hal.irq_claim = irq_claim;
+#endif
+    hal.set_bits_atomic = bitsSetAtomic;
+    hal.clear_bits_atomic = bitsClearAtomic;
+    hal.set_value_atomic = valueSetAtomic;
+    hal.get_elapsed_ticks = millis;
+    hal.enumerate_pins = enumeratePins;
+    hal.periph_port.register_pin = registerPeriphPin;
+    hal.periph_port.set_pin_description = setPeriphPinDescription;
+
 #ifdef I2C_PORT
     i2c_init();
 #endif
@@ -2236,15 +2316,6 @@ bool driver_init (void)
     hal.nvs.memcpy_from_flash = nvsRead;
     hal.nvs.memcpy_to_flash = nvsWrite;
 #endif
-
-    hal.reboot = reboot;
-    hal.irq_enable = enable_irq;
-    hal.irq_disable = disable_irq;
-    hal.set_bits_atomic = bitsSetAtomic;
-    hal.clear_bits_atomic = bitsClearAtomic;
-    hal.set_value_atomic = valueSetAtomic;
-    hal.get_elapsed_ticks = millis;
-    hal.enumerate_pins = enumeratePins;
 
 #if ETHERNET_ENABLE || ADD_MSEVENT
     grbl.on_execute_realtime = execute_realtime;
@@ -2557,9 +2628,10 @@ static void gpio_isr (void)
                         break;
 #endif
 
-#if KEYPAD_ENABLE
+#if I2C_STROBE_ENABLE
                     case PinGroup_Keypad:
-                        keypad_keyclick_handler(!(KeypadStrobe.reg->DR & KeypadStrobe.bit));
+                        if(i2c_strobe.callback)
+                            i2c_strobe.callback(0, !(KeypadStrobe.reg->DR & KeypadStrobe.bit));
                         break;
 #endif
 

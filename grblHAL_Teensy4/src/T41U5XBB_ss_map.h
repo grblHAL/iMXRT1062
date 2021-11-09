@@ -112,11 +112,11 @@
 #define AUX_N_OUT 3
 #define AUX_OUT_MASK 0b111
 
-#if KEYPAD_ENABLE
-#define KEYPAD_STROBE_PIN   (41u) // I2C ST
+#if I2C_STROBE_ENABLE
+#define I2C_STROBE_PIN   (41u) // I2C ST
 #endif
 
-#if EEPROM_ENABLE || KEYPAD_ENABLE
+#if EEPROM_ENABLE || I2C_STROBE_ENABLE
 #define I2C_PORT    4
 #define I2C_SCL4    (24u) // Not referenced, for info only
 #define I2C_SDA4    (25u) // Not referenced, for info only

@@ -36,24 +36,34 @@ typedef struct {
     enum IRQ_NUMBER_t irq;
 } i2c_hardware_t;
 
+#if I2C_PORT == 0
+
+#define SCL_PIN 19
+#define SDA_PIN 18
+
 static const i2c_hardware_t i2c1_hardware = {
     .clock_gate_register = &CCM_CCGR2,
     .clock_gate_mask = CCM_CCGR2_LPI2C1(CCM_CCGR_ON),
     .port = &IMXRT_LPI2C1,
     .irq = IRQ_LPI2C1,
     .sda_pin = {
-        .pin = 18,
+        .pin = SDA_PIN,
         .mux_val = 3 | 0x10,
         .select_reg = &IOMUXC_LPI2C1_SDA_SELECT_INPUT,
         .select_val = 1
     },
     .scl_pin = {
-        .pin = 19,
+        .pin = SCL_PIN,
         .mux_val = 3 | 0x10,
         .select_reg = &IOMUXC_LPI2C1_SCL_SELECT_INPUT,
         .select_val = 1
     }
 };
+
+#elif I2C_PORT == 3
+
+#define SCL_PIN 17
+#define SDA_PIN 16
 
 // NOTE: port 3 has alternative mapping to pin 36 and 37
 static const i2c_hardware_t i2c3_hardware = {
@@ -62,18 +72,23 @@ static const i2c_hardware_t i2c3_hardware = {
     .port = &IMXRT_LPI2C3,
     .irq = IRQ_LPI2C3,
     .sda_pin = {
-        .pin = 16,
+        .pin = SDA_PIN,
         .mux_val = 1 | 0x10,
         .select_reg = &IOMUXC_LPI2C3_SDA_SELECT_INPUT,
         .select_val = 1
     },
     .scl_pin = {
-        .pin = 17,
+        .pin = SCL_PIN,
         .mux_val = 1 | 0x10,
         .select_reg = &IOMUXC_LPI2C3_SCL_SELECT_INPUT,
         .select_val = 1
     }
 };
+
+#elif  I2C_PORT == 4
+
+#define SCL_PIN 24
+#define SDA_PIN 25
 
 static const i2c_hardware_t i2c4_hardware = {
     .clock_gate_register = &CCM_CCGR6,
@@ -81,18 +96,20 @@ static const i2c_hardware_t i2c4_hardware = {
     .port = &IMXRT_LPI2C4,
     .irq = IRQ_LPI2C4,
     .sda_pin = {
-        .pin = 25,
+        .pin = SDA_PIN,
         .mux_val = 0 | 0x10,
         .select_reg = &IOMUXC_LPI2C4_SDA_SELECT_INPUT,
         .select_val = 1
     },
     .scl_pin = {
-        .pin = 24,
+        .pin = SCL_PIN,
         .mux_val = 0 | 0x10,
         .select_reg = &IOMUXC_LPI2C4_SCL_SELECT_INPUT,
         .select_val = 1
     }
 };
+
+#endif
 
 static bool force_clock (const i2c_hardware_t *hardware)
 {
@@ -178,7 +195,7 @@ typedef struct {
     volatile uint8_t acount;
     uint8_t *data;
     uint8_t regaddr[2];
-#if KEYPAD_ENABLE
+#if KEYPAD_ENABLE == 1
     keycode_callback_ptr keycode_callback;
 #endif
     uint8_t buffer[8];
@@ -236,6 +253,23 @@ void i2c_init (void)
 
         NVIC_SET_PRIORITY(hardware->irq, 1);
         NVIC_ENABLE_IRQ(hardware->irq);
+
+        static const periph_pin_t scl = {
+            .function = Output_SCK,
+            .group = PinGroup_I2C,
+            .pin = SCL_PIN,
+            .mode = { .mask = PINMODE_OD }
+        };
+
+        static const periph_pin_t sda = {
+            .function = Bidirectional_SDA,
+            .group = PinGroup_I2C,
+            .pin = SDA_PIN,
+            .mode = { .mask = PINMODE_OD }
+        };
+
+        hal.periph_port.register_pin(&scl);
+        hal.periph_port.register_pin(&sda);
     }
 }
 
@@ -362,7 +396,7 @@ nvs_transfer_result_t i2c_nvs_transfer (nvs_transfer_t *transfer, bool read)
 
 #endif
 
-#if KEYPAD_ENABLE
+#if KEYPAD_ENABLE == 1
 
 void I2C_GetKeycode (uint32_t i2cAddr, keycode_callback_ptr callback)
 {
@@ -524,7 +558,7 @@ hal.stream.write(ASCII_EOL);
             i2c.count = 0;
             i2c.state = I2CState_Idle;
             port->MTDR = LPI2C_MTDR_CMD_STOP;
-          #if KEYPAD_ENABLE
+          #if KEYPAD_ENABLE == 1
             if(i2c.keycode_callback) {
                 i2c.keycode_callback(*i2c.data);
                 i2c.keycode_callback = NULL;
