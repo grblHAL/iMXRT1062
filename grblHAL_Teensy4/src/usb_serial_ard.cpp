@@ -217,6 +217,7 @@ const io_stream_t *usb_serialInit (void)
 {
     PROGMEM static const io_stream_t stream = {
         .type = StreamType_Serial,
+        .instance = 0,
         .connected = false,
         .get_rx_buffer_free = usb_serialRxFree,
         .write = usb_serialWriteS,
@@ -247,14 +248,18 @@ const io_stream_t *usb_serialInit (void)
     return &stream;
 }
 
+int usb_serial_input (void)
+{
+    return 1;
+}
 
 //
-// This function get called from the systick interrupt handler,
+// This function get called from the foregorund process,
 // used here to get characters off the USB serial input stream and buffer
-// them for processing by grbl. Real time command characters are stripped out
+// them for processing by the core. Real time command characters are stripped out
 // and submitted for realtime processing.
 //
-void usb_execute_realtime (uint_fast16_t state)
+void usb_execute_realtime (void)
 {
     char c, *dp;
     int avail, free;

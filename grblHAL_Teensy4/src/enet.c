@@ -54,7 +54,8 @@ static void report_options (bool newopt)
     if(newopt) {
         hal.stream.write(",ETH");
 #if FTP_ENABLE
-        hal.stream.write(",FTP");
+        if(services.ftp)
+        	hal.stream.write(",FTP");
 #endif
     } else {
         hal.stream.write("[IP:");

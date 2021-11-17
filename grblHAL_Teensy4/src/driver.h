@@ -109,19 +109,11 @@
 #error "Bluetooth cannot be used with UART communications enabled!"
 #endif
 
-#if SPINDLE_HUANYANG
-#if USB_SERIAL_CDC == 0
-#error "Huanyang VFD cannot be used with UART communications enabled!"
-#endif
-#include "spindle/huanyang.h"
-#endif
-
 #if MODBUS_ENABLE
-#include "spindle/modbus.h"
+#if USB_SERIAL_CDC == 0
+#error "Modbus VFDs cannot be used with UART communications enabled!"
 #endif
-
-#ifndef VFD_SPINDLE
-#define VFD_SPINDLE 0
+#include "spindle/modbus.h"
 #endif
 
 #if PLASMA_ENABLE
@@ -202,6 +194,7 @@ typedef struct {
     gpio_t *port;
     uint8_t pin;
     pin_group_t group;
+    pin_mode_t mode;
     const char *description;
 } output_signal_t;
 

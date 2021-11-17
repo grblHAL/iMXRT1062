@@ -27,12 +27,13 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "usb_serial.h"
+
 #include "grbl/hal.h"
 
-extern void usb_execute_realtime (uint_fast16_t state);
-
-#define usb_serial_poll() usb_execute_realtime(0)
+#define usb_serial_input() usb_serial_available()
 
 const io_stream_t *usb_serialInit(void);
+void usb_execute_realtime (void);
 
 #endif

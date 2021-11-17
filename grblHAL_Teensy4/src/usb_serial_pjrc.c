@@ -182,15 +182,15 @@ static int16_t usb_serialGetC (void)
     if(rxbuf.tail == rxbuf.head)
         return -1; // no data available
 
-    char data = rxbuf.data[rxbuf.tail];              // Get next character, increment tmp pointer
-    rxbuf.tail = BUFNEXT(rxbuf.tail, rxbuf);  // and update pointer
+    char data = rxbuf.data[rxbuf.tail];         // Get next character, increment tmp pointer
+    rxbuf.tail = BUFNEXT(rxbuf.tail, rxbuf);    // and update pointer
 
     return (int16_t)data;
 }
 
 static bool usb_serialSuspendInput (bool suspend)
 {
-    return false;// stream_rx_suspend(&rxbuf, suspend);
+    return stream_rx_suspend(&rxbuf, suspend);
 }
 
 static bool usb_serialEnqueueRtCommand (char c)
@@ -234,12 +234,12 @@ const io_stream_t *usb_serialInit(void)
 }
 
 //
-// This function get called from the systick interrupt handler,
+// This function get called from the foregorund process,
 // used here to get characters off the USB serial input stream and buffer
-// them for processing by grbl. Real time command characters are stripped out
+// them for processing by the core. Real time command characters are stripped out
 // and submitted for realtime processing.
 //
-void usb_execute_realtime (uint_fast16_t state)
+void usb_execute_realtime (void)
 {
     char c, *dp;
     int avail, free;

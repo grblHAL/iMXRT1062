@@ -127,7 +127,7 @@ static gpio_t Reset, FeedHold, CycleStart, Probe, LimitX, LimitY, LimitZ;
 // Standard outputs
 static gpio_t Mist, Flood, stepX, stepY, stepZ, dirX, dirY, dirZ;
 
-#if !VFD_SPINDLE
+#if VFD_SPINDLE != 1
 static gpio_t spindleEnable, spindleDir;
 #endif
 
@@ -423,7 +423,7 @@ static output_signal_t outputpin[] = {
     { .id = Output_StepperEnableZ,  .port = &enableZ2,      .pin = Z2_ENABLE_PIN,           .group = PinGroup_StepperEnable },
 #endif
 #endif
-#if !VFD_SPINDLE
+#if VFD_SPINDLE != 1
     { .id = Output_SpindleOn,       .port = &spindleEnable, .pin = SPINDLE_ENABLE_PIN,      .group = PinGroup_SpindleControl },
 #ifdef SPINDLE_DIRECTION_PIN
     { .id = Output_SpindleDir,      .port = &spindleDir,    .pin = SPINDLE_DIRECTION_PIN,   .group = PinGroup_SpindleControl },
@@ -463,7 +463,7 @@ static probe_state_t probe = {
 static axes_signals_t motors_1 = {AXES_BITMASK}, motors_2 = {AXES_BITMASK};
 #endif
 
-#if !VFD_SPINDLE
+#if VFD_SPINDLE != 1
 static bool pwmEnabled = false;
 static spindle_pwm_t spindle_pwm;
 
@@ -1138,7 +1138,7 @@ probe_state_t probeGetState (void)
     return state;
 }
 
-#if !VFD_SPINDLE
+#if VFD_SPINDLE != 1
 
 // Static spindle (off, on cw & on ccw)
 
@@ -1195,7 +1195,6 @@ static void spindle_set_speed (uint_fast16_t pwm_value)
         } else {
 #if SPINDLE_PWM_PIN == 12
             TMR1_CTRL1 &= ~TMR_CTRL_CM(0b111);
-            if(settings.sp)
             TMR1_SCTRL1 &= ~TMR_SCTRL_VAL;
             TMR1_SCTRL1 |= TMR_SCTRL_FORCE;
 #else // 13
@@ -1497,7 +1496,7 @@ static void settings_changed (settings_t *settings)
             hal.spindle.set_state = spindleSetStateVariable;
         } else
             hal.spindle.set_state = spindleSetState;
-#elif !VFD_SPINDLE
+#elif VFD_SPINDLE != 1
         hal.spindle.set_state = spindleSetState;
 #endif
 
@@ -1569,7 +1568,8 @@ static void settings_changed (settings_t *settings)
 
             pullup = true;
             signal = &inputpin[--i];
-            signal->irq_mode = IRQ_Mode_None;
+            if(signal->group != PinGroup_AuxInput)
+                signal->irq_mode = IRQ_Mode_None;
 
             switch(signal->id) {
 #if ESTOP_ENABLE
@@ -1697,11 +1697,6 @@ static void settings_changed (settings_t *settings)
             }
 
             signal->debounce = hal.driver_cap.software_debounce && (signal->debounce || signal->group == PinGroup_Control);
-
-            if(signal->group == PinGroup_AuxInput) {
-                signal->cap.pull_mode = (PullMode_Up|PullMode_Down);
-                signal->cap.irq_mode = IRQ_Mode_All;
-            }
 
             pinMode(signal->pin, pullup ? INPUT_PULLUP : INPUT_PULLDOWN);
             signal->gpio.reg = (gpio_reg_t *)digital_pin_to_info_PGM[signal->pin].reg;
@@ -1991,7 +1986,7 @@ static bool driver_setup (settings_t *settings)
     pinModeOutput(&Flood, COOLANT_FLOOD_PIN);
     pinModeOutput(&Mist, COOLANT_MIST_PIN);
 
-#if !VFD_SPINDLE
+#if VFD_SPINDLE != 1
 
    /******************
     *  Spindle init  *
@@ -2087,7 +2082,7 @@ static bool driver_setup (settings_t *settings)
 
 #endif // !PLASMA_ENABLE
 
-#endif // !VFD_SPINDLE
+#endif // VFD_SPINDLE != 1
 
   // Set defaults
 
@@ -2148,14 +2143,13 @@ bool nvsWrite (uint8_t *source)
 
 static void execute_realtime (uint_fast16_t state)
 {
+    if(usb_serial_input())
+        usb_execute_realtime();
+
 #if ADD_MSEVENT
     if(ms_event) {
 
         ms_event = false;
-
-  #if USB_SERIAL_CDC
-        usb_execute_realtime(state);
-  #endif
 
   #if QEI_ENABLE
         if(qei.vel_timeout && !(--qei.vel_timeout)) {
@@ -2226,7 +2220,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "211108";
+    hal.driver_version = "211116";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -2257,10 +2251,9 @@ bool driver_init (void)
     hal.probe.configure = probeConfigure;
     hal.probe.get_state = probeGetState;
 
-#if !VFD_SPINDLE
+#if VFD_SPINDLE != 1
     hal.spindle.set_state = spindleSetState;
     hal.spindle.get_state = spindleGetState;
-    hal.driver_cap.spindle_pwm_invert = On;
   #ifdef SPINDLE_PWM_DIRECT
     hal.spindle.get_pwm = spindleGetPWM;
     hal.spindle.update_pwm = spindle_set_speed;
@@ -2340,12 +2333,17 @@ bool driver_init (void)
     hal.signals_cap.limits_override = On;
 #endif
 
-#if !VFD_SPINDLE && !PLASMA_ENABLE
+#if VFD_SPINDLE != 1 && !PLASMA_ENABLE
   #ifdef SPINDLE_DIRECTION_PIN
     hal.driver_cap.spindle_dir = On;
   #endif
     hal.driver_cap.variable_spindle = On;
+    hal.driver_cap.spindle_pwm_invert = On;
+#if DUAL_SPINDLE
+    hal.driver_cap.dual_spindle = On;
 #endif
+#endif
+
 #ifdef COOLANT_MIST_PIN
     hal.driver_cap.mist_control = On;
 #endif
@@ -2371,6 +2369,8 @@ bool driver_init (void)
             if(aux_inputs.pins.inputs == NULL)
                 aux_inputs.pins.inputs = signal;
             aux_inputs.n_pins++;
+            signal->cap.pull_mode = PullMode_UpDown;
+            signal->cap.irq_mode = IRQ_Mode_All;
         }
 #endif
         if(signal->group == PinGroup_Limit) {
@@ -2400,10 +2400,6 @@ bool driver_init (void)
 
 #if MODBUS_ENABLE
     modbus_init(serialInit(115200), NULL);
-#endif
-
-#if SPINDLE_HUANYANG
-    huanyang_init();
 #endif
 
 #if QEI_ENABLE
