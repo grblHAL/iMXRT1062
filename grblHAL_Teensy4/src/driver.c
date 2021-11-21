@@ -71,15 +71,6 @@ static void ppi_timeout_isr (void);
 #include "usb_serial_pjrc.h"
 #endif
 
-#if defined(ENABLE_SAFETY_DOOR_INPUT_PIN) && defined(SAFETY_DOOR_PIN)
-#define SAFETY_DOOR_ENABLE 1
-#else
-#define SAFETY_DOOR_ENABLE 0
-#ifdef SAFETY_DOOR_PIN
-//#define LIMITS_OVERRIDE_PIN SAFETY_DOOR_PIN
-#endif
-#endif
-
 #define DEBOUNCE_QUEUE 8 // Must be a power of 2
 
 #define F_BUS_MHZ (F_BUS_ACTUAL / 1000000)
@@ -132,7 +123,7 @@ static gpio_t spindleEnable, spindleDir;
 #endif
 
 // Optional I/O
-#if SAFETY_DOOR_ENABLE
+#ifdef SAFETY_DOOR_PIN
 static gpio_t SafetyDoor;
 #endif
 #ifdef LIMITS_OVERRIDE_PIN
@@ -275,7 +266,7 @@ input_signal_t inputpin[] = {
 #endif
     { .id = Input_FeedHold,       .port = &FeedHold,       .pin = FEED_HOLD_PIN,       .group = PinGroup_Control },
     { .id = Input_CycleStart,     .port = &CycleStart,     .pin = CYCLE_START_PIN,     .group = PinGroup_Control },
-#if SAFETY_DOOR_ENABLE
+#ifdef SAFETY_DOOR_PIN
     { .id = Input_SafetyDoor,     .port = &SafetyDoor,     .pin = SAFETY_DOOR_PIN,     .group = PinGroup_Control },
 #endif
 #if defined(LIMITS_OVERRIDE_PIN)
@@ -664,23 +655,6 @@ inline static __attribute__((always_inline)) void set_step_outputs (axes_signals
 #endif
 }
 
-static axes_signals_t getAutoSquaredAxes (void)
-{
-    axes_signals_t ganged = {0};
-
-#if X_AUTO_SQUARE
-    ganged.x = On;
-#endif
-#if Y_AUTO_SQUARE
-    ganged.y = On;
-#endif
-#if Z_AUTO_SQUARE
-    ganged.z = On;
-#endif
-
-    return ganged;
-}
-
 // Enable/disable motors for auto squaring of ganged axes
 static void StepperDisableMotors (axes_signals_t axes, squaring_mode_t mode)
 {
@@ -722,6 +696,41 @@ inline static __attribute__((always_inline)) void set_step_outputs (axes_signals
 
 #endif // SQUARING_ENABLED
 
+#ifdef GANGING_ENABLED
+
+static axes_signals_t getGangedAxes (bool auto_squared)
+{
+    axes_signals_t ganged = {0};
+
+    if(auto_squared) {
+        #if X_AUTO_SQUARE
+            ganged.x = On;
+        #endif
+        #if Y_AUTO_SQUARE
+            ganged.y = On;
+        #endif
+        #if Z_AUTO_SQUARE
+            ganged.z = On;
+        #endif
+    } else {
+        #if X_GANGED
+            ganged.x = On;
+        #endif
+
+        #if Y_GANGED
+            ganged.y = On;
+        #endif
+
+        #if Z_GANGED
+            ganged.z = On;
+        #endif
+    }
+
+    return ganged;
+}
+
+#endif
+
 // Set stepper direction ouput pins.
 // dir_outbits.value (or dir_outbits.mask) are: bit0 -> X, bit1 -> Y...
 // Individual direction bits can be accessed by dir_outbits.x, dir_outbits.y, ...
@@ -730,18 +739,20 @@ inline static __attribute__((always_inline)) void set_dir_outputs (axes_signals_
     dir_outbits.value ^= settings.steppers.dir_invert.mask;
 
     DIGITAL_OUT(dirX, dir_outbits.x);
-#ifdef X2_DIRECTION_PIN
-    DIGITAL_OUT(dirX2, dir_outbits.x);
-#endif
-
     DIGITAL_OUT(dirY, dir_outbits.y);
-#ifdef Y2_DIRECTION_PIN
-    DIGITAL_OUT(dirY2, dir_outbits.y);
-#endif
-
     DIGITAL_OUT(dirZ, dir_outbits.z);
-#ifdef Z2_DIRECTION_PIN
+
+#ifdef GANGING_ENABLED
+    dir_outbits.mask ^= settings.steppers.ganged_dir_invert.mask;
+  #ifdef X2_DIRECTION_PIN
+    DIGITAL_OUT(dirX2, dir_outbits.x);
+  #endif
+  #ifdef Y2_DIRECTION_PIN
+    DIGITAL_OUT(dirY2, dir_outbits.y);
+  #endif
+  #ifdef Z2_DIRECTION_PIN
     DIGITAL_OUT(dirZ2, dir_outbits.z);
+#endif
 #endif
 
 #ifdef A_AXIS
@@ -1103,7 +1114,7 @@ inline static control_signals_t systemGetState (void)
 #endif
     signals.feed_hold = (FeedHold.reg->DR & FeedHold.bit) != 0;
     signals.cycle_start = (CycleStart.reg->DR & CycleStart.bit) != 0;
-#if SAFETY_DOOR_ENABLE
+#ifdef SAFETY_DOOR_PIN
     signals.safety_door_ajar = (SafetyDoor.reg->DR & SafetyDoor.bit) != 0;
 #endif
 
@@ -1593,7 +1604,7 @@ static void settings_changed (settings_t *settings)
                     signal->irq_mode = control_fei.cycle_start ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                     break;
 
-#if SAFETY_DOOR_ENABLE
+#ifdef SAFETY_DOOR_PIN
                 case Input_SafetyDoor:
                     pullup = !settings->control_disable_pullup.safety_door_ajar;
                     signal->irq_mode = control_fei.safety_door_ajar ? IRQ_Mode_Falling : IRQ_Mode_Rising;
@@ -2086,11 +2097,7 @@ static bool driver_setup (settings_t *settings)
 
   // Set defaults
 
-#if N_AXIS > 3
-    IOInitDone = settings->version == 20;
-#else
-    IOInitDone = settings->version == 19;
-#endif
+    IOInitDone = settings->version == 21;
 
     hal.settings_changed(settings);
     hal.stepper.go_idle(true);
@@ -2220,7 +2227,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "211116";
+    hal.driver_version = "211121";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -2236,8 +2243,10 @@ bool driver_init (void)
     hal.stepper.enable = stepperEnable;
     hal.stepper.cycles_per_tick = stepperCyclesPerTick;
     hal.stepper.pulse_start = stepperPulseStart;
+#ifdef GANGING_ENABLED
+    hal.stepper.get_ganged = getGangedAxes;
+#endif
 #ifdef SQUARING_ENABLED
-    hal.stepper.get_auto_squared = getAutoSquaredAxes;
     hal.stepper.disable_motors = StepperDisableMotors;
 #endif
 
@@ -2326,7 +2335,7 @@ bool driver_init (void)
     hal.signals_cap.reset = Off;
     hal.signals_cap.e_stop = On;
 #endif
-#if SAFETY_DOOR_ENABLE
+#ifdef SAFETY_DOOR_PIN
     hal.signals_cap.safety_door_ajar = On;
 #endif
 #ifdef LIMITS_OVERRIDE_PIN
@@ -2419,7 +2428,7 @@ bool driver_init (void)
 
     // No need to move version check before init.
     // Compiler will fail any signature mismatch for existing entries.
-    return hal.version == 8;
+    return hal.version == 9;
 }
 
 /* interrupt handlers */
