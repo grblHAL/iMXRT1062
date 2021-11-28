@@ -42,6 +42,8 @@
 #include <string.h>
 
 #include "driver.h"
+#include "uart.h"
+
 #include "grbl/protocol.h"
 
 #define UART_CLOCK 24000000
@@ -178,6 +180,30 @@ static uint16_t tx_fifo_size;
 static stream_tx_buffer_t txbuffer = {0};
 static stream_rx_buffer_t rxbuffer = {0};
 static enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_realtime_command;
+
+static io_stream_properties_t serial[] = {
+    {
+      .type = StreamType_Serial,
+      .instance = 0,
+      .flags.claimable = On,
+      .flags.claimed = Off,
+      .flags.connected = On,
+      .flags.can_set_baud = On,
+      .flags.modbus_ready = On,
+      .claim = serialInit
+    }
+};
+
+void serialRegisterStreams (void)
+{
+    static io_stream_details_t streams = {
+        .n_streams = sizeof(serial) / sizeof(io_stream_properties_t),
+        .streams = serial,
+    };
+
+    stream_register_streams(&streams);
+}
+
 
 //
 // serialGetC - returns -1 if no data available
@@ -352,6 +378,11 @@ const io_stream_t *serialInit (uint32_t baud_rate)
         .set_baud_rate = serialSetBaudRate,
         .set_enqueue_rt_handler = serialSetRtHandler
     };
+
+    if(serial[0].flags.claimed)
+        return NULL;
+
+    serial[0].flags.claimed = On;
 
     *UART.ccm_register |= UART.ccm_value;
 

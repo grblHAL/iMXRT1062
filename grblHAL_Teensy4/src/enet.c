@@ -236,7 +236,7 @@ static void ethernet_settings_save (void)
     hal.nvs.memcpy_to_nvs(nvs_address, (uint8_t *)&ethernet, sizeof(network_settings_t), true);
 }
 
-static setting_details_t details = {
+static setting_details_t setting_details = {
     .groups = ethernet_groups,
     .n_groups = sizeof(ethernet_groups) / sizeof(setting_group_detail_t),
     .settings = ethernet_settings,
@@ -249,11 +249,6 @@ static setting_details_t details = {
     .load = ethernet_settings_load,
     .restore = ethernet_settings_restore
 };
-
-static setting_details_t *on_get_settings (void)
-{
-    return &details;
-}
 
 static status_code_t ethernet_set_ip (setting_id_t setting, char *value)
 {
@@ -370,8 +365,7 @@ bool grbl_enet_init (network_settings_t *settings)
         on_report_options = grbl.on_report_options;
         grbl.on_report_options = report_options;
 
-        details.on_get_settings = grbl.on_get_settings;
-        grbl.on_get_settings = on_get_settings;
+        settings_register(&setting_details);
 
         allowed_services.mask = networking_get_services_list((char *)netservices).mask;
     }

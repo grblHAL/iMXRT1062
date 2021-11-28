@@ -29,5 +29,6 @@
 #include "grbl/hal.h"
 
 const io_stream_t *serialInit (uint32_t baud_rate);
+void serialRegisterStreams (void);
 
 #endif

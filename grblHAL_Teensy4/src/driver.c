@@ -51,10 +51,6 @@
 static void ppi_timeout_isr (void);
 #endif
 
-#if BLUETOOTH_ENABLE
-#include "bluetooth/bluetooth.h"
-#endif
-
 #if ETHERNET_ENABLE
   #include "enet.h"
   #if TELNET_ENABLE
@@ -2227,7 +2223,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "211121";
+    hal.driver_version = "211124";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -2403,12 +2399,10 @@ bool driver_init (void)
     ioports_init(&aux_inputs, &aux_outputs);
 #endif
 
+    serialRegisterStreams();
+
 #if ETHERNET_ENABLE
     grbl_enet_init();
-#endif
-
-#if MODBUS_ENABLE
-    modbus_init(serialInit(115200), NULL);
 #endif
 
 #if QEI_ENABLE
@@ -2418,10 +2412,6 @@ bool driver_init (void)
 #if PLASMA_ENABLE
     hal.stepper.output_step = stepperOutputStep;
     plasma_init();
-#endif
-
-#if BLUETOOTH_ENABLE
-    bluetooth_init(serialInit(115200));
 #endif
 
 #include "grbl/plugins_init.h"
