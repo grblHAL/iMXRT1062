@@ -218,7 +218,7 @@ const io_stream_t *usb_serialInit (void)
     PROGMEM static const io_stream_t stream = {
         .type = StreamType_Serial,
         .instance = 0,
-        .connected = false,
+        .state = {0},
         .get_rx_buffer_free = usb_serialRxFree,
         .write = usb_serialWriteS,
         .write_all = usb_serialWriteS,

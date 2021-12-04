@@ -552,10 +552,15 @@ static bool selectStream (const io_stream_t *stream)
     static const io_stream_t *last_serial_stream;
 
     if(hal.stream.type == StreamType_Serial || hal.stream.type == StreamType_Bluetooth)
-        serial_connected = hal.stream.connected;
+        serial_connected = hal.stream.state.connected;
 
     if(!stream)
         stream = active_stream == StreamType_Bluetooth ? serial_stream : last_serial_stream;
+
+    bool webui_connected = hal.stream.state.webui_connected;
+
+    if( hal.stream.write  && hal.stream.type == StreamType_Serial)
+        hal.stream.write(webui_connected ? "Con" : "Nocon");
 
     memcpy(&hal.stream, stream, sizeof(io_stream_t));
 
@@ -578,6 +583,7 @@ static bool selectStream (const io_stream_t *stream)
 #if WEBSOCKET_ENABLE
         case StreamType_WebSocket:
             services.websocket = On;
+            hal.stream.state.webui_connected = webui_connected;
             hal.stream.write_all("[MSG:WEBSOCKET STREAM ACTIVE]" ASCII_EOL);
             break;
 #endif
@@ -586,9 +592,9 @@ static bool selectStream (const io_stream_t *stream)
             services.mask = 0;
             write_serial = serial_connected ? hal.stream.write : NULL;
 #endif
-            hal.stream.connected = serial_connected;
+            hal.stream.state.connected = serial_connected;
             last_serial_stream = stream;
-            if(active_stream != StreamType_Serial && hal.stream.connected)
+            if(active_stream != StreamType_Serial && hal.stream.state.connected)
                 hal.stream.write_all("[MSG:SERIAL STREAM ACTIVE]" ASCII_EOL);
             break;
 
@@ -2146,9 +2152,10 @@ bool nvsWrite (uint8_t *source)
 
 static void execute_realtime (uint_fast16_t state)
 {
+#if USB_SERIAL_CDC
     if(usb_serial_input())
         usb_execute_realtime();
-
+#endif
 #if ADD_MSEVENT
     if(ms_event) {
 
@@ -2223,7 +2230,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "211124";
+    hal.driver_version = "211203";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -2279,15 +2286,6 @@ bool driver_init (void)
     grbl.on_report_options = reportIP;
 #endif
 
-#if USB_SERIAL_CDC
-    serial_stream = usb_serialInit();
-#else
-    serial_stream = serialInit(115200);
-#endif
-
-    hal.stream_select = selectStream;
-    hal.stream_select(serial_stream);
-
     hal.reboot = reboot;
     hal.irq_enable = enable_irq;
     hal.irq_disable = disable_irq;
@@ -2301,6 +2299,15 @@ bool driver_init (void)
     hal.enumerate_pins = enumeratePins;
     hal.periph_port.register_pin = registerPeriphPin;
     hal.periph_port.set_pin_description = setPeriphPinDescription;
+
+#if USB_SERIAL_CDC
+    serial_stream = usb_serialInit();
+#else
+    serial_stream = serialInit(115200);
+#endif
+
+    hal.stream_select = selectStream;
+    hal.stream_select(serial_stream);
 
 #ifdef I2C_PORT
     i2c_init();
@@ -2358,10 +2365,6 @@ bool driver_init (void)
     hal.driver_cap.control_pull_up = On;
     hal.driver_cap.limits_pull_up = On;
     hal.driver_cap.probe_pull_up = On;
-
-#if defined(DEBUGOUT) && USB_SERIAL_CDC > 0
-    debug_stream_init(serialInit(115200));
-#endif
 
     uint32_t i;
     input_signal_t *signal;
