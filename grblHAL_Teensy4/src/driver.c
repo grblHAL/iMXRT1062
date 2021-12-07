@@ -43,6 +43,7 @@
 #endif
 
 #if SDCARD_ENABLE
+#include "uSDFS.h"
 #include "sdcard/sdcard.h"
 #endif
 
@@ -558,9 +559,6 @@ static bool selectStream (const io_stream_t *stream)
         stream = active_stream == StreamType_Bluetooth ? serial_stream : last_serial_stream;
 
     bool webui_connected = hal.stream.state.webui_connected;
-
-    if( hal.stream.write  && hal.stream.type == StreamType_Serial)
-        hal.stream.write(webui_connected ? "Con" : "Nocon");
 
     memcpy(&hal.stream, stream, sizeof(io_stream_t));
 
@@ -1917,6 +1915,26 @@ static void encoder_event (encoder_t *encoder, int32_t position)
 
 #endif
 
+#if SDCARD_ENABLE
+
+static char *sdcard_mount (FATFS **fs)
+{
+    static FATFS fatfs;
+    static const char *dev = "1:/";
+
+    if(f_mount(&fatfs, dev, 1) == FR_OK && f_chdrive(dev) == FR_OK)
+        *fs = &fatfs;
+
+    return dev;
+}
+
+static bool sdcard_unmount (FATFS **fs)
+{
+    return false; // for now
+}
+
+#endif
+
 // Initializes MCU peripherals for Grbl use
 static bool driver_setup (settings_t *settings)
 {
@@ -2109,7 +2127,9 @@ static bool driver_setup (settings_t *settings)
 #endif
 
 #if SDCARD_ENABLE
-    sdcard_init();
+    sdcard_events_t *card = sdcard_init();
+    card->on_mount = sdcard_mount;
+    card->on_unmount = sdcard_unmount;
 #endif
 
 #if ETHERNET_ENABLE
@@ -2230,7 +2250,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "211203";
+    hal.driver_version = "211206";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
