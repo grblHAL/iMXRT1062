@@ -360,12 +360,11 @@ const io_stream_t *serialInit (uint32_t baud_rate)
 {
     PROGMEM static const io_stream_t stream = {
         .type = StreamType_Serial,
-        .state.connected = true,
+        .state.connected = On,
         .read = serialGetC,
         .write = serialWriteS,
         .write_n = serialWrite,
         .write_char = serialPutC,
-        .write_all = serialWriteS,
         .enqueue_rt_command = serialEnqueueRtCommand,
         .get_rx_buffer_free = serialRxFree,
         .get_rx_buffer_count = serialRxCount,

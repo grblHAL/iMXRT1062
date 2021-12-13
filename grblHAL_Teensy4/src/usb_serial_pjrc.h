@@ -34,6 +34,5 @@
 #define usb_serial_input() usb_serial_available()
 
 const io_stream_t *usb_serialInit(void);
-void usb_execute_realtime (void);
 
 #endif

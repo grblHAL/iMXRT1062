@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020 Terje Io
+  Copyright (c) 2020-2021 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -26,6 +26,5 @@
 
 bool grbl_enet_init (void);
 bool grbl_enet_start (void);
-void grbl_enet_poll (void);
 
 #endif

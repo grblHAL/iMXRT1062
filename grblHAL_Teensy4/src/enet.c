@@ -38,13 +38,15 @@
 
 #include "networking/networking.h"
 
-static bool enet_started = false;
 static volatile bool linkUp = false;
 static char IPAddress[IP4ADDR_STRLEN_MAX];
+static stream_type_t active_stream = StreamType_Null;
 static network_services_t services = {0}, allowed_services;
 static nvs_address_t nvs_address;
 static network_settings_t ethernet, network;
-static on_report_options_ptr on_report_options;;
+static on_report_options_ptr on_report_options;
+static on_execute_realtime_ptr on_execute_realtime;
+static on_stream_changed_ptr on_stream_changed;
 static char netservices[40] = ""; // must be large enough to hold all service names
 
 static void report_options (bool newopt)
@@ -61,6 +63,12 @@ static void report_options (bool newopt)
         hal.stream.write("[IP:");
         hal.stream.write(IPAddress);
         hal.stream.write("]" ASCII_EOL);
+
+        if(active_stream == StreamType_Telnet || active_stream == StreamType_WebSocket) {
+            hal.stream.write("[NETCON:");
+            hal.stream.write(active_stream == StreamType_Telnet ? "Telnet" : "Websocket");
+            hal.stream.write("]" ASCII_EOL);
+        }
     }
 }
 
@@ -111,23 +119,20 @@ static void netif_status_callback (struct netif *netif)
 #endif
 }
 
-void grbl_enet_poll (void)
+static void grbl_enet_poll (sys_state_t state)
 {
     static uint32_t last_ms0, last_ms1;
-    uint32_t ms;
 
-    if(!enet_started)
-        return;
+    uint32_t ms = millis();
 
     enet_proc_input();
 
-    ms = millis();
+    if(ms - last_ms0 > 3) {
 
-    if(ms - last_ms0 > 1) {
         last_ms0 = ms;
 #if TELNET_ENABLE
         if(services.telnet)
-          TCPStreamPoll();
+            TCPStreamPoll();
 #endif
 #if FTP_ENABLE
         if(services.ftp)
@@ -135,7 +140,7 @@ void grbl_enet_poll (void)
 #endif
 #if WEBSOCKET_ENABLE
         if(services.websocket)
-          WsStreamPoll();
+            WsStreamPoll();
 #endif
     }
 
@@ -144,6 +149,8 @@ void grbl_enet_poll (void)
         last_ms1 = ms;
         enet_poll();
     }
+
+    on_execute_realtime(state);
 }
 
 bool grbl_enet_start (void)
@@ -151,6 +158,8 @@ bool grbl_enet_start (void)
     if(nvs_address != 0) {
 
         *IPAddress = '\0';
+        on_execute_realtime = grbl.on_execute_realtime;
+        grbl.on_execute_realtime = grbl_enet_poll;
 
         memcpy(&network, &ethernet, sizeof(network_settings_t));
 
@@ -168,8 +177,6 @@ bool grbl_enet_start (void)
     #endif
         if(network.ip_mode == IpMode_DHCP)
             dhcp_start(netif_default);
-
-        enet_started = true;
     }
 
     return nvs_address != 0;
@@ -358,12 +365,24 @@ static void ethernet_settings_load (void)
     ethernet.services.mask &= allowed_services.mask;
 }
 
+static void stream_changed (stream_type_t type)
+{
+    if(type != StreamType_SDCard)
+        active_stream = type;
+
+    if(on_stream_changed)
+        on_stream_changed(type);
+}
+
 bool grbl_enet_init (network_settings_t *settings)
 {
     if((nvs_address = nvs_alloc(sizeof(network_settings_t)))) {
 
         on_report_options = grbl.on_report_options;
         grbl.on_report_options = report_options;
+
+        on_stream_changed = grbl.on_stream_changed;
+        grbl.on_stream_changed = stream_changed;
 
         settings_register(&setting_details);
 

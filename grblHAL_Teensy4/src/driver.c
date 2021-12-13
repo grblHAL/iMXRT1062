@@ -434,7 +434,7 @@ static output_signal_t outputpin[] = {
 
 static pin_group_pins_t limit_inputs = {0};
 
-#if USB_SERIAL_CDC || QEI_ENABLE
+#if QEI_ENABLE
 #define ADD_MSEVENT 1
 static volatile bool ms_event = false;
 #else
@@ -475,27 +475,6 @@ static spindle_data_t *spindleGetData (spindle_data_request_t request);
 static void spindle_pulse_isr (void);
 
 #endif
-
-static const io_stream_t *serial_stream;
-
-#if ETHERNET_ENABLE
-static network_services_t services = {0};
-static stream_write_ptr write_serial;
-
-static void enetStreamWriteS (const char *data)
-{
-#if TELNET_ENABLE
-    if(services.telnet)
-        TCPStreamWriteS(data);
-#endif
-#if WEBSOCKET_ENABLE
-    if(services.websocket)
-        WsStreamWriteS(data);
-#endif
-    if(write_serial)
-        write_serial(data);
-}
-#endif // ETHERNET_ENABLE
 
 #if I2C_STROBE_ENABLE
 
@@ -544,80 +523,6 @@ static void driver_delay_ms (uint32_t ms, delay_callback_ptr callback)
         if(callback)
             callback();
     }
-}
-
-static bool selectStream (const io_stream_t *stream)
-{
-    static bool serial_connected = false;
-    static stream_type_t active_stream = StreamType_Serial;
-    static const io_stream_t *last_serial_stream;
-
-    if(hal.stream.type == StreamType_Serial || hal.stream.type == StreamType_Bluetooth)
-        serial_connected = hal.stream.state.connected;
-
-    if(!stream)
-        stream = active_stream == StreamType_Bluetooth ? serial_stream : last_serial_stream;
-
-    bool webui_connected = hal.stream.state.webui_connected;
-
-    memcpy(&hal.stream, stream, sizeof(io_stream_t));
-
-#if ETHERNET_ENABLE
-    if(!hal.stream.write_all)
-        hal.stream.write_all = serial_connected ? enetStreamWriteS : hal.stream.write;
-#else
-    if(!hal.stream.write_all)
-        hal.stream.write_all = hal.stream.write;
-#endif
-
-    switch(stream->type) {
-
-#if TELNET_ENABLE
-        case StreamType_Telnet:
-            services.telnet = On;
-            hal.stream.write_all("[MSG:TELNET STREAM ACTIVE]" ASCII_EOL);
-            break;
-#endif
-#if WEBSOCKET_ENABLE
-        case StreamType_WebSocket:
-            services.websocket = On;
-            hal.stream.state.webui_connected = webui_connected;
-            hal.stream.write_all("[MSG:WEBSOCKET STREAM ACTIVE]" ASCII_EOL);
-            break;
-#endif
-        case StreamType_Serial:
-#if ETHERNET_ENABLE
-            services.mask = 0;
-            write_serial = serial_connected ? hal.stream.write : NULL;
-#endif
-            hal.stream.state.connected = serial_connected;
-            last_serial_stream = stream;
-            if(active_stream != StreamType_Serial && hal.stream.state.connected)
-                hal.stream.write_all("[MSG:SERIAL STREAM ACTIVE]" ASCII_EOL);
-            break;
-
-        case StreamType_Bluetooth:
-#if ETHERNET_ENABLE
-            services.mask = 0;
-            write_serial = hal.stream.write;
-#endif
-            last_serial_stream = stream;
-            break;
-        default:
-            break;
-    }
-
-    hal.stream.set_enqueue_rt_handler(protocol_enqueue_realtime_command);
-
-    if(hal.stream.disable_rx)
-        hal.stream.disable_rx(false);
-
-    if(grbl.on_stream_changed)
-        grbl.on_stream_changed(hal.stream.type);
-
-    active_stream = hal.stream.type;
-
-    return stream->type == hal.stream.type;
 }
 
 // Set stepper pulse output pins.
@@ -1426,17 +1331,6 @@ static coolant_state_t coolantGetState (void)
     return state;
 }
 
-#if ETHERNET_ENABLE
-static void reportIP (bool newopt)
-{
-    if(!newopt && (services.telnet || services.websocket)) {
-        hal.stream.write("[NETCON:");
-        hal.stream.write(services.telnet ? "Telnet" : "Websocket");
-        hal.stream.write("]" ASCII_EOL);
-    }
-}
-#endif
-
 // Helper functions for setting/clearing/inverting individual bits atomically (uninterruptable)
 static void bitsSetAtomic (volatile uint_fast16_t *ptr, uint_fast16_t bits)
 {
@@ -1925,7 +1819,7 @@ static char *sdcard_mount (FATFS **fs)
     if(f_mount(&fatfs, dev, 1) == FR_OK && f_chdrive(dev) == FR_OK)
         *fs = &fatfs;
 
-    return dev;
+    return (char *)dev;
 }
 
 static bool sdcard_unmount (FATFS **fs)
@@ -2168,15 +2062,10 @@ bool nvsWrite (uint8_t *source)
 
 #endif
 
-#if ETHERNET_ENABLE || ADD_MSEVENT
+#if ADD_MSEVENT
 
 static void execute_realtime (uint_fast16_t state)
 {
-#if USB_SERIAL_CDC
-    if(usb_serial_input())
-        usb_execute_realtime();
-#endif
-#if ADD_MSEVENT
     if(ms_event) {
 
         ms_event = false;
@@ -2197,14 +2086,9 @@ static void execute_realtime (uint_fast16_t state)
         }
   #endif
     }
-#endif // ADD_MSEVENT
-
-#if ETHERNET_ENABLE
-    grbl_enet_poll();
-#endif
 }
 
-#endif
+#endif // ADD_MSEVENT
 
 #ifdef DEBUGOUT
 
@@ -2250,7 +2134,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "211206";
+    hal.driver_version = "211213";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -2302,10 +2186,6 @@ bool driver_init (void)
 #endif
     hal.control.get_state = systemGetState;
 
-#if ETHERNET_ENABLE
-    grbl.on_report_options = reportIP;
-#endif
-
     hal.reboot = reboot;
     hal.irq_enable = enable_irq;
     hal.irq_disable = disable_irq;
@@ -2320,14 +2200,13 @@ bool driver_init (void)
     hal.periph_port.register_pin = registerPeriphPin;
     hal.periph_port.set_pin_description = setPeriphPinDescription;
 
-#if USB_SERIAL_CDC
-    serial_stream = usb_serialInit();
-#else
-    serial_stream = serialInit(115200);
-#endif
 
-    hal.stream_select = selectStream;
-    hal.stream_select(serial_stream);
+#if USB_SERIAL_CDC
+//    stream_connect(serialInit(115200));
+    stream_connect(usb_serialInit());
+#else
+    stream_connect(serialInit(115200));
+#endif
 
 #ifdef I2C_PORT
     i2c_init();
@@ -2342,7 +2221,7 @@ bool driver_init (void)
     hal.nvs.memcpy_to_flash = nvsWrite;
 #endif
 
-#if ETHERNET_ENABLE || ADD_MSEVENT
+#if ADD_MSEVENT
     grbl.on_execute_realtime = execute_realtime;
 #endif
 
