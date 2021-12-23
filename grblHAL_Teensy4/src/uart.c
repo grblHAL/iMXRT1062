@@ -204,7 +204,6 @@ void serialRegisterStreams (void)
     stream_register_streams(&streams);
 }
 
-
 //
 // serialGetC - returns -1 if no data available
 //
@@ -455,14 +454,16 @@ const io_stream_t *serialInit (uint32_t baud_rate)
         .function = Output_TX,
         .group = PinGroup_UART,
         .pin = TX_PIN,
-        .mode = { .mask = PINMODE_OUTPUT }
+        .mode = { .mask = PINMODE_OUTPUT },
+        .description = "UART1"
     };
 
     static const periph_pin_t rx = {
         .function = Input_RX,
         .group = PinGroup_UART,
         .pin = RX_PIN,
-        .mode = { .mask = PINMODE_NONE }
+        .mode = { .mask = PINMODE_NONE },
+        .description = "UART1"
     };
 
     hal.periph_port.register_pin(&rx);

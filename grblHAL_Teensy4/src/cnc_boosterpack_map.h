@@ -66,7 +66,9 @@
 #define RESET_PIN           (11u)
 #define FEED_HOLD_PIN       (7u)
 #define CYCLE_START_PIN     (6u)
+#if SAFETY_DOOR_ENABLE
 #define SAFETY_DOOR_PIN     (9u)
+#endif
 
 // Define probe switch input pin.
 #define PROBE_PIN           (15U)

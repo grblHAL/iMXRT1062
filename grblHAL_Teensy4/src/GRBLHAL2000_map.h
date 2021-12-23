@@ -87,9 +87,9 @@
 #if MOTOR_FAULT_ENABLE
 #define MOTOR_FAULT_PIN     (29u)
 #endif
-
+#if SAFETY_DOOR_ENABLE
 #define SAFETY_DOOR_PIN     (29u)
-
+#endif
 
 // Define probe switch input pin.
 #define PROBE_PIN           (15u)

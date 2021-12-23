@@ -1019,7 +1019,7 @@ inline static control_signals_t systemGetState (void)
 #endif
     signals.feed_hold = (FeedHold.reg->DR & FeedHold.bit) != 0;
     signals.cycle_start = (CycleStart.reg->DR & CycleStart.bit) != 0;
-#ifdef ENABLE_SAFETY_DOOR_INPUT_PIN
+#ifdef SAFETY_DOOR_PIN
     signals.safety_door_ajar = (SafetyDoor.reg->DR & SafetyDoor.bit) != 0;
 #endif
 
@@ -2134,7 +2134,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "211213";
+    hal.driver_version = "211222";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
