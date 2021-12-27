@@ -1407,7 +1407,8 @@ static void settings_changed (settings_t *settings)
 
 #if SPINDLE_SYNC_ENABLE
 
-        if((hal.spindle.get_data = settings->spindle.ppr > 0 ? spindleGetData : NULL) && spindle_encoder.ppr != settings->spindle.ppr) {
+        if((hal.spindle.get_data = (hal.driver_cap.spindle_at_speed = settings->spindle.ppr > 0) ? spindleGetData : NULL) &&
+             (spindle_encoder.ppr != settings->spindle.ppr || pidf_config_changed(&spindle_tracker.pid, &settings->position.pid))) {
 
             hal.spindle.reset_data = spindleDataReset;
             hal.spindle.set_state((spindle_state_t){0}, 0.0f);
@@ -1979,6 +1980,15 @@ static bool driver_setup (settings_t *settings)
     GPT2_OCR1 = spindle_encoder.tics_per_irq;
     GPT2_IR = GPT_IR_OF1IE;
 
+    static const periph_pin_t spp = {
+        .function = Input_SpindlePulse,
+        .group = PinGroup_SpindlePulse,
+        .pin = SPINDLE_PULSE_PIN,
+        .mode = { .input = On, .peripheral = On }
+    };
+
+    hal.periph_port.register_pin(&spp);
+
     attachInterruptVector(IRQ_GPT2, spindle_pulse_isr);
     NVIC_SET_PRIORITY(IRQ_GPT2, 1);
     NVIC_ENABLE_IRQ(IRQ_GPT2);
@@ -2134,7 +2144,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "211222";
+    hal.driver_version = "211226";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -2182,7 +2192,6 @@ bool driver_init (void)
 #endif
 #if SPINDLE_SYNC_ENABLE
     hal.driver_cap.spindle_sync = On;
-    hal.driver_cap.spindle_at_speed = On;
 #endif
     hal.control.get_state = systemGetState;
 
