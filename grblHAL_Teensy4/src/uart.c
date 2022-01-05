@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Some parts of this code is Copyright (c) 2020-2021 Terje Io
+  Some parts of this code is Copyright (c) 2020-2022 Terje Io
 
   Some parts are derived from HardwareSerial.cpp in the Teensyduino Core Library
 
@@ -333,9 +333,9 @@ static bool serialSetBaudRate (uint32_t baud_rate)
 static bool serialDisable (bool disable)
 {
     if(disable)
-        NVIC_DISABLE_IRQ(UART.irq);
+        UART.port->CTRL &= ~LPUART_CTRL_RIE;
     else
-        NVIC_ENABLE_IRQ(UART.irq);
+        UART.port->CTRL |= LPUART_CTRL_RIE;
 
     return true;
 }

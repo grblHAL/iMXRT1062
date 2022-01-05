@@ -79,7 +79,7 @@ static void link_status_callback (struct netif *netif)
     if(isLinkUp != linkUp) {
         linkUp = isLinkUp;
 #if TELNET_ENABLE
-        TCPStreamNotifyLinkStatus(linkUp);
+        telnetd_notify_link_status(linkUp);
 #endif
     }
 }
@@ -89,33 +89,23 @@ static void netif_status_callback (struct netif *netif)
     ip4addr_ntoa_r(netif_ip_addr4(netif), IPAddress, IP4ADDR_STRLEN_MAX);
 
 #if TELNET_ENABLE
-    if(network.services.telnet && !services.telnet) {
-        TCPStreamInit();
-        TCPStreamListen(network.telnet_port == 0 ? NETWORK_TELNET_PORT : network.telnet_port);
-        services.telnet = On;
-    }
+        if(network.services.telnet && !services.telnet)
+            services.telnet =  telnetd_init(network.telnet_port == 0 ? NETWORK_TELNET_PORT : network.telnet_port);
 #endif
 
 #if FTP_ENABLE
-    if(network.services.ftp && !services.ftp) {
-        ftpd_init(network.ftp_port == 0 ? NETWORK_FTP_PORT : network.ftp_port);
-        services.ftp = On;
-    }
+        if(network.services.ftp && !services.ftp)
+            services.ftp = ftpd_init(network.ftp_port == 0 ? NETWORK_FTP_PORT : network.ftp_port);;
 #endif
 
 #if HTTP_ENABLE
-    if(network.services.http && !services.http) {
-        httpd_init(network.http_port == 0 ? NETWORK_HTTP_PORT : network.http_port);
-        services.http = On;
-    }
+        if(network.services.http && !services.http)
+            services.http = httpd_init(network.http_port == 0 ? NETWORK_HTTP_PORT : network.http_port);
 #endif
 
 #if WEBSOCKET_ENABLE
-    if(network.services.websocket && !services.websocket) {
-        WsStreamInit();
-        WsStreamListen(network.websocket_port == 0 ? NETWORK_WEBSOCKET_PORT : network.websocket_port);
-        services.websocket = On;
-    }
+        if(network.services.websocket && !services.websocket)
+            services.websocket = websocketd_init(network.websocket_port == 0 ? NETWORK_WEBSOCKET_PORT : network.websocket_port);
 #endif
 }
 
@@ -132,7 +122,7 @@ static void grbl_enet_poll (sys_state_t state)
         last_ms0 = ms;
 #if TELNET_ENABLE
         if(services.telnet)
-            TCPStreamPoll();
+            telnetd_poll();
 #endif
 #if FTP_ENABLE
         if(services.ftp)
@@ -140,7 +130,7 @@ static void grbl_enet_poll (sys_state_t state)
 #endif
 #if WEBSOCKET_ENABLE
         if(services.websocket)
-            WsStreamPoll();
+            websocketd_poll();
 #endif
     }
 

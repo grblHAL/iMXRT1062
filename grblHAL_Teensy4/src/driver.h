@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2021 Terje Io
+  Copyright (c) 2020-2022 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -105,15 +105,35 @@
 #include "encoder/encoder.h"
 #endif
 
-#if BLUETOOTH_ENABLE && USB_SERIAL_CDC == 0
-#error "Bluetooth cannot be used with UART communications enabled!"
+#if MODBUS_ENABLE
+#define MODBUS_TEST 1
+#else
+#define MODBUS_TEST 0
 #endif
 
-#if MODBUS_ENABLE
-#if USB_SERIAL_CDC == 0
-#error "Modbus VFDs cannot be used with UART communications enabled!"
+#if KEYPAD_ENABLE == 2 && MPG_ENABLE == 0
+#define KEYPAD_TEST 1
+#else
+#define KEYPAD_TEST 0
 #endif
+
+#if USB_SERIAL_CDC == 0 && (MODBUS_TEST + KEYPAD_TEST + BLUETOOTH_ENABLE + MPG_ENABLE) > 0
+#error "Options that uses the UART serial port can only be enabled with USB serial CDC!"
+#endif
+
+#if MODBUS_TEST + KEYPAD_TEST + BLUETOOTH_ENABLE + MPG_ENABLE > 1
+#error "Only one option that uses the UART serial port can be enabled!"
+#endif
+
+#undef MODBUS_TEST
+#undef KEYPAD_TEST
+
+#if MODBUS_ENABLE
 #include "spindle/modbus.h"
+#endif
+
+#if MPG_MODE == 1 && !defined(MPG_MODE_PIN)
+#error "MPG_MODE_PIN must be defined!"
 #endif
 
 #if PLASMA_ENABLE

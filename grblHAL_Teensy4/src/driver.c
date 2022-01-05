@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2021 Terje Io
+  Copyright (c) 2020-2022 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -42,6 +42,10 @@
 #include "ioports.h"
 #endif
 
+#if KEYPAD_ENABLE == 2
+#include "keypad/keypad.h"
+#endif
+
 #if SDCARD_ENABLE
 #include "uSDFS.h"
 #include "sdcard/sdcard.h"
@@ -54,12 +58,6 @@ static void ppi_timeout_isr (void);
 
 #if ETHERNET_ENABLE
   #include "enet.h"
-  #if TELNET_ENABLE
-    #include "networking/TCPStream.h"
-  #endif
-  #if WEBSOCKET_ENABLE
-    #include "networking/WsStream.h"
-  #endif
 #endif
 
 #if USB_SERIAL_CDC == 1
@@ -162,8 +160,9 @@ static gpio_t enableZ;
 #if I2C_STROBE_ENABLE
 static gpio_t KeypadStrobe;
 #endif
-#if MPG_MODE_ENABLE
+#if MPG_MODE == 1
 static gpio_t ModeSelect;
+static input_signal_t *mpg_pin = NULL;
 #endif
 #if QEI_ENABLE
 static bool qei_enable = false;
@@ -269,6 +268,9 @@ input_signal_t inputpin[] = {
 #if defined(LIMITS_OVERRIDE_PIN)
     { .id = Input_LimitsOverride, .port = &LimitsOverride, .pin = LIMITS_OVERRIDE_PIN, .group = PinGroup_Control },
 #endif
+#ifdef MPG_MODE_PIN
+    { .id = Input_MPGSelect,      .port = &ModeSelect,     .pin = MPG_MODE_PIN,        .group = PinGroup_MPG },
+#endif
     { .id = Input_Probe,          .port = &Probe,          .pin = PROBE_PIN,           .group = PinGroup_Probe },
 // Limit input pins must be consecutive
     { .id = Input_LimitX,         .port = &LimitX,         .pin = X_LIMIT_PIN,         .group = PinGroup_Limit },
@@ -302,8 +304,8 @@ input_signal_t inputpin[] = {
   , { .id = Input_LimitC,         .port = &LimitC,         .pin = C_LIMIT_PIN,         .group = PinGroup_Limit }
 #endif
 // End limit pin definitions
-#if MPG_MODE_ENABLE
-  ,  { .id = Input_ModeSelect,    .port = &ModeSelect,     .pin = MODE_PIN,            .group = PinGroup_MPG }
+#if MPG_MODE_PIN
+  , { .id = Input_ModeSelect,     .port = &ModeSelect,     .pin = MPG_MODE_PIN,        .group = PinGroup_MPG }
 #endif
 #if I2C_STROBE_ENABLE && defined(I2C_STROBE_PIN)
   , { .id = Input_KeypadStrobe,   .port = &KeypadStrobe,   .pin = I2C_STROBE_PIN,      .group = PinGroup_Keypad }
@@ -1217,6 +1219,8 @@ static void spindlePulseOn (uint_fast16_t pulse_length)
 
 #endif
 
+#endif // VFD_SPINDLE != 1
+
 #if SPINDLE_SYNC_ENABLE
 
 static spindle_data_t *spindleGetData (spindle_data_request_t request)
@@ -1301,11 +1305,10 @@ static void spindleDataReset (void)
     GPT2_CR |= GPT_CR_EN;
 }
 
-#endif
+#endif // SPINDLE_SYNC_ENABLE
 
 // end spindle code
 
-#endif
 
 // Start/stop coolant (and mist if enabled).
 // coolant_state_t is defined in grbl/coolant_control.h.
@@ -1368,6 +1371,25 @@ static void disable_irq (void)
 {
     __disable_irq();
 }
+
+#if MPG_MODE == 1
+
+static void mpg_select (sys_state_t state)
+{
+    stream_mpg_enable(DIGITAL_IN(mpg_pin->gpio) == 0);
+
+    pinEnableIRQ(mpg_pin, (mpg_pin->irq_mode = sys.mpg_mode ? IRQ_Mode_Rising : IRQ_Mode_Falling));
+}
+
+static void mpg_enable (sys_state_t state)
+{
+    if(sys.mpg_mode == DIGITAL_IN(mpg_pin->gpio))
+        stream_mpg_enable(true);
+
+    pinEnableIRQ(mpg_pin, (mpg_pin->irq_mode = sys.mpg_mode ? IRQ_Mode_Rising : IRQ_Mode_Falling));
+}
+
+#endif
 
 // Configures perhipherals when settings are initialized or changed
 static void settings_changed (settings_t *settings)
@@ -1555,9 +1577,9 @@ static void settings_changed (settings_t *settings)
                     signal->irq_mode = limit_fei.b ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                     break;
 #endif
-#if MPG_MODE_ENABLE
-                case Input_ModeSelect:
-                    signal->irq_mode = IRQ_Mode_Change;
+#ifdef MPG_MODE_PIN
+                case Input_MPGSelect:
+                    pullup = true;
                     break;
 #endif
 #if I2C_STROBE_ENABLE
@@ -2121,15 +2143,30 @@ bool driver_init (void)
 {
     static char options[30];
 
+    uint32_t i;
+
     // Chain our systick isr to the Arduino handler
 
-    if(systick_isr_org == NULL) 
+    if(systick_isr_org == NULL)
         systick_isr_org = _VectorsRam[15];
     _VectorsRam[15] = systick_isr;
 
     // Enable lazy stacking of FPU registers here if a FPU is available.
 
  //   FPU->FPCCR = (FPU->FPCCR & ~FPU_FPCCR_LSPEN_Msk) | FPU_FPCCR_ASPEN_Msk;  // enable lazy stacking
+
+#ifdef MPG_MODE_PIN
+	// Pull down MPG mode pin until startup is completed.
+    i = 0;
+    while(mpg_pin == NULL) {
+        if(inputpin[i].id == Input_ModeSelect) {
+            mpg_pin = &inputpin[i];
+            pinModeOutput(mpg_pin->port, mpg_pin->pin);
+            DIGITAL_OUT(ModeSelect, 0);
+        }
+        i++;
+    }
+#endif
 
     options[0] = '\0';
 
@@ -2144,7 +2181,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "211226";
+    hal.driver_version = "220105";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -2214,7 +2251,7 @@ bool driver_init (void)
 //    stream_connect(serialInit(115200));
     stream_connect(usb_serialInit());
 #else
-    stream_connect(serialInit(115200));
+    stream_connect(serialInit(BAUD_RATE));
 #endif
 
 #ifdef I2C_PORT
@@ -2274,7 +2311,6 @@ bool driver_init (void)
     hal.driver_cap.limits_pull_up = On;
     hal.driver_cap.probe_pull_up = On;
 
-    uint32_t i;
     input_signal_t *signal;
     static pin_group_pins_t aux_inputs = {0}, aux_outputs = {0};
 
@@ -2311,6 +2347,15 @@ bool driver_init (void)
 #endif
 
     serialRegisterStreams();
+
+#if MPG_MODE == 1
+    if((hal.driver_cap.mpg_mode = stream_mpg_register(serialInit(115200), false, NULL)))
+        protocol_enqueue_rt_command(mpg_enable);
+#elif MPG_MODE == 2
+    hal.driver_cap.mpg_mode = stream_mpg_register(serialInit(115200), false, keypad_enqueue_keycode);
+#elif KEYPAD_ENABLE == 2
+    stream_open_instance(0, 115200, keypad_enqueue_keycode);
+#endif
 
 #if ETHERNET_ENABLE
     grbl_enet_init();
@@ -2546,6 +2591,13 @@ static void gpio_isr (void)
                         ioports_event(&inputpin[i]);
                         break;
 #endif
+
+#if MPG_MODE == 1
+                    case PinGroup_MPG:
+                        pinEnableIRQ(&inputpin[i], IRQ_Mode_None);
+                        protocol_enqueue_rt_command(mpg_select);
+                        break;
+#endif
                     default:
                         grp |= inputpin[i].group;
                         break;
@@ -2578,18 +2630,6 @@ static void gpio_isr (void)
         }
     }
 
-#endif
-
-#if MPG_MODE_ENABLE
-
-    static bool mpg_mutex = false;
-
-    if((grp & PinGroup_MPG) && !mpg_mutex) {
-        mpg_mutex = true;
-        modeChange();
-        // hal.delay_ms(50, modeChange);
-        mpg_mutex = false;
-    }
 #endif
 }
 

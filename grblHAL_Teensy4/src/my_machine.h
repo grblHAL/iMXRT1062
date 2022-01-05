@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2021 Terje Io
+  Copyright (c) 2020-2022 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@
 //#define BOARD_CNC_BOOSTERPACK
 //#define BOARD_GRBLHAL2000
 //#define BOARD_MY_MACHINE // Add my_machine_map.h before enabling this!
-
+//#define BAUD_RATE 230400
 // Configuration
 // Uncomment to enable, for some a value > 1 may be assigned, if so the default value is shown.
 
@@ -61,6 +61,7 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 //#define ETHERNET_ENABLE     1 // Ethernet streaming. Enables networking plugin.
 //#define SDCARD_ENABLE       1 // Run gcode programs from SD card, enables sdcard plugin.
 //#define QEI_ENABLE          1 // Enable quadrature encoder interfaces. Max value is 1. Requires encoder plugin.
+//#define MPG_ENABLE          1 // Enable MPG interface. Requires serial port and one handshake pin.
 //#define KEYPAD_ENABLE       1 // Set to 1 for I2C keypad, 2 for other input such as serial data
 //#define PLASMA_ENABLE       1 // Plasma/THC plugin. To be completed.
 //#define MCP3221_ENABLE      1 // Enable analog input via MCP3221 ADC.
@@ -94,7 +95,7 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 #define TELNET_ENABLE           1 // Telnet daemon - requires Ethernet streaming enabled.
 #define WEBSOCKET_ENABLE        1 // Websocket daemon - requires Ethernet streaming enabled.
 #ifdef SDCARD_ENABLE
-//#define FTP_ENABLE              1 // Ftp daemon - requires SD card enabled.
+//#define FTP_ENABLE              1 // Ftp daemon - requires SD card enabled
 //#define HTTP_ENABLE             1 // http daemon - requires SD card enabled.
 #endif
 // The following symbols have the default values as shown, uncomment and change as needed.

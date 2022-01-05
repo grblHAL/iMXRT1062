@@ -5,7 +5,7 @@
 
   Board by Phil Barrett: https://github.com/phil-barrett/grblHAL-teensy-4.x
 
-  Copyright (c) 2020-2021 Terje Io
+  Copyright (c) 2020-2022 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -62,6 +62,10 @@
 #define M4_DIRECTION_PIN    (27u)
 #define M4_LIMIT_PIN        (28u)
 #define M4_ENABLE_PIN       (37u)
+#endif
+
+#if MPG_MODE == 1 && !defined(M4_LIMIT_PIN)
+#define MPG_MODE_PIN        (28u)
 #endif
 
 // Define stepper driver enable/disable output pin(s).
