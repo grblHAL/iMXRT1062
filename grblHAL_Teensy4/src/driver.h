@@ -162,7 +162,7 @@
   #endif
 #endif
 
-#if !(SPINDLE_PWM_PIN == 12 || SPINDLE_PWM_PIN == 13)
+#if SPINDLE_PWM_PIN && !(SPINDLE_PWM_PIN == 12 || SPINDLE_PWM_PIN == 13)
   #error "SPINDLE_PWM_PIN can only be routed to pin 12 or 13!"
 #endif
 

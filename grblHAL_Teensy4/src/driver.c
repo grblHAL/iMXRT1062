@@ -241,6 +241,18 @@ static gpio_t QEI_A, QEI_B;
 #ifdef AUXINPUT3_PIN
   static gpio_t AuxIn3;
 #endif
+#ifdef AUXINPUT4_PIN
+  static gpio_t AuxIn4;
+#endif
+#ifdef AUXINPUT5_PIN
+  static gpio_t AuxIn5;
+#endif
+#ifdef AUXINPUT6_PIN
+  static gpio_t AuxIn6;
+#endif
+#ifdef AUXINPUT7_PIN
+  static gpio_t AuxIn7;
+#endif
 
 #ifdef AUXOUTPUT0_PIN
   static gpio_t AuxOut0;
@@ -250,6 +262,21 @@ static gpio_t QEI_A, QEI_B;
 #endif
 #ifdef AUXOUTPUT2_PIN
   static gpio_t AuxOut2;
+#endif
+#ifdef AUXOUTPUT3_PIN
+  static gpio_t AuxOut3;
+#endif
+#ifdef AUXOUTPUT4_PIN
+  static gpio_t AuxOut4;
+#endif
+#ifdef AUXOUTPUT5_PIN
+  static gpio_t AuxOut5;
+#endif
+#ifdef AUXOUTPUT6_PIN
+  static gpio_t AuxOut6;
+#endif
+#ifdef AUXOUTPUT7_PIN
+  static gpio_t AuxOut7;
 #endif
 
 static periph_signal_t *periph_pins = NULL;
@@ -335,6 +362,18 @@ input_signal_t inputpin[] = {
 #endif
 #ifdef AUXINPUT3_PIN
   , { .id = Input_Aux3,           .port = &AuxIn3,         .pin = AUXINPUT3_PIN,       .group = PinGroup_AuxInput }
+#endif
+#ifdef AUXINPUT4_PIN
+  , { .id = Input_Aux4,           .port = &AuxIn4,         .pin = AUXINPUT4_PIN,       .group = PinGroup_AuxInput }
+#endif
+#ifdef AUXINPUT5_PIN
+  , { .id = Input_Aux5,           .port = &AuxIn5,         .pin = AUXINPUT5_PIN,       .group = PinGroup_AuxInput }
+#endif
+#ifdef AUXINPUT6_PIN
+  , { .id = Input_Aux6,           .port = &AuxIn6,         .pin = AUXINPUT6_PIN,       .group = PinGroup_AuxInput }
+#endif
+#ifdef AUXINPUT7_PIN
+  , { .id = Input_Aux7,           .port = &AuxIn7,         .pin = AUXINPUT7_PIN,       .group = PinGroup_AuxInput }
 #endif
 };
 
@@ -430,7 +469,22 @@ static output_signal_t outputpin[] = {
     { .id = Output_Aux1,            .port = &AuxOut1,       .pin = AUXOUTPUT1_PIN,          .group = PinGroup_AuxOutput },
 #endif
 #ifdef AUXOUTPUT2_PIN
-    { .id = Output_Aux2,            .port = &AuxOut2,       .pin = AUXOUTPUT2_PIN,          .group = PinGroup_AuxOutput }
+    { .id = Output_Aux2,            .port = &AuxOut2,       .pin = AUXOUTPUT2_PIN,          .group = PinGroup_AuxOutput },
+#endif
+#ifdef AUXOUTPUT3_PIN
+    { .id = Output_Aux3,            .port = &AuxOut3,       .pin = AUXOUTPUT3_PIN,          .group = PinGroup_AuxOutput },
+#endif
+#ifdef AUXOUTPUT4_PIN
+    { .id = Output_Aux4,            .port = &AuxOut4,       .pin = AUXOUTPUT4_PIN,          .group = PinGroup_AuxOutput },
+#endif
+#ifdef AUXOUTPUT5_PIN
+    { .id = Output_Aux5,            .port = &AuxOut5,       .pin = AUXOUTPUT5_PIN,          .group = PinGroup_AuxOutput },
+#endif
+#ifdef AUXOUTPUT6_PIN
+    { .id = Output_Aux6,            .port = &AuxOut6,       .pin = AUXOUTPUT6_PIN,          .group = PinGroup_AuxOutput },
+#endif
+#ifdef AUXOUTPUT7_PIN
+    { .id = Output_Aux7,            .port = &AuxOut7,       .pin = AUXOUTPUT7_PIN,          .group = PinGroup_AuxOutput }
 #endif
 };
 
@@ -2181,7 +2235,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "220105";
+    hal.driver_version = "220110";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
