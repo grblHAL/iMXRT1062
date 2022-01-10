@@ -23,7 +23,10 @@
 #define BOARD_NAME "GRBLHAL2000 - PRINTNC"
 #define HAS_BOARD_INIT
 #define HAS_IOPORTS
+
+#if MODBUS_ENABLE < 1
 #define UART_PORT 8
+#endif
 
 #ifdef NETWORK_HOSTNAME
     #undef NETWORK_HOSTNAME
