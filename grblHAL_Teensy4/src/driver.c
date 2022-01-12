@@ -569,8 +569,10 @@ static void driver_delay_ms (uint32_t ms, delay_callback_ptr callback)
 {
     if(ms) {
         grbl_delay.ms = ms;
-        if(!(grbl_delay.callback = callback))
-            while(grbl_delay.ms);
+        if(!(grbl_delay.callback = callback)) {
+            while(grbl_delay.ms)
+                grbl.on_execute_delay(state_get());
+        }
     } else {
         if(grbl_delay.ms) {
             grbl_delay.callback = NULL;
@@ -2235,7 +2237,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "220110";
+    hal.driver_version = "220111";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -2299,7 +2301,6 @@ bool driver_init (void)
     hal.enumerate_pins = enumeratePins;
     hal.periph_port.register_pin = registerPeriphPin;
     hal.periph_port.set_pin_description = setPeriphPinDescription;
-
 
 #if USB_SERIAL_CDC
 //    stream_connect(serialInit(115200));
@@ -2365,38 +2366,36 @@ bool driver_init (void)
     hal.driver_cap.limits_pull_up = On;
     hal.driver_cap.probe_pull_up = On;
 
-    input_signal_t *signal;
+    input_signal_t *input;
     static pin_group_pins_t aux_inputs = {0}, aux_outputs = {0};
 
     for(i = 0 ; i < sizeof(inputpin) / sizeof(input_signal_t); i++) {
-        signal = &inputpin[i];
-#ifdef HAS_IOPORTS
-        if(signal->group == PinGroup_AuxInput) {
+        input = &inputpin[i];
+        if(input->group == PinGroup_AuxInput) {
             if(aux_inputs.pins.inputs == NULL)
-                aux_inputs.pins.inputs = signal;
-            aux_inputs.n_pins++;
-            signal->cap.pull_mode = PullMode_UpDown;
-            signal->cap.irq_mode = IRQ_Mode_All;
+                aux_inputs.pins.inputs = input;
+            input->id = (pin_function_t)(Input_Aux0 + aux_inputs.n_pins++);
+            input->cap.pull_mode = PullMode_UpDown;
+            input->cap.irq_mode = IRQ_Mode_All;
         }
-#endif
-        if(signal->group == PinGroup_Limit) {
+        if(input->group == PinGroup_Limit) {
             if(limit_inputs.pins.inputs == NULL)
-                limit_inputs.pins.inputs = signal;
+                limit_inputs.pins.inputs = input;
             limit_inputs.n_pins++;
         }
     }
 
-#ifdef HAS_IOPORTS
     output_signal_t *output;
     for(i = 0 ; i < sizeof(outputpin) / sizeof(output_signal_t); i++) {
         output = &outputpin[i];
         if(output->group == PinGroup_AuxOutput) {
             if(aux_outputs.pins.outputs == NULL)
                 aux_outputs.pins.outputs = output;
-            aux_outputs.n_pins++;
+            output->id = (pin_function_t)(Output_Aux0 + aux_outputs.n_pins++);
         }
     }
 
+#ifdef HAS_IOPORTS
     ioports_init(&aux_inputs, &aux_outputs);
 #endif
 

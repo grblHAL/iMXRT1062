@@ -5,7 +5,7 @@
 
   Board by Phil Barrett: https://github.com/phil-barrett/grblHAL-teensy-4.x
 
-  Copyright (c) 2020-2021 Terje Io
+  Copyright (c) 2020-2022 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -462,12 +462,12 @@ void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs)
     if((hal.port.num_digital_in = aux_n_in = aux_inputs->n_pins)) {
         hal.port.wait_on_input = wait_on_input;
         hal.port.register_interrupt_handler = register_interrupt_handler;
-        in_map = malloc(aux_n_in * sizeof(uint8_t));
+        in_map = malloc(aux_n_in * sizeof(aux_n_in));
     }
 
     if((hal.port.num_digital_out = aux_n_out = aux_outputs->n_pins)) {
         hal.port.digital_out = digital_out;
-        out_map = malloc(aux_n_out * sizeof(uint8_t));
+        out_map = malloc(aux_n_out * sizeof(aux_n_out));
     }
 
     if((ports = max(aux_n_in, aux_n_out)) > 0)  {
