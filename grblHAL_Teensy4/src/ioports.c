@@ -540,6 +540,8 @@ void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs)
     on_enumerate_pins = hal.enumerate_pins;
     hal.enumerate_pins = enumerate_pins;
 
+#else
+    UNUSED(analog_n_in);
 #endif
 
 }

@@ -19,6 +19,9 @@
   along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+// shut up compiler warning...
+#pragma GCC diagnostic ignored "-Wunused-function"
+
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,6 +30,7 @@
 #include "driver.h"
 #include "grbl/protocol.h"
 #include "grbl/limits.h"
+#include "grbl/state_machine.h"
 
 #ifdef I2C_PORT
 #include "i2c.h"
