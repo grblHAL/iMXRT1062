@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2018-2021 Terje Io
+  Copyright (c) 2018-2022 Terje Io
 
 
   Grbl is free software: you can redistribute it and/or modify
@@ -37,7 +37,6 @@ static stream_block_tx_buffer_t txbuf = {0};
 static stream_rx_buffer_t rxbuf;
 static enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_realtime_command;
 
-/*
 //
 // Returns number of characters in serial input buffer
 //
@@ -46,7 +45,7 @@ static uint16_t usb_serialRxCount (void)
     uint_fast16_t tail = rxbuf.tail, head = rxbuf.head;
     return (uint16_t)BUFCOUNT(head, tail, RX_BUFFER_SIZE);
 }
-*/
+
 //
 // Returns number of free characters in serial input buffer
 //
@@ -214,11 +213,24 @@ static enqueue_realtime_command_ptr usb_serialSetRtHandler (enqueue_realtime_com
 // them for processing by the core. Real time command characters are stripped out
 // and submitted for realtime processing.
 //
-static void usb_execute_realtime (sys_state_t state)
+void usb_execute_realtime (sys_state_t state)
 {
+    static volatile bool lock = false;
+    static volatile uint32_t last_micros = 0;
+    static char tmpbuf[BLOCK_RX_BUFFER_SIZE];
+
+    //if(lock)
+    //    return;
+
+    uint32_t current_micros;
+    if(lock || ((current_micros = micros()) - last_micros) < 50)
+        return;
+
     char c, *dp;
     int avail, free;
-    static char tmpbuf[BLOCK_RX_BUFFER_SIZE];
+
+    lock = true;
+    last_micros = current_micros;
 
     if((avail = usb_serial_available())) {
 
@@ -241,6 +253,8 @@ static void usb_execute_realtime (sys_state_t state)
             }
         }
     }
+
+    lock = false;
 }
 
 const io_stream_t *usb_serialInit (void)
@@ -254,6 +268,7 @@ const io_stream_t *usb_serialInit (void)
         .write_n = usb_serialWrite,
         .enqueue_rt_command = usb_serialEnqueueRtCommand,
         .get_rx_buffer_free = usb_serialRxFree,
+        .get_rx_buffer_count = usb_serialRxCount,
         .reset_read_buffer = usb_serialRxFlush,
         .cancel_read_buffer = usb_serialRxCancel,
         .suspend_read = usb_serialSuspendInput,

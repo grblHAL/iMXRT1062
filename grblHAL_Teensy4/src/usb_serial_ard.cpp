@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2018-2021 Terje Io
+  Copyright (c) 2018-2022 Terje Io
 
 
   Grbl is free software: you can redistribute it and/or modify
@@ -42,7 +42,6 @@ static stream_block_tx_buffer_t txbuf = {0};
 static stream_rx_buffer_t rxbuf;
 static enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_realtime_command;
 
-/*
 //
 // Returns number of characters in serial input buffer
 //
@@ -51,7 +50,7 @@ static uint16_t usb_serialRxCount (void)
     uint_fast16_t tail = rxbuf.tail, head = rxbuf.head;
     return (uint16_t)BUFCOUNT(head, tail, RX_BUFFER_SIZE);
 }
-*/
+
 //
 // Returns number of free characters in serial input buffer
 //
@@ -219,11 +218,18 @@ static enqueue_realtime_command_ptr usb_serialSetRtHandler (enqueue_realtime_com
 // them for processing by the core. Real time command characters are stripped out
 // and submitted for realtime processing.
 //
-static void usb_execute_realtime (void)
+static void usb_execute_realtime (sys_state_t state)
 {
+    static volatile bool lock = false;
+    static char tmpbuf[BLOCK_RX_BUFFER_SIZE];
+
+    if(lock)
+        return;
+
     char c, *dp;
     int avail, free;
-    static char tmpbuf[BLOCK_RX_BUFFER_SIZE];
+
+    lock = true;
 
     if((avail = SerialUSB.available())) {
 
@@ -246,6 +252,8 @@ static void usb_execute_realtime (void)
             }
         }
     }
+
+    lock = false;
 }
 
 const io_stream_t *usb_serialInit (void)
@@ -264,7 +272,9 @@ const io_stream_t *usb_serialInit (void)
         .cancel_read_buffer = usb_serialRxCancel,
         .set_enqueue_rt_handler = usb_serialSetRtHandler,
         .suspend_read = usb_serialSuspendInput,
-        .write_n = usb_serialWrite
+        .write_n = usb_serialWrite,
+        .disable_rx = NULL,
+        .get_rx_buffer_count = usb_serialRxCount
     };
 
     txbuf.s = txbuf.data;

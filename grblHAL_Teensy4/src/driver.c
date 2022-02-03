@@ -2241,7 +2241,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "220111";
+    hal.driver_version = "220203";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -2307,8 +2307,8 @@ bool driver_init (void)
     hal.periph_port.set_pin_description = setPeriphPinDescription;
 
 #if USB_SERIAL_CDC
-//    stream_connect(serialInit(115200));
-    stream_connect(usb_serialInit());
+    const io_stream_t *st = usb_serialInit();
+    stream_connect(st);
 #else
     stream_connect(serialInit(BAUD_RATE));
 #endif
