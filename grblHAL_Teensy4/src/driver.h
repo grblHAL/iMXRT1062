@@ -111,22 +111,29 @@
 #define MODBUS_TEST 0
 #endif
 
+#if MPG_ENABLE
+#define MPG_TEST 1
+#else
+#define MPG_TEST 0
+#endif
+
 #if KEYPAD_ENABLE == 2 && MPG_ENABLE == 0
 #define KEYPAD_TEST 1
 #else
 #define KEYPAD_TEST 0
 #endif
 
-#if USB_SERIAL_CDC == 0 && (MODBUS_TEST + KEYPAD_TEST + BLUETOOTH_ENABLE + MPG_ENABLE) > 0
+#if USB_SERIAL_CDC == 0 && (MODBUS_TEST + KEYPAD_TEST + MPG_TEST + BLUETOOTH_ENABLE) > 0
 #error "Options that uses the UART serial port can only be enabled with USB serial CDC!"
 #endif
 
-#if MODBUS_TEST + KEYPAD_TEST + BLUETOOTH_ENABLE + MPG_ENABLE > 1
+#if MODBUS_TEST + KEYPAD_TEST + MPG_TEST + BLUETOOTH_ENABLE > 1
 #error "Only one option that uses the UART serial port can be enabled!"
 #endif
 
 #undef MODBUS_TEST
 #undef KEYPAD_TEST
+#undef MPG_TEST
 
 #if MODBUS_ENABLE
 #include "spindle/modbus.h"
