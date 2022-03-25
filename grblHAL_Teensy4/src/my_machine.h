@@ -56,7 +56,6 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 //#define USB_SERIAL_WAIT     1 // Wait for USB connection before starting grblHAL.
 //#define BLUETOOTH_ENABLE    1 // Set to 1 for HC-05 module. Requires and claims one auxillary input pin.
 //#define VFD_ENABLE          1 // Set to 1 or 2 for Huanyang VFD spindle. More here https://github.com/grblHAL/Plugins_spindle
-//#define DUAL_SPINDLE        1 // Uncomment for switching between VFD spindle and PWM output with $32
 //#define MODBUS_ENABLE       1 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
 //#define WEBUI_ENABLE        1 // Enable ESP3D-WEBUI plugin along with networking and SD card plugins.
 //#define WEBUI_INFLASH       1 // Store WebUI files in flash instead of on SD card.
