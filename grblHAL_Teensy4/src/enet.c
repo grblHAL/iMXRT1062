@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2021 Terje Io
+  Copyright (c) 2020-2022 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -70,6 +70,39 @@ static void report_options (bool newopt)
             hal.stream.write("]" ASCII_EOL);
         }
     }
+}
+
+network_info_t *networking_get_info (void)
+{
+    static network_info_t info;
+
+    memcpy(&info.status, &network, sizeof(network_settings_t));
+
+    strcpy(info.status.ip, IPAddress);
+
+    if(info.status.ip_mode == IpMode_DHCP) {
+        *info.status.gateway = '\0';
+        *info.status.mask = '\0';
+    }
+
+    info.is_ethernet = true;
+    info.link_up = linkUp;
+    info.mbps = 100;
+    info.status.services = services;
+
+    struct netif *netif = netif_default; // netif_get_by_index(0);
+
+    if(netif) {
+
+        if(linkUp) {
+            ip4addr_ntoa_r(netif_ip_gw4(netif), info.status.gateway, IP4ADDR_STRLEN_MAX);
+            ip4addr_ntoa_r(netif_ip_netmask4(netif), info.status.mask, IP4ADDR_STRLEN_MAX);
+        }
+
+        sprintf(info.mac, "%02X:%02X:%02X:%02X:%02X:%02X", netif->hwaddr[0], netif->hwaddr[1], netif->hwaddr[2], netif->hwaddr[3], netif->hwaddr[4], netif->hwaddr[5]);
+    }
+
+    return &info;
 }
 
 static void link_status_callback (struct netif *netif)
