@@ -2243,12 +2243,13 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "220710";
+    hal.driver_version = "220801";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
     hal.driver_options = *options == '\0' ? NULL : options;
     hal.driver_setup = driver_setup;
+    hal.f_mcu = F_CPU_ACTUAL / 1000000UL;
     hal.f_step_timer = 24000000;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.delay_ms = driver_delay_ms;
