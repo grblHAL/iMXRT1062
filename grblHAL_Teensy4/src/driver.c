@@ -2243,7 +2243,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "220801";
+    hal.driver_version = "220825";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -2293,6 +2293,10 @@ bool driver_init (void)
     hal.periph_port.register_pin = registerPeriphPin;
     hal.periph_port.set_pin_description = setPeriphPinDescription;
 
+#if ADD_MSEVENT
+    grbl.on_execute_realtime = execute_realtime;
+#endif
+
 #if USB_SERIAL_CDC
     const io_stream_t *st = usb_serialInit();
     stream_connect(st);
@@ -2311,10 +2315,6 @@ bool driver_init (void)
     hal.nvs.type = NVS_Flash;
     hal.nvs.memcpy_from_flash = nvsRead;
     hal.nvs.memcpy_to_flash = nvsWrite;
-#endif
-
-#if ADD_MSEVENT
-    grbl.on_execute_realtime = execute_realtime;
 #endif
 
 #if QEI_ENABLE

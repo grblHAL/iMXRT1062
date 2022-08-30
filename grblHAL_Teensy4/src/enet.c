@@ -47,7 +47,7 @@ static network_settings_t ethernet, network;
 static on_report_options_ptr on_report_options;
 static on_execute_realtime_ptr on_execute_realtime;
 static on_stream_changed_ptr on_stream_changed;
-static char netservices[40] = ""; // must be large enough to hold all service names
+static char netservices[NETWORK_SERVICES_LEN] = "";
 
 static void report_options (bool newopt)
 {
@@ -58,6 +58,10 @@ static void report_options (bool newopt)
 #if FTP_ENABLE
         if(services.ftp)
         	hal.stream.write(",FTP");
+#endif
+#if WEBDAV_ENABLE
+        if(services.webdav)
+            hal.stream.write(",WebDAV");
 #endif
     } else {
         hal.stream.write("[IP:");
@@ -132,8 +136,13 @@ static void netif_status_callback (struct netif *netif)
 #endif
 
 #if HTTP_ENABLE
-    if(network.services.http && !services.http)
+    if(network.services.http && !services.http) {
         services.http = httpd_init(network.http_port == 0 ? NETWORK_HTTP_PORT : network.http_port);
+  #if WEBDAV_ENABLE
+          if(network.services.webdav && !services.webdav)
+              services.webdav = webdav_init();
+  #endif
+      }
 #endif
 
 #if WEBSOCKET_ENABLE
