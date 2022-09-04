@@ -25,21 +25,7 @@ The lwIP library needs to be patched before enabling the http daemon, the files 
 
 The SD card plugin needs the [uSDFS library](https://github.com/WMXZ-EU/uSDFS) by WMXZ-EU.
 
-Important: edit the [utility/sd_config.h](https://github.com/WMXZ-EU/uSDFS/blob/master/src/utility/sd_config.h) file and change
-
-`#define USE_MSC 1	// will be used in sd_msc.cpp`
-
-to
-
-`#define USE_MSC 0	// will be used in sd_msc.cpp`
-
-or add the MSC library as well \(not needed\). 2021-06-08: This is now changed in the latest version.
-
-**NOTE:**
-
-If enabling ftp and/or http upload \(the WebUI plugin uses http upload\) to the SD card then [utility/sd_sdhc.c](https://github.com/WMXZ-EU/uSDFS/blob/master/src/utility/sd_sdhc.c) has to be replaced with [this patched](patches/sd_sdhc.zip) version \(zip download\).  
-I submitted a PR for this but it was rejected with no explanation, this is why I have added it here. The maintainer has made a similar change but that does not fix the underlying issue, and it may even crash the controller.  
-In addition to this [ffconf.h](https://github.com/WMXZ-EU/uSDFS/blob/master/src/ffconf.h) has to be edited, `#define FF_FS_RPATH` value has to be changed to 2 \(from 1\) or you will get a compiler error.
+Important: the uSDFS library has to be patched to work correctly, copy the _contents_ of the uSDFS folder [in this zip file](patches/uSDFS.zip) to the uSDFS library folder so that the patched files are overwritten.  
 
 ---
 
@@ -195,4 +181,4 @@ git pull --recurse-submodules
 [pio-teensy41]: https://docs.platformio.org/en/latest/boards/teensy/teensy41.html
 
 ---
-2021-10-24
+2022-09-04
