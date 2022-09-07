@@ -29,7 +29,7 @@
 #include "uart.h"
 #include "driver.h"
 #include "grbl/protocol.h"
-#include "grbl/limits.h"
+#include "grbl/machine_limits.h"
 #include "grbl/state_machine.h"
 
 #ifdef I2C_PORT
@@ -512,7 +512,7 @@ static volatile bool ms_event = false;
 #else
 #define ADD_MSEVENT 0
 #endif
-static bool IOInitDone = false;
+static bool IOInitDone = false, rtc_started = false;
 static uint16_t pulse_length, pulse_delay;
 static axes_signals_t next_step_outbits;
 static delay_t grbl_delay = { .ms = 0, .callback = NULL };
@@ -1729,7 +1729,7 @@ static void settings_changed (settings_t *settings)
     }
 }
 
-static void enumeratePins (bool low_level, pin_info_ptr pin_info)
+static void enumeratePins (bool low_level, pin_info_ptr pin_info, void *data)
 {
     static xbar_t pin = {0};
     uint32_t i;
@@ -1743,7 +1743,7 @@ static void enumeratePins (bool low_level, pin_info_ptr pin_info)
         pin.mode.pwm = pin.group == PinGroup_SpindlePWM;
         pin.description = inputpin[i].description;
 
-        pin_info(&pin);
+        pin_info(&pin, data);
     };
 
     pin.mode.mask = 0;
@@ -1755,7 +1755,7 @@ static void enumeratePins (bool low_level, pin_info_ptr pin_info)
         pin.group = outputpin[i].group;
         pin.description = outputpin[i].description;
 
-        pin_info(&pin);
+        pin_info(&pin, data);
     };
 
     periph_signal_t *ppin = periph_pins;
@@ -1766,11 +1766,10 @@ static void enumeratePins (bool low_level, pin_info_ptr pin_info)
         pin.group = ppin->pin.group;
         pin.description = ppin->pin.description;
 
-        pin_info(&pin);
+        pin_info(&pin, data);
 
         ppin = ppin->next;
     } while(ppin);
-
 }
 
 void registerPeriphPin (const periph_pin_t *pin)
@@ -2199,6 +2198,28 @@ static void reboot (void)
     SCB_AIRCR = 0x05FA0004;
 }
 
+static bool set_rtc_time (struct tm *time)
+{
+    rtc_started = true;
+
+    time_t t = mktime(time);
+
+    rtc_set(t);
+
+    return true;
+}
+
+static bool get_rtc_time (struct tm *time)
+{
+    if(rtc_started) {
+        time_t t = rtc_get();
+        struct tm *dt = gmtime(&t);
+        memcpy(time, dt, sizeof(struct tm));
+    }
+
+    return rtc_started;
+}
+
 // Initialize HAL pointers, setup serial comms and enable EEPROM.
 // NOTE: Grbl is not yet configured (from EEPROM data), driver_setup() will be called when done.
 bool driver_init (void)
@@ -2243,7 +2264,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "220825";
+    hal.driver_version = "220907";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -2292,6 +2313,9 @@ bool driver_init (void)
     hal.enumerate_pins = enumeratePins;
     hal.periph_port.register_pin = registerPeriphPin;
     hal.periph_port.set_pin_description = setPeriphPinDescription;
+
+    hal.rtc.get_datetime = get_rtc_time;
+    hal.rtc.set_datetime = set_rtc_time;
 
 #if ADD_MSEVENT
     grbl.on_execute_realtime = execute_realtime;
@@ -2439,7 +2463,7 @@ bool driver_init (void)
 
     // No need to move version check before init.
     // Compiler will fail any signature mismatch for existing entries.
-    return hal.version == 9;
+    return hal.version == 10;
 }
 
 /* interrupt handlers */
