@@ -56,6 +56,13 @@
 //#define RPM_TIMER         GPT1
 //#define RPM_COUNTER       GPT2
 
+#if WEBUI_ENABLE
+  #ifdef LITTLEFS_ENABLE
+  #undef LITTLEFS_ENABLE
+  #endif
+#define LITTLEFS_ENABLE 1
+#endif
+
 #ifdef BOARD_CNC_BOOSTERPACK
   #include "cnc_boosterpack_map.h"
 #elif defined(BOARD_T40X101)

@@ -55,6 +55,11 @@
 #include "sdcard/sdcard.h"
 #endif
 
+#if LITTLEFS_ENABLE
+#include "littlefs_hal.h"
+#include "sdcard/fs_littlefs.h"
+#endif
+
 #if PPI_ENABLE
 #include "laser/ppi.h"
 static void ppi_timeout_isr (void);
@@ -2119,6 +2124,10 @@ static bool driver_setup (settings_t *settings)
     card->on_unmount = sdcard_unmount;
 #endif
 
+#if LITTLEFS_ENABLE
+    fs_littlefs_mount("/littlefs", t4_littlefs_hal());
+#endif
+
 #if ETHERNET_ENABLE
     grbl_enet_start();
 #endif
@@ -2264,7 +2273,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "220907";
+    hal.driver_version = "220910";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
