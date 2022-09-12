@@ -57,10 +57,10 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 //#define BLUETOOTH_ENABLE    1 // Set to 1 for HC-05 module. Requires and claims one auxillary input pin.
 //#define VFD_ENABLE          1 // Set to 1 or 2 for Huanyang VFD spindle. More here https://github.com/grblHAL/Plugins_spindle
 //#define MODBUS_ENABLE       1 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
-//#define WEBUI_ENABLE        1 // Enable ESP3D-WEBUI plugin along with networking and SD card plugins.
-//#define WEBUI_INFLASH       1 // Store WebUI files in flash instead of on SD card.
+//#define WEBUI_ENABLE        3 // Enable ESP3D-WEBUI plugin along with networking and SD card plugins.
 //#define ETHERNET_ENABLE     1 // Ethernet streaming. Enables networking plugin.
 //#define SDCARD_ENABLE       1 // Run gcode programs from SD card, enables sdcard plugin.
+//#define LITTLEFS_ENABLE     1 // Enable flash based storage, automatically enabled if WebUI is enabled.
 //#define QEI_ENABLE          1 // Enable quadrature encoder interfaces. Max value is 1. Requires encoder plugin.
 //#define MPG_ENABLE          1 // Enable MPG interface. Requires serial port and one handshake pin unless
                                 // KEYPAD_ENABLE is set to 2 when mode switching is done by the CMD_MPG_MODE_TOGGLE (0x8B)

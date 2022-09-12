@@ -57,9 +57,13 @@
 //#define RPM_COUNTER       GPT2
 
 #if WEBUI_ENABLE
+  #ifdef WEBUI_INFLASH
+  #undef WEBUI_INFLASH
+  #endif
   #ifdef LITTLEFS_ENABLE
   #undef LITTLEFS_ENABLE
   #endif
+#define WEBUI_INFLASH   1
 #define LITTLEFS_ENABLE 1
 #endif
 
