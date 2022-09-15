@@ -2229,6 +2229,15 @@ static bool get_rtc_time (struct tm *time)
     return rtc_started;
 }
 
+// https://forum.pjrc.com/threads/33443-How-to-display-free-ram?highlight=free+memory
+extern char _heap_end[], *__brkval;
+
+// This should ideall return sum of all free blocks on the heap...
+uint32_t get_free_mem (void)
+{
+    return _heap_end - __brkval;
+}
+
 // Initialize HAL pointers, setup serial comms and enable EEPROM.
 // NOTE: Grbl is not yet configured (from EEPROM data), driver_setup() will be called when done.
 bool driver_init (void)
@@ -2273,7 +2282,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "220910";
+    hal.driver_version = "220914";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
@@ -2282,6 +2291,7 @@ bool driver_init (void)
     hal.f_mcu = F_CPU_ACTUAL / 1000000UL;
     hal.f_step_timer = 24000000;
     hal.rx_buffer_size = RX_BUFFER_SIZE;
+    hal.get_free_mem = get_free_mem;
     hal.delay_ms = driver_delay_ms;
     hal.settings_changed = settings_changed;
 
