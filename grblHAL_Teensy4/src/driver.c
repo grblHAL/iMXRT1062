@@ -1313,7 +1313,7 @@ bool spindleConfig (void)
     hal.spindle.cap.at_speed = hal.spindle.get_data == spindleGetData;
 #endif
 
-    spindle_update_caps(hal.spindle.cap.variable);
+    spindle_update_caps(hal.spindle.cap.variable ? &spindle_pwm : NULL);
 
     return true;
 }
@@ -2282,7 +2282,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "220914";
+    hal.driver_version = "220922";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
