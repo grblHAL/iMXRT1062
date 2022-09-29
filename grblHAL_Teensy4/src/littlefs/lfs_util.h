@@ -8,6 +8,8 @@
 #ifndef LFS_UTIL_H
 #define LFS_UTIL_H
 
+#define LFS_NO_ASSERT // turned off for iMXRT1062 grblHAL here since the Arduino IDE is useless...
+
 // Users can override lfs_util.h with their own configuration by defining
 // LFS_CONFIG as a header file to include (-DLFS_CONFIG=lfs_config.h).
 //
