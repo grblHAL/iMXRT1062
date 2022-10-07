@@ -22,6 +22,7 @@
 */
 
 #define BOARD_NAME "T40X101"
+#define BOARD_URL "https://github.com/phil-barrett/grbl-teensy-4"
 
 #if N_ABC_MOTORS > 2
 #error "Axis configuration is not supported!"

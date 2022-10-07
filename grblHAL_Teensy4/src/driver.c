@@ -2283,9 +2283,14 @@ bool driver_init (void)
 
     hal.info = "iMXRT1062";
     hal.driver_version = "220927";
+    hal.driver_url = "https://github.com/grblHAL/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
 #endif
+#ifdef BOARD_URL
+    hal.board_url = BOARD_URL;
+#endif
+
     hal.driver_options = *options == '\0' ? NULL : options;
     hal.driver_setup = driver_setup;
     hal.f_mcu = F_CPU_ACTUAL / 1000000UL;

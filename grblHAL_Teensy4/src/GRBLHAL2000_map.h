@@ -21,6 +21,7 @@
 */
 
 #define BOARD_NAME "GRBLHAL2000 - PRINTNC"
+#define BOARD_URL "https://github.com/Expatria-Technologies/grblhal_2000_PrintNC"
 #define HAS_BOARD_INIT
 #define HAS_IOPORTS
 

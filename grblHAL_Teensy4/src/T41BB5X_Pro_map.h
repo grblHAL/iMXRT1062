@@ -26,6 +26,7 @@
 #endif
 
 #define BOARD_NAME "T41BB5X Pro"
+#define BOARD_URL "https://github.com/phil-barrett/grbl-teensy-4"
 #define HAS_IOPORTS
 
 #if N_AXIS > 5

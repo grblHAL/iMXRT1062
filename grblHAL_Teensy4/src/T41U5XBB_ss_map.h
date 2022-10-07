@@ -32,6 +32,7 @@
 #endif
 
 #define BOARD_NAME "T41U5XBB"
+#define BOARD_URL "https://github.com/phil-barrett/grbl-teensy-4"
 #define HAS_IOPORTS
 
 #define X_STEP_PIN          (2u)
