@@ -1,0 +1,57 @@
+{
+  "caps":
+  {
+    "axes": 6,
+    "ethernet": 1,
+    "usb_cdc": 1,
+    "serial_ports": 2,
+    "eeprom": 1,
+    "ganged_axes": 1,
+    "auto_square": 1,
+    "littlefs": 1,
+    "digital_in": 8,
+    "digital_out": 8,
+    "safety_door": 1,
+    "estop": 1,
+    "mpg_mode": 1,
+    "plugins": [
+      { "name": "spindle" },
+      { "name": "webui", },
+      { "name": "networking" },
+      { "name": "keypad" },
+      { "name": "plasma" },
+      { "name": "laser_ppi" },
+      { "name": "laser_cluster" },
+      { "name": "laser_coolant" },
+      { "name": "fans" },
+      { "name": "odometer" },
+      { "name": "openpnp" },
+      { "name": "bluetooth" }
+    ]
+  },
+  "boards": [
+    {
+      "name": "T41U5XBB",
+      "symbol": "BOARD_T41U5XBB",
+      "URL": "https://github.com/phil-barrett/grbl-teensy-4",
+      "caps": {
+        "axes": 5,
+        "digital_in": 4,
+        "digital_out": 3,
+        "eeprom": 1,
+        "fram": 1
+      }
+    },
+    { "name": "GRBLHAL2000 - PRINTNC",
+      "symbol": "BOARD_CNC_BOOSTERPACK",
+      "URL": "https://github.com/Expatria-Technologies/grblhal_2000_PrintNC",
+      "caps": {
+        "axes": 5,
+        "digital_in": 4,
+        "digital_out": 3,
+        "eeprom": 1,
+        "fram": 1
+      }
+    }
+  ]
+}
