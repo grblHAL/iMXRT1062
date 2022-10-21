@@ -282,6 +282,17 @@ bool grbl_enet_start (void)
     #endif
         if(network.ip_mode == IpMode_DHCP)
             dhcp_start(netif_default);
+
+#if MDNS_ENABLE || SSDP_ENABLE || LWIP_IGMP
+
+        if(network.services.mdns || network.services.ssdp) {
+
+//TODO: add multicast filtering?
+
+            netif_default->flags |= NETIF_FLAG_IGMP;
+        }
+
+#endif
     }
 
     return nvs_address != 0;

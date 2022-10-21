@@ -4,6 +4,7 @@
     "axes": 6,
     "ethernet": 1,
     "usb_cdc": 1,
+    "uart": 1,
     "serial_ports": 2,
     "eeprom": 1,
     "ganged_axes": 1,
@@ -14,19 +15,25 @@
     "safety_door": 1,
     "estop": 1,
     "mpg_mode": 1,
+    "sdcard": 1,
+    "pio_board": "teensy41",
+    "build_dir": "grblHAL_Teensy4",
     "plugins": [
-      { "name": "spindle" },
-      { "name": "webui", },
-      { "name": "networking" },
-      { "name": "keypad" },
-      { "name": "plasma" },
-      { "name": "laser_ppi" },
-      { "name": "laser_cluster" },
-      { "name": "laser_coolant" },
-      { "name": "fans" },
-      { "name": "odometer" },
-      { "name": "openpnp" },
-      { "name": "bluetooth" }
+      { "id": "spindle" },
+      { "id": "modbus" },
+      { "id": "eeprom" },
+      { "id": "sdcard" },
+      { "id": "webui" },
+      { "id": "eth_networking" },
+      { "id": "keypad" },
+      { "id": "plasma" },
+      { "id": "laser_ppi" },
+      { "id": "laser_cluster" },
+      { "id": "laser_coolant" },
+      { "id": "fans" },
+      { "id": "odometer" },
+      { "id": "openpnp" },
+      { "id": "bluetooth" }
     ]
   },
   "boards": [
@@ -37,16 +44,30 @@
       "caps": {
         "axes": 5,
         "digital_in": 4,
-        "digital_out": 3,
+        "digital_out": 2,
         "eeprom": 1,
-        "fram": 1
+        "fram": 1,
+        "i2c": 1
+      }
+    },
+    {
+      "name": "T41BB5X Pro",
+      "symbol": "BOARD_T41BB5X_PRO",
+      "URL": "https://github.com/phil-barrett/grbl-teensy-4",
+      "caps": {
+        "axes": 5,
+        "digital_in": 4,
+        "digital_out": 2,
+        "eeprom": 1,
+        "fram": 1,
+        "i2c": 1
       }
     },
     { "name": "GRBLHAL2000 - PRINTNC",
-      "symbol": "BOARD_CNC_BOOSTERPACK",
+      "symbol": "BOARD_GRBLHAL2000",
       "URL": "https://github.com/Expatria-Technologies/grblhal_2000_PrintNC",
       "caps": {
-        "axes": 5,
+        "axes": 4,
         "digital_in": 4,
         "digital_out": 3,
         "eeprom": 1,
