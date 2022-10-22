@@ -443,11 +443,11 @@ bool swap_pins (io_port_type_t type, io_port_direction_t dir, uint8_t port_a, ui
 
 #if MCP3221_ENABLE
 
-static void enumerate_pins (bool low_level, pin_info_ptr pin_info)
+static void enumerate_pins (bool low_level, pin_info_ptr pin_info, void *data)
 {
-    on_enumerate_pins(low_level, pin_info);
+    on_enumerate_pins(low_level, pin_info, data);
 
-    pin_info(&analog_in);
+    pin_info(&analog_in, data);
 }
 
 #endif

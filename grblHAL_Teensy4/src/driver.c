@@ -135,10 +135,12 @@ static gpio_t Mist, Flood, stepX, stepY, stepZ, dirX, dirY, dirZ;
 #endif
 
 static gpio_t spindleEnable, spindleDir;
+
+#ifdef SPINDLE_PWM_PIN
 static bool pwmEnabled = false;
 static spindle_pwm_t spindle_pwm;
-
 static void spindle_set_speed (uint_fast16_t pwm_value);
+#endif
 
 #endif // DRIVER_SPINDLE
 
@@ -1514,7 +1516,7 @@ static void settings_changed (settings_t *settings)
         hal.stepper.disable_motors((axes_signals_t){0}, SquaringMode_Both);
 #endif
 
-#ifdef SPINDLE_PWM_PIN
+#if defined(DRIVER_SPINDLE) && defined(SPINDLE_PWM_PIN)
         if(hal.spindle.config == spindleConfig)
             spindleConfig();
 #endif
@@ -2297,7 +2299,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "221014";
+    hal.driver_version = "221022";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
