@@ -2399,7 +2399,7 @@ bool driver_init (void)
         .get_pwm = spindleGetPWM,
         .update_pwm = spindle_set_speed,
    #if PPI_ENABLE
-        .pulse_on = spindlePulseOn;
+        .pulse_on = spindlePulseOn,
    #endif
  #else
         .type = SpindleType_Basic,

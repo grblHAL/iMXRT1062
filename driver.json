@@ -2,7 +2,6 @@
   "caps":
   {
     "axes": 6,
-    "ethernet": 1,
     "usb_cdc": 1,
     "uart": 1,
     "serial_ports": 2,
@@ -12,10 +11,12 @@
     "littlefs": 1,
     "digital_in": 8,
     "digital_out": 8,
+    "probe": 1,
     "safety_door": 1,
     "estop": 1,
     "mpg_mode": 1,
     "sdcard": 1,
+    "ethernet": 1,
     "pio_board": "teensy41",
     "build_dir": "grblHAL_Teensy4",
     "plugins": [
@@ -33,7 +34,7 @@
       { "id": "fans" },
       { "id": "odometer" },
       { "id": "openpnp" },
-      { "id": "bluetooth" }
+      { "id": "bluetooth_bridge" }
     ]
   },
   "boards": [
@@ -72,6 +73,21 @@
         "digital_out": 3,
         "eeprom": 1,
         "fram": 1
+      }
+    },
+    {
+      "name": "T40X101",
+      "symbol": "BOARD_T40X101",
+      "URL": "https://github.com/phil-barrett/grbl-teensy-4",
+      "pio_board": "teensy40",
+      "caps": {
+        "axes": 4,
+        "digital_in": 0,
+        "digital_out": 0,
+        "eeprom": 0,
+        "fram": 0,
+        "i2c": 1,
+        "ethernet": 0
       }
     }
   ]
