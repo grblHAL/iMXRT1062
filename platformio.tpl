@@ -10,7 +10,9 @@ include_dir = src
 build_flags   =
   -g3 
   -fmax-errors=5
+  -fno-strict-aliasing
   -D OVERRIDE_MY_MACHINE
+  
 lib_archive   = no
 lib_deps      = 
 extra_scripts =
@@ -36,4 +38,3 @@ build_flags = ${common.build_flags}
 lib_deps = ${common.lib_deps}
 %lib_deps%
   /home/terjeio/grblHAL/uSDFS-master
-
