@@ -5,7 +5,7 @@
 
   Board by Phil Barrett: https://github.com/phil-barrett/grblHAL-teensy-4.x
 
-  Copyright (c) 2021-2022 Terje Io
+  Copyright (c) 2021-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -82,9 +82,11 @@
 #endif
 
 // Define spindle enable and spindle direction output pins.
+#if DRIVER_SPINDLE_ENABLE
 #define SPINDLE_ENABLE_PIN      (12u)
 #define SPINDLE_DIRECTION_PIN   (11u)
 #define SPINDLE_PWM_PIN         (13u) // NOTE: only pin 12 or pin 13 can be assigned!
+#endif
 
 // Define flood and mist coolant enable output pins.
 #define COOLANT_FLOOD_PIN   (19u)
@@ -127,6 +129,10 @@
 #define AUXOUTPUT0_PIN      (34U)
 #define AUXOUTPUT1_PIN      (32U)
 #define AUXOUTPUT2_PIN      (33U)
+#if !DRIVER_SPINDLE_ENABLE
+#define AUXOUTPUT3_PIN      (12u) // AUX3
+#define AUXOUTPUT4_PIN      (11u) // AUX4
+#endif
 
 #if I2C_STROBE_ENABLE
 #define I2C_STROBE_PIN   (41U)

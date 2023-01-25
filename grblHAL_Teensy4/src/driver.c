@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2022 Terje Io
+  Copyright (c) 2020-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -122,7 +122,7 @@ static gpio_t Reset, FeedHold, CycleStart, Probe, LimitX, LimitY, LimitZ;
 // Standard outputs
 static gpio_t Mist, Flood, stepX, stepY, stepZ, dirX, dirY, dirZ;
 
-#if (!VFD_SPINDLE || N_SPINDLE > 1) && defined(SPINDLE_ENABLE_PIN)
+#if DRIVER_SPINDLE_ENABLE && defined(SPINDLE_ENABLE_PIN)
 
 #define DRIVER_SPINDLE
 
@@ -2126,7 +2126,7 @@ static bool driver_setup (settings_t *settings)
 
   // Set defaults
 
-    IOInitDone = settings->version == 21;
+    IOInitDone = settings->version == 22;
 
     hal.settings_changed(settings);
     hal.stepper.go_idle(true);
@@ -2299,7 +2299,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "221022";
+    hal.driver_version = "230125";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
