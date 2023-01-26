@@ -27,6 +27,7 @@
       { "id": "webui" },
       { "id": "eth_networking" },
       { "id": "keypad" },
+      { "id": "macros" },
       { "id": "plasma" },
       { "id": "laser_ppi" },
       { "id": "laser_cluster" },
