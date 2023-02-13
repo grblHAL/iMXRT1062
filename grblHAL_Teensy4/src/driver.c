@@ -138,6 +138,7 @@ static gpio_t spindleEnable, spindleDir;
 
 #ifdef SPINDLE_PWM_PIN
 static bool pwmEnabled = false;
+static spindle_id_t spindle_id = -1;
 static spindle_pwm_t spindle_pwm;
 static void spindle_set_speed (uint_fast16_t pwm_value);
 #endif
@@ -1251,43 +1252,39 @@ static void spindleSetStateVariable (spindle_state_t state, float rpm)
 #endif
 }
 
-bool spindleConfig (void)
+bool spindleConfig (spindle_ptrs_t *spindle)
 {
-    static spindle_settings_t spindle = {0};
+    if(spindle == NULL)
+        return false;
 
-    if(hal.spindle.rpm_max > 0.0f && memcmp(&spindle, &settings.spindle, sizeof(spindle_settings_t))) {
-
-        memcpy(&spindle, &settings.spindle, sizeof(spindle_settings_t));
-
-        if((hal.spindle.cap.variable = !settings.spindle.flags.pwm_disable && spindle_precompute_pwm_values(&spindle_pwm, F_BUS_ACTUAL / 2))) {
-    #if SPINDLE_PWM_PIN == 12
-            TMR1_COMP11 = spindle_pwm.period;
-            TMR1_CMPLD11 = spindle_pwm.period;
-            if(settings.spindle.invert.pwm)
-                TMR1_SCTRL0 |= TMR_SCTRL_OPS;
-            else
-                TMR1_SCTRL0 &= ~TMR_SCTRL_OPS;
-    #else // 13
-            TMR2_COMP10 = spindle_pwm.period;
-            TMR2_CMPLD10 = spindle_pwm.period;
-            if(settings.spindle.invert.pwm)
-                TMR2_SCTRL0 |= TMR_SCTRL_OPS;
-            else
-                TMR2_SCTRL0 &= ~TMR_SCTRL_OPS;
-    #endif
-            hal.spindle.set_state = spindleSetStateVariable;
-        } else {
-            if(pwmEnabled)
-                hal.spindle.set_state((spindle_state_t){0}, 0.0f);
-            hal.spindle.set_state = spindleSetState;
-        }
+    if((spindle->cap.variable = !settings.spindle.flags.pwm_disable && spindle_precompute_pwm_values(spindle, &spindle_pwm, F_BUS_ACTUAL / 2))) {
+#if SPINDLE_PWM_PIN == 12
+        TMR1_COMP11 = spindle_pwm.period;
+        TMR1_CMPLD11 = spindle_pwm.period;
+        if(settings.spindle.invert.pwm)
+            TMR1_SCTRL0 |= TMR_SCTRL_OPS;
+        else
+            TMR1_SCTRL0 &= ~TMR_SCTRL_OPS;
+#else // 13
+        TMR2_COMP10 = spindle_pwm.period;
+        TMR2_CMPLD10 = spindle_pwm.period;
+        if(settings.spindle.invert.pwm)
+            TMR2_SCTRL0 |= TMR_SCTRL_OPS;
+        else
+            TMR2_SCTRL0 &= ~TMR_SCTRL_OPS;
+#endif
+        spindle->set_state = spindleSetStateVariable;
+    } else {
+        if(pwmEnabled)
+            spindle->set_state((spindle_state_t){0}, 0.0f);
+        spindle->set_state = spindleSetState;
     }
 
 #if SPINDLE_SYNC_ENABLE
-    hal.spindle.cap.at_speed = hal.spindle.get_data == spindleGetData;
+    spindle->cap.at_speed = spindle->get_data == spindleGetData;
 #endif
 
-    spindle_update_caps(hal.spindle.cap.variable ? &spindle_pwm : NULL);
+    spindle_update_caps(spindle, spindle->cap.variable ? &spindle_pwm : NULL);
 
     return true;
 }
@@ -1508,7 +1505,7 @@ static void mpg_enable (sys_state_t state)
 #endif
 
 // Configures perhipherals when settings are initialized or changed
-static void settings_changed (settings_t *settings)
+static void settings_changed (settings_t *settings, settings_changed_flags_t changed)
 {
     if(IOInitDone) {
 
@@ -1517,17 +1514,21 @@ static void settings_changed (settings_t *settings)
 #endif
 
 #if defined(DRIVER_SPINDLE) && defined(SPINDLE_PWM_PIN)
-        if(hal.spindle.config == spindleConfig)
-            spindleConfig();
+        if(changed.spindle) {
+            spindleConfig(spindle_get_hal(spindle_id, SpindleHAL_Configured));
+            if(spindle_id == spindle_get_default())
+                spindle_select(spindle_id);
+        }
 #endif
 
 #if SPINDLE_SYNC_ENABLE
 
-        if((hal.spindle.get_data = (hal.spindle.cap.at_speed = settings->spindle.ppr > 0) ? spindleGetData : NULL) &&
+        if((hal.spindle_data.get = settings->spindle.ppr > 0 ? spindleGetData : NULL) &&
              (spindle_encoder.ppr != settings->spindle.ppr || pidf_config_changed(&spindle_tracker.pid, &settings->position.pid))) {
 
-            hal.spindle.reset_data = spindleDataReset;
-            hal.spindle.set_state((spindle_state_t){0}, 0.0f);
+            hal.spindle_data.reset = spindleDataReset;
+            if(spindle_get(0))
+                spindle_get(0)->set_state((spindle_state_t){0}, 0.0f);
 
             pidf_init(&spindle_tracker.pid, &settings->position.pid);
 
@@ -2128,7 +2129,7 @@ static bool driver_setup (settings_t *settings)
 
     IOInitDone = settings->version == 22;
 
-    hal.settings_changed(settings);
+    hal.settings_changed(settings, (settings_changed_flags_t){0});
     hal.stepper.go_idle(true);
 
 #if IOPORTS_ENABLE
@@ -2299,7 +2300,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "230125";
+    hal.driver_version = "230130";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -2412,9 +2413,9 @@ bool driver_init (void)
     };
 
  #ifdef SPINDLE_PWM_PIN
-    spindle_register(&spindle, "PWM");
+    spindle_id = spindle_register(&spindle, "PWM");
  #else
-    spindle_register(&spindle, "Basic");
+    spindle_id = spindle_register(&spindle, "Basic");
  #endif
 
 #endif // DRIVER_SPINDLE

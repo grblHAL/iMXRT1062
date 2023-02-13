@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2022 Terje Io
+  Copyright (c) 2020-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -50,6 +50,20 @@ static on_report_options_ptr on_report_options;
 static on_execute_realtime_ptr on_execute_realtime;
 static on_stream_changed_ptr on_stream_changed;
 static char netservices[NETWORK_SERVICES_LEN] = "";
+#if MQTT_ENABLE
+
+static bool mqtt_connected = false;
+static on_mqtt_client_connected_ptr on_client_connected;
+
+static void mqtt_connection_changed (bool connected)
+{
+    mqtt_connected = connected;
+
+    if(on_client_connected)
+         on_client_connected(connected);
+}
+
+#endif
 
 static void report_options (bool newopt)
 {
@@ -74,6 +88,7 @@ static void report_options (bool newopt)
             hal.stream.write(",SSDP");
 #endif
     } else {
+
         hal.stream.write("[IP:");
         hal.stream.write(IPAddress);
         hal.stream.write("]" ASCII_EOL);
@@ -83,6 +98,14 @@ static void report_options (bool newopt)
             hal.stream.write(active_stream == StreamType_Telnet ? "Telnet" : "Websocket");
             hal.stream.write("]" ASCII_EOL);
         }
+#if MQTT_ENABLE
+        char *client_id;
+        if(*(client_id = networking_get_info()->mqtt_client_id)) {
+            hal.stream.write("[MQTT CLIENTID:");
+            hal.stream.write(client_id);
+            hal.stream.write(mqtt_connected ? "]" ASCII_EOL : " (offline)]" ASCII_EOL);
+        }
+#endif
     }
 }
 
@@ -112,9 +135,12 @@ network_info_t *networking_get_info (void)
             ip4addr_ntoa_r(netif_ip_gw4(netif), info.status.gateway, IP4ADDR_STRLEN_MAX);
             ip4addr_ntoa_r(netif_ip_netmask4(netif), info.status.mask, IP4ADDR_STRLEN_MAX);
         }
-
-        sprintf(info.mac, "%02X:%02X:%02X:%02X:%02X:%02X", netif->hwaddr[0], netif->hwaddr[1], netif->hwaddr[2], netif->hwaddr[3], netif->hwaddr[4], netif->hwaddr[5]);
+        sprintf(info.mac, MAC_FORMAT_STRING, netif->hwaddr[0], netif->hwaddr[1], netif->hwaddr[2], netif->hwaddr[3], netif->hwaddr[4], netif->hwaddr[5]);
     }
+
+#if MQTT_ENABLE
+    networking_make_mqtt_clientid(info.mac, info.mqtt_client_id);
+#endif
 
     return &info;
 }
@@ -211,6 +237,11 @@ static void netif_status_callback (struct netif *netif)
         }
     }
 #endif
+
+#if MQTT_ENABLE
+    if(!mqtt_connected)
+        mqtt_connect(&network.mqtt, networking_get_info()->mqtt_client_id);
+#endif
 }
 
 static void grbl_enet_poll (sys_state_t state)
@@ -267,6 +298,10 @@ bool grbl_enet_start (void)
             network.http_port = NETWORK_HTTP_PORT;
         if(network.ftp_port == 0)
             network.ftp_port = NETWORK_FTP_PORT;
+#if MQTT_ENABLE
+        if(network.mqtt.port == 0)
+            network.mqtt.port = NETWORK_MQTT_PORT;
+#endif
 
         if(network.ip_mode == IpMode_Static)
             enet_init((ip_addr_t *)&network.ip, (ip_addr_t *)&network.mask, (ip_addr_t *)&network.gateway);
@@ -328,7 +363,13 @@ PROGMEM static const setting_detail_t ethernet_settings[] = {
 #if HTTP_ENABLE
     { Setting_HttpPort, Group_Networking, "HTTP port", NULL, Format_Int16, "####0", "1", "65535", Setting_NonCore, &ethernet.http_port, NULL, NULL, { .reboot_required = On } },
 #endif
-    { Setting_WebSocketPort, Group_Networking, "Websocket port", NULL, Format_Int16, "####0", "1", "65535", Setting_NonCore, &ethernet.websocket_port, NULL, NULL, { .reboot_required = On } }
+    { Setting_WebSocketPort, Group_Networking, "Websocket port", NULL, Format_Int16, "####0", "1", "65535", Setting_NonCore, &ethernet.websocket_port, NULL, NULL, { .reboot_required = On } },
+#if MQTT_ENABLE
+    { Setting_MQTTBrokerIpAddress, Group_Networking, "MQTT broker IP Address", NULL, Format_IPv4, NULL, NULL, NULL, Setting_NonCoreFn, ethernet_set_ip, ethernet_get_ip, NULL, { .reboot_required = On } },
+    { Setting_MQTTBrokerPort, Group_Networking, "MQTT broker port", NULL, Format_Int16, "####0", "1", "65535", Setting_NonCore, &ethernet.mqtt.port, NULL, NULL, { .reboot_required = On } },
+    { Setting_MQTTBrokerUserName, Group_Networking, "MQTT broker username", NULL, Format_String, "x(32)", NULL, "32", Setting_NonCore, &ethernet.mqtt.user, NULL, NULL, { .allow_null = On } },
+    { Setting_MQTTBrokerPassword, Group_Networking, "MQTT broker password", NULL, Format_Password, "x(32)", NULL, "32", Setting_NonCore, &ethernet.mqtt.password, NULL, NULL, { .allow_null = On } },
+#endif
 };
 
 #ifndef NO_SETTINGS_DESCRIPTIONS
@@ -349,7 +390,13 @@ static const setting_descr_t ethernet_settings_descr[] = {
 #endif
     { Setting_WebSocketPort, "Websocket port number listening for incoming connections."
                              "\\n\\nNOTE: WebUI requires this to be HTTP port number + 1."
-    }
+    },
+#if MQTT_ENABLE
+    { Setting_MQTTBrokerIpAddress, "IP address for remote MQTT broker. Set to 0.0.0.0 to disable connection." },
+    { Setting_MQTTBrokerPort, "Remote MQTT broker portnumber." },
+    { Setting_MQTTBrokerUserName, "Remote MQTT broker username." },
+    { Setting_MQTTBrokerPassword, "Remote MQTT broker username." },
+#endif
 };
 
 #endif
@@ -396,9 +443,16 @@ static status_code_t ethernet_set_ip (setting_id_t setting, char *value)
             set_addr(ethernet.mask, &addr);
             break;
 
+#if MQTT_ENABLE
+        case Setting_MQTTBrokerIpAddress:
+            set_addr(ethernet.mqtt.ip, &addr);
+            break;
+#endif
+
         default:
             status = Status_Unhandled;
             break;
+
     }
 
     return status;
@@ -422,6 +476,12 @@ static char *ethernet_get_ip (setting_id_t setting)
             ip4addr_ntoa_r((const ip_addr_t *)&ethernet.mask, ip, IPADDR_STRLEN_MAX);
             break;
 
+#if MQTT_ENABLE
+        case Setting_MQTTBrokerIpAddress:
+            ip4addr_ntoa_r((const ip_addr_t *)&ethernet.mqtt.ip, ip, IPADDR_STRLEN_MAX);
+            break;
+#endif
+
         default:
             *ip = '\0';
             break;
@@ -444,6 +504,8 @@ static uint32_t ethernet_get_services (setting_id_t id)
 
 void ethernet_settings_restore (void)
 {
+    memset(&ethernet, 0, sizeof(network_settings_t));
+
     strcpy(ethernet.hostname, NETWORK_HOSTNAME);
 
     ip4_addr_t addr;
@@ -469,6 +531,24 @@ void ethernet_settings_restore (void)
     ethernet.http_port = NETWORK_HTTP_PORT;
     ethernet.websocket_port = NETWORK_WEBSOCKET_PORT;
     ethernet.services.mask = allowed_services.mask;
+
+#if MQTT_ENABLE
+
+    ethernet.mqtt.port = NETWORK_MQTT_PORT;
+
+  #ifdef MQTT_IP_ADDRESS
+    if(ip4addr_aton(MQTT_IP_ADDRESS, &addr) == 1)
+        set_addr(ethernet.mqtt.ip, &addr);
+  #endif
+
+ #ifdef MQTT_USERNAME
+    strcpy(ethernet.mqtt.user, MQTT_USERNAME);
+ #endif
+ #ifdef MQTT_PASSWORD
+    strcpy(ethernet.mqtt.password, MQTT_PASSWORD);
+ #endif
+
+#endif
 
     hal.nvs.memcpy_to_nvs(nvs_address, (uint8_t *)&ethernet, sizeof(network_settings_t), true);
 }
@@ -500,6 +580,10 @@ bool grbl_enet_init (network_settings_t *settings)
         on_stream_changed = grbl.on_stream_changed;
         grbl.on_stream_changed = stream_changed;
 
+#if MQTT_ENABLE
+        on_client_connected = mqtt_events.on_client_connected;
+        mqtt_events.on_client_connected = mqtt_connection_changed;
+#endif
         settings_register(&setting_details);
 
         allowed_services.mask = networking_get_services_list((char *)netservices).mask;
