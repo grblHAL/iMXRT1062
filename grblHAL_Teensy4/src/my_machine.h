@@ -35,17 +35,17 @@
 // Uncomment to enable, for some a value > 1 may be assigned, if so the default value is shown.
 
 /*
-              Plugin: | ETHERNET� | SDCARD� | KEYPAD | EEPROM | N_AXIS |
+              Plugin: | ETHERNET¹ | SDCARD¹ | KEYPAD | EEPROM | N_AXIS |
 ----------------------|-----------|---------|--------|--------|--------|
-BOARD_T40X101         | no        | no      | yes    | yes�   | max 4  |
-BOARD_T41U5XBB        | yes       | yes     | yes    | yes�   | max 5  |
+BOARD_T40X101         | no        | no      | yes    | yes³   | max 4  |
+BOARD_T41U5XBB        | yes       | yes     | yes    | yes³   | max 5  |
 BOARD_T41BB5X_PRO     | yes       | yes     | yes    | yes    | max 5  |
-BOARD_CNC_BOOSTERPACK | yes�      | yes     | yes    | yes    | max 3  |
+BOARD_CNC_BOOSTERPACK | yes²      | yes     | yes    | yes    | max 3  |
 BOARD_GRBLHAL2000     | yes       | yes     | yes    | yes    | max 5  |
 
-� Teensy 4.1 only
-� External magjack.
-� EEPROM is optional and must be added to the board.
+¹ Teensy 4.1 only
+² External magjack.
+³ EEPROM is optional and must be added to the board.
 
 N_AXIS has a default value of 3, edit grbl\config.h to increase.
 
