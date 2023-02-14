@@ -24,7 +24,7 @@
 // NOTE: Only one board may be enabled!
 // If none is enabled pin mappings from generic_map.h will be used
 //#define BOARD_T40X101
-//#define BOARD_T41U5XBB
+#define BOARD_T41U5XBB
 //#define BOARD_T41U5XBB_SS // For a modified T41U5XBB board, allows spindle sync to be enabled.
 //#define BOARD_T41BB5X_PRO
 //#define BOARD_CNC_BOOSTERPACK
@@ -60,14 +60,14 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 //#define VFD_ENABLE           1 // Set to 1 or 2 for Huanyang VFD spindle. More here https://github.com/grblHAL/Plugins_spindle
 //#define MODBUS_ENABLE        1 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
 //#define WEBUI_ENABLE         3 // Enable ESP3D-WEBUI plugin along with networking and SD card plugins.
-//#define ETHERNET_ENABLE      1 // Ethernet streaming. Enables networking plugin.
+#define ETHERNET_ENABLE      1 // Ethernet streaming. Enables networking plugin.
 //#define SDCARD_ENABLE        1 // Run gcode programs from SD card, enables sdcard plugin.
 //#define LITTLEFS_ENABLE      1 // Enable flash based storage, automatically enabled if WebUI is enabled
 //#define QEI_ENABLE           1 // Enable quadrature encoder interfaces. Max value is 1. Requires encoder plugin.
-//#define MPG_ENABLE           1 // Enable MPG interface. Requires serial port and one handshake pin unless
+#define MPG_ENABLE           1 // Enable MPG interface. Requires serial port and one handshake pin unless
                                  // KEYPAD_ENABLE is set to 2 when mode switching is done by the CMD_MPG_MODE_TOGGLE (0x8B)
                                  // command character. Set both MPG_ENABLE and KEYPAD_ENABLE to 2 to use a handshake pin anyway.
-//#define KEYPAD_ENABLE        1 // Set to 1 for I2C keypad, 2 for other input such as serial data. If KEYPAD_ENABLE is set to 2
+#define KEYPAD_ENABLE        2 // Set to 1 for I2C keypad, 2 for other input such as serial data. If KEYPAD_ENABLE is set to 2
                                  // and MPG_ENABLE is uncommented then a serial stream is shared with the MPG.
 //#define PLASMA_ENABLE        1 // Plasma/THC plugin. To be completed.
 //#define MCP3221_ENABLE       1 // Enable analog input via MCP3221 ADC.
@@ -88,10 +88,10 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 // of axes can be enabled here.
 //#define X_GANGED             1
 //#define X_AUTO_SQUARE        1
-//#define Y_GANGED             1
-//#define Y_AUTO_SQUARE        1
-//#define Z_GANGED             1
-//#define Z_AUTO_SQUARE        1
+#define Y_GANGED             1
+#define Y_AUTO_SQUARE        1
+#define Z_GANGED             1
+#define Z_AUTO_SQUARE        1
 // For ganged axes the limit switch input (if available) can be configured to act as a max travel limit switch.
 // NOTE: If board map already has max limit inputs defined this configuration will be ignored.
 //#define X_GANGED_LIM_MAX     1
@@ -100,8 +100,8 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 //
 
 #if ETHERNET_ENABLE > 0
-//#define TELNET_ENABLE        1 // Telnet daemon - requires Ethernet streaming enabled.
-//#define WEBSOCKET_ENABLE     1 // Websocket daemon - requires Ethernet streaming enabled.
+#define TELNET_ENABLE        1 // Telnet daemon - requires Ethernet streaming enabled.
+#define WEBSOCKET_ENABLE     1 // Websocket daemon - requires Ethernet streaming enabled.
 //#define MDNS_ENABLE          1 // mDNS daemon.
 //#define SSDP_ENABLE          1 // SSDP daemon - requires HTTP enabled.
 //#define MQTT_ENABLE          1 // MQTT client API, only enable if needed by plugin code.
@@ -111,14 +111,14 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 //#define WEBDAV_ENABLE        1 // webdav protocol - requires http daemon and SD card enabled.
 #endif
 // The following symbols have the default values as shown, uncomment and change as needed.
-//#define NETWORK_HOSTNAME        "grblHAL"
-//#define NETWORK_IPMODE          1 // 0 = static, 1 = DHCP, 2 = AutoIP
-//#define NETWORK_IP              "192.168.5.1"
-//#define NETWORK_GATEWAY         "192.168.5.1"
-//#define NETWORK_MASK            "255.255.255.0"
-//#define NETWORK_FTP_PORT        21
-//#define NETWORK_TELNET_PORT     23
-//#define NETWORK_HTTP_PORT       80
+#define NETWORK_HOSTNAME        "grblHAL"
+#define NETWORK_IPMODE          1 // 0 = static, 1 = DHCP, 2 = AutoIP
+#define NETWORK_IP              "192.168.0.180"
+#define NETWORK_GATEWAY         "192.168.0.1"
+#define NETWORK_MASK            "255.255.255.0"
+#define NETWORK_FTP_PORT        21
+#define NETWORK_TELNET_PORT     23
+#define NETWORK_HTTP_PORT       80
 #if HTTP_ENABLE
 //#define NETWORK_WEBSOCKET_PORT  81
 #else
