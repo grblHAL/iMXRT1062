@@ -35,17 +35,17 @@
 // Uncomment to enable, for some a value > 1 may be assigned, if so the default value is shown.
 
 /*
-              Plugin: | ETHERNET¹ | SDCARD¹ | KEYPAD | EEPROM | N_AXIS |
+              Plugin: | ETHERNETï¿½ | SDCARDï¿½ | KEYPAD | EEPROM | N_AXIS |
 ----------------------|-----------|---------|--------|--------|--------|
-BOARD_T40X101         | no        | no      | yes    | yes³   | max 4  |
-BOARD_T41U5XBB        | yes       | yes     | yes    | yes³   | max 5  |
+BOARD_T40X101         | no        | no      | yes    | yesï¿½   | max 4  |
+BOARD_T41U5XBB        | yes       | yes     | yes    | yesï¿½   | max 5  |
 BOARD_T41BB5X_PRO     | yes       | yes     | yes    | yes    | max 5  |
-BOARD_CNC_BOOSTERPACK | yes²      | yes     | yes    | yes    | max 3  |
+BOARD_CNC_BOOSTERPACK | yesï¿½      | yes     | yes    | yes    | max 3  |
 BOARD_GRBLHAL2000     | yes       | yes     | yes    | yes    | max 5  |
 
-¹ Teensy 4.1 only
-² External magjack.
-³ EEPROM is optional and must be added to the board.
+ï¿½ Teensy 4.1 only
+ï¿½ External magjack.
+ï¿½ EEPROM is optional and must be added to the board.
 
 N_AXIS has a default value of 3, edit grbl\config.h to increase.
 
@@ -105,7 +105,7 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 //#define MDNS_ENABLE          1 // mDNS daemon.
 //#define SSDP_ENABLE          1 // SSDP daemon - requires HTTP enabled.
 //#define MQTT_ENABLE          1 // MQTT client API, only enable if needed by plugin code.
-#ifdef SDCARD_ENABLE || WEBUI_ENABLE
+#if SDCARD_ENABLE || WEBUI_ENABLE
 //#define FTP_ENABLE           1 // Ftp daemon - requires SD card enabled
 //#define HTTP_ENABLE          1 // http daemon - requires SD card enabled.
 //#define WEBDAV_ENABLE        1 // webdav protocol - requires http daemon and SD card enabled.
