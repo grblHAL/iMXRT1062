@@ -3,7 +3,6 @@
 
   Part of grblHAL
 
-
   Copyright (c) 2021-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
@@ -135,7 +134,7 @@
 #define I2C_STROBE_PIN   (41u)
 #endif
 
-#if EEPROM_ENABLE || I2C_STROBE_ENABLE
+#if I2C_ENABLE
 #define I2C_PORT    4
 #define I2C_SCL4    (24u) // Not used, for info only
 #define I2C_SDA4    (25u) // Not used, for info only

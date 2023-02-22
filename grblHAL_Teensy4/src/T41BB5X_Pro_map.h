@@ -138,7 +138,7 @@
 #define I2C_STROBE_PIN   (41U)
 #endif
 
-#if EEPROM_ENABLE || I2C_STROBE_ENABLE || MCP3221_ENABLE
+#if I2C_ENABLE
 #define I2C_PORT    4
 #define I2C_SCL4    (24u) // Not used, for info only
 #define I2C_SDA4    (25u) // Not used, for info only

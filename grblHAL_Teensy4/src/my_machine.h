@@ -50,7 +50,6 @@ BOARD_GRBLHAL2000     | yes       | yes     | yes    | yes    | max 5  |
 N_AXIS has a default value of 3, edit grbl\config.h to increase.
 
 */
-
 #ifndef USB_SERIAL_CDC
 #define USB_SERIAL_CDC      2 // 1 for Arduino class library and 2 for PJRC C library. Comment out or set to 0 to use UART communication.
 #endif
@@ -69,6 +68,10 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
                                  // command character. Set both MPG_ENABLE and KEYPAD_ENABLE to 2 to use a handshake pin anyway.
 //#define KEYPAD_ENABLE        1 // Set to 1 for I2C keypad, 2 for other input such as serial data. If KEYPAD_ENABLE is set to 2
                                  // and MPG_ENABLE is uncommented then a serial stream is shared with the MPG.
+//#define DISPLAY_ENABLE       1 // Set to 1 for I2C display protocol, 2 for I2C LED protocol.
+//#define MACROS_ENABLE        1 // Macros plugin. For macros that can be triggered by keypad plugin or auxillary inputs.
+                                 // Set to 1 for aux input triggers, 2 for keypad triggers or 3 for both.
+//#define N_MACROS             1 // Number of macros to enable, max 8. If commented out default is 4 when triggered by aux inputs, 8 otherwise.
 //#define PLASMA_ENABLE        1 // Plasma/THC plugin. To be completed.
 //#define MCP3221_ENABLE       1 // Enable analog input via MCP3221 ADC.
 //#define PPI_ENABLE           1 // Laser PPI plugin. To be completed.

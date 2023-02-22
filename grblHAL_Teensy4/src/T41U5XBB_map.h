@@ -118,7 +118,7 @@
 #define I2C_STROBE_PIN   (41u) // I2C ST
 #endif
 
-#if EEPROM_ENABLE || I2C_STROBE_ENABLE
+#if I2C_ENABLE
 #define I2C_PORT    4
 #define I2C_SCL4    (24u) // Not referenced, for info only
 #define I2C_SDA4    (25u) // Not referenced, for info only

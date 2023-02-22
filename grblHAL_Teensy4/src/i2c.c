@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Some parts of this code is Copyright (c) 2020-2021 Terje Io
+  Some parts of this code is Copyright (c) 2020-2023 Terje Io
 
   Some parts are derived/pulled from WireIMXRT.cpp in the Teensyduino Core Library (no copyright header)
 
@@ -195,9 +195,7 @@ typedef struct {
     volatile uint8_t acount;
     uint8_t *data;
     uint8_t regaddr[2];
-#if KEYPAD_ENABLE == 1
     keycode_callback_ptr keycode_callback;
-#endif
     uint8_t buffer[8];
 } i2c_trans_t;
 
@@ -289,8 +287,32 @@ inline static bool wait_ready (void)
     return true;
 }
 
+bool i2c_probe (uint_fast16_t i2cAddr)
+{
+    bool ok = false;
+    uint32_t ms, retries = 3;
+
+    do {
+
+        if((ok = wait_ready())) {
+
+            ms = hal.get_elapsed_ticks();
+
+            port->MSR = 0;
+            port->MTDR = LPI2C_MTDR_CMD_START|LPI2C_MTDR_CMD_TRANSMIT | (i2cAddr << 1);
+
+            while(hal.get_elapsed_ticks() - ms < 3 && (ok = (port->MSR & (LPI2C_MSR_ALF|LPI2C_MSR_NDF|LPI2C_MSR_PLTF)) == 0));
+
+            port->MTDR = LPI2C_MTDR_CMD_STOP;
+        }
+
+    } while(!ok && --retries);
+
+    return ok;
+}
+
 // get bytes (max 8 if local buffer, else max 255), waits for result
-uint8_t *I2C_Receive (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block)
+uint8_t *i2c_receive (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block)
 {
     i2c.data  = buf ? buf : i2c.buffer;
     i2c.count = bytes;
@@ -308,7 +330,7 @@ uint8_t *I2C_Receive (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block
     return i2c.buffer;
 }
 
-bool I2C_Send (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block)
+bool i2c_send (uint_fast16_t i2cAddr, uint8_t *buf, size_t bytes, bool block)
 {
     i2c.count = bytes;
     i2c.data  = buf ? buf : i2c.buffer;
@@ -385,7 +407,7 @@ nvs_transfer_result_t i2c_nvs_transfer (nvs_transfer_t *transfer, bool read)
             txbuf[0] = transfer->word_addr >> 8;
             txbuf[1] = transfer->word_addr & 0xFF;
         }
-        I2C_Send(transfer->address, txbuf, transfer->count + transfer->word_addr_bytes, true);
+        i2c_send(transfer->address, txbuf, transfer->count + transfer->word_addr_bytes, true);
 #if !EEPROM_IS_FRAM
         hal.delay_ms(7, NULL);
 #endif
@@ -396,17 +418,13 @@ nvs_transfer_result_t i2c_nvs_transfer (nvs_transfer_t *transfer, bool read)
 
 #endif
 
-#if KEYPAD_ENABLE == 1
-
-void I2C_GetKeycode (uint32_t i2cAddr, keycode_callback_ptr callback)
+void i2c_get_keycode (uint_fast16_t i2cAddr, keycode_callback_ptr callback)
 {
     if(wait_ready()) {
         i2c.keycode_callback = callback;
-        I2C_Receive(i2cAddr, NULL, 1, false);
+        i2c_receive(i2cAddr, NULL, 1, false);
     }
 }
-
-#endif
 
 #if TRINAMIC_ENABLE && TRINAMIC_I2C
 
@@ -455,7 +473,7 @@ static TMC2130_status_t I2C_TMC_WriteRegister (TMC2130_t *driver, TMC2130_datagr
     i2c.buffer[3] = (reg->payload.value >> 8) & 0xFF;
     i2c.buffer[4] = reg->payload.value & 0xFF;
 
-    I2C_Send(I2C_ADR_I2CBRIDGE, NULL, 5, true);
+    i2c_send(I2C_ADR_I2CBRIDGE, NULL, 5, true);
 
     return status;
 }

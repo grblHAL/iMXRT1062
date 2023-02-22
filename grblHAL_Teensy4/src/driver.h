@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2022 Terje Io
+  Copyright (c) 2020-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -34,14 +34,16 @@
 #include "my_machine.h"
 #endif
 
+#ifndef MCP3221_ENABLE
+#define MCP3221_ENABLE 0
+#else
+#define I2C_ENABLE 1
+#endif
+
 #include "grbl/driver_opts.h"
 
 #define DIGITAL_IN(gpio) (!!(gpio.reg->DR & gpio.bit))
 #define DIGITAL_OUT(gpio, on) { if(on) gpio.reg->DR_SET = gpio.bit; else gpio.reg->DR_CLEAR = gpio.bit; }
-
-#ifndef MCP3221_ENABLE
-#define MCP3221_ENABLE 0
-#endif
 
 // Timer assignments (for reference, Arduino libs does not follow the CMSIS style...)
 

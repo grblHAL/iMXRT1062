@@ -5,7 +5,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2021 Terje Io
+  Copyright (c) 2021-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -28,7 +28,7 @@ uint16_t MCP3221_read (void)
 {
     uint8_t value[2];
 
-    I2C_Receive(MCP3221_ADDRESS, value, 2, true);
+    i2c_receive(MCP3221_ADDRESS, value, 2, true);
 
     return (value[0] << 8) | value[1];
 }
@@ -37,5 +37,5 @@ bool MCP3221_init (void)
 {
     i2c_init();
 
-    return I2C_Send(MCP3221_ADDRESS, NULL, 0, true);
+    return i2c_send(MCP3221_ADDRESS, NULL, 0, true);
 }

@@ -5,7 +5,7 @@
 
   Board by Phil Barrett: https://github.com/phil-barrett/grblHAL-teensy-4.x
 
-  Copyright (c) 2020-2022 Terje Io
+  Copyright (c) 2020-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -99,7 +99,7 @@
 #define AUXOUTPUT1_PIN      (11u)
 #endif
 
-#if EEPROM_ENABLE || I2C_STROBE_ENABLE
+#if I2C_ENABLE
 #define I2C_PORT    4
 #define I2C_SCL4    (24u) // Not referenced, for info only
 #define I2C_SDA4    (25u) // Not referenced, for info only
