@@ -45,6 +45,8 @@
       "URL": "https://github.com/phil-barrett/grbl-teensy-4",
       "caps": {
         "axes": 5,
+        "ganged_axes": 2,
+        "auto_square": 2,
         "digital_in": 4,
         "digital_out": 2,
         "eeprom": 1,
@@ -58,6 +60,8 @@
       "URL": "https://github.com/phil-barrett/grbl-teensy-4",
       "caps": {
         "axes": 5,
+        "ganged_axes": 2,
+        "auto_square": 2,
         "digital_in": 4,
         "digital_out": 2,
         "eeprom": 1,
