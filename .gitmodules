@@ -40,3 +40,6 @@
 [submodule "grblHAL_Teensy4/src/webui"]
 	path = grblHAL_Teensy4/src/webui
 	url = https://github.com/grblHAL/Plugin_WebUI
+[submodule "grblHAL_Teensy4/src/embroidery"]
+	path = grblHAL_Teensy4/src/embroidery
+	url = https://github.com/grblHAL/Plugin_embroidery

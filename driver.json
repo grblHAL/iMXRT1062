@@ -35,7 +35,8 @@
       { "id": "fans" },
       { "id": "odometer" },
       { "id": "openpnp" },
-      { "id": "bluetooth_bridge" }
+      { "id": "bluetooth_bridge" },
+      { "id": "embroidery" }
     ]
   },
   "boards": [
