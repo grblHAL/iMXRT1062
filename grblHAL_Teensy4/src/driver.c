@@ -134,11 +134,11 @@ static gpio_t Mist, Flood, stepX, stepY, stepZ, dirX, dirY, dirZ;
 #undef SPINDLE_SYNC_ENABLE
 #endif
 
+static spindle_id_t spindle_id = -1;
 static gpio_t spindleEnable, spindleDir;
 
 #ifdef SPINDLE_PWM_PIN
 static bool pwmEnabled = false;
-static spindle_id_t spindle_id = -1;
 static spindle_pwm_t spindle_pwm;
 static void spindle_set_speed (uint_fast16_t pwm_value);
 #endif
@@ -2300,7 +2300,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "230130";
+    hal.driver_version = "230331";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -2433,6 +2433,7 @@ bool driver_init (void)
 #ifdef LIMITS_OVERRIDE_PIN
     hal.signals_cap.limits_override = On;
 #endif
+    hal.limits_cap = get_limits_cap();
 #ifdef COOLANT_MIST_PIN
     hal.driver_cap.mist_control = On;
 #endif
