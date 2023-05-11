@@ -55,12 +55,12 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 #endif
 //#define SAFETY_DOOR_ENABLE   1 // Enable safety door input.
 //#define USB_SERIAL_WAIT      1 // Wait for USB connection before starting grblHAL.
-//#define BLUETOOTH_ENABLE     1 // Set to 1 for HC-05 module. Requires and claims one auxillary input pin.
+//#define BLUETOOTH_ENABLE     2 // Set to 2 for HC-05 module. Requires and claims one auxillary input pin.
 //#define VFD_ENABLE           1 // Set to 1 or 2 for Huanyang VFD spindle. More here https://github.com/grblHAL/Plugins_spindle
 //#define MODBUS_ENABLE        1 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
 //#define WEBUI_ENABLE         3 // Enable ESP3D-WEBUI plugin along with networking and SD card plugins.
 //#define ETHERNET_ENABLE      1 // Ethernet streaming. Enables networking plugin.
-//#define SDCARD_ENABLE        1 // Run gcode programs from SD card, enables sdcard plugin.
+//#define SDCARD_ENABLE        1 // Run gcode programs from SD card. Set to 2 to enable YModem upload.
 //#define LITTLEFS_ENABLE      1 // Enable flash based storage, automatically enabled if WebUI is enabled
 //#define QEI_ENABLE           1 // Enable quadrature encoder interfaces. Max value is 1. Requires encoder plugin.
 //#define MPG_ENABLE           1 // Enable MPG interface. Requires serial port and one handshake pin unless
