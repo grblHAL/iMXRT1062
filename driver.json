@@ -69,7 +69,8 @@
         "digital_out": 2,
         "eeprom": 0,
         "fram": 0,
-        "i2c": 1
+        "i2c": 1,
+        "spindle_sync": 1
       }
     },
     { "name": "GRBLHAL2000 - PRINTNC",
@@ -81,7 +82,8 @@
         "digital_in": 4,
         "digital_out": 3,
         "eeprom": 1,
-        "fram": 1
+        "fram": 1,
+        "spindle_sync": 1
       }
     },
     {
