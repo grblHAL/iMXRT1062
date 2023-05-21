@@ -262,6 +262,7 @@ const io_stream_t *usb_serialInit (void)
         .type = StreamType_Serial,
         .instance = 0,
         .state = { .is_usb = On },
+        .is_connected = NULL,
         .get_rx_buffer_free = usb_serialRxFree,
         .write = usb_serialWriteS,
         .write_all = NULL,
