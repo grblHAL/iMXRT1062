@@ -17,6 +17,7 @@
     "mpg_mode": 1,
     "sdcard": 1,
     "ethernet": 1,
+    "hc05": 1,
     "pio_board": "teensy41",
     "build_dir": "grblHAL_Teensy4",
     "plugins": [
@@ -25,7 +26,7 @@
       { "id": "eeprom" },
       { "id": "sdcard" },
       { "id": "webui" },
-      { "id": "eth_networking" },
+      { "id": "networking" },
       { "id": "keypad" },
       { "id": "macros" },
       { "id": "plasma" },
@@ -35,7 +36,7 @@
       { "id": "fans" },
       { "id": "odometer" },
       { "id": "openpnp" },
-      { "id": "bluetooth_bridge" },
+      { "id": "bluetooth" },
       { "id": "embroidery" }
     ]
   },
