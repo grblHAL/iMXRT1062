@@ -512,7 +512,19 @@ static output_signal_t outputpin[] = {
     { .id = Output_Aux6,            .port = &AuxOut6,       .pin = AUXOUTPUT6_PIN,          .group = PinGroup_AuxOutput },
 #endif
 #ifdef AUXOUTPUT7_PIN
-    { .id = Output_Aux7,            .port = &AuxOut7,       .pin = AUXOUTPUT7_PIN,          .group = PinGroup_AuxOutput }
+    { .id = Output_Aux7,            .port = &AuxOut7,       .pin = AUXOUTPUT7_PIN,          .group = PinGroup_AuxOutput },
+#endif
+#ifdef AUXOUTPUT0_PWM_PIN
+    { .id = Output_Analog_Aux0,     .port = NULL,           .pin = AUXOUTPUT0_PWM_PIN,      .group = PinGroup_AuxOutputAnalog, .mode = { PINMODE_PWM } },
+#endif
+#ifdef AUXOUTPUT0_ANALOG_PIN
+    { .id = Output_Analog_Aux0,     .port = NULL,           .pin = AUXOUTPUT0_ANALOG_PIN,   .group = PinGroup_AuxOutputAnalog },
+#endif
+#ifdef AUXOUTPUT1_PWM_PIN
+    { .id = Output_Analog_Aux1,     .port = NULL,           .pin = AUXOUTPUT1_PWM_PIN,      .group = PinGroup_AuxOutputAnalog, .mode = { PINMODE_PWM } },
+#endif
+#ifdef AUXOUTPUT1_ANALOG_PIN
+    { .id = Output_Analog_Aux1,     .port = NULL,           .pin = AUXOUTPUT1_ANALOG_PIN,   .group = PinGroup_AuxOutputAnalog }
 #endif
 };
 
@@ -800,7 +812,7 @@ static void stepperWakeUp (void)
     // Enable stepper drivers.
     stepperEnable((axes_signals_t){AXES_BITMASK});
 
-    PIT_LDVAL0 = 5000;
+    PIT_LDVAL0 = hal.f_step_timer / 500; // ~2ms delay to allow drivers time to wake up.
     PIT_TFLG0 |= PIT_TFLG_TIF;
     PIT_TCTRL0 |= (PIT_TCTRL_TIE|PIT_TCTRL_TEN);
 }
@@ -1254,11 +1266,21 @@ static void spindleSetStateVariable (spindle_state_t state, float rpm)
 
 bool spindleConfig (spindle_ptrs_t *spindle)
 {
+    uint_fast16_t prescaler = 2, divider = 0b1001;
+
     if(spindle == NULL)
         return false;
 
-    if((spindle->cap.variable = !settings.spindle.flags.pwm_disable && spindle_precompute_pwm_values(spindle, &spindle_pwm, F_BUS_ACTUAL / 2))) {
+    if((spindle->cap.variable = !settings.spindle.flags.pwm_disable && spindle_precompute_pwm_values(spindle, &spindle_pwm, F_BUS_ACTUAL / prescaler))) {
+
+        while(spindle_pwm.period > 65534 && divider < 15) {
+            prescaler <<= 1;
+            divider++;
+            spindle_precompute_pwm_values(spindle, &spindle_pwm, F_BUS_ACTUAL / prescaler);
+        }
+
 #if SPINDLE_PWM_PIN == 12
+        TMR1_CTRL1 = TMR_CTRL_PCS(divider) | TMR_CTRL_OUTMODE(0b100) | TMR_CTRL_LENGTH;
         TMR1_COMP11 = spindle_pwm.period;
         TMR1_CMPLD11 = spindle_pwm.period;
         if(settings.spindle.invert.pwm)
@@ -1266,6 +1288,7 @@ bool spindleConfig (spindle_ptrs_t *spindle)
         else
             TMR1_SCTRL0 &= ~TMR_SCTRL_OPS;
 #else // 13
+        TMR2_CTRL0 = TMR_CTRL_PCS(divider) | TMR_CTRL_OUTMODE(0b100) | TMR_CTRL_LENGTH;
         TMR2_COMP10 = spindle_pwm.period;
         TMR2_CMPLD10 = spindle_pwm.period;
         if(settings.spindle.invert.pwm)
@@ -1958,8 +1981,10 @@ static bool driver_setup (settings_t *settings)
      *************************/
 
     uint32_t i;
-    for(i = 0 ; i < sizeof(outputpin) / sizeof(output_signal_t); i++)
-        pinModeOutput(outputpin[i].port, outputpin[i].pin);
+    for(i = 0 ; i < sizeof(outputpin) / sizeof(output_signal_t); i++) {
+        if(outputpin[i].group != PinGroup_AuxOutputAnalog)
+            pinModeOutput(outputpin[i].port, outputpin[i].pin);
+    }
 
     /******************
      *  Stepper init  *
@@ -1972,7 +1997,7 @@ static bool driver_setup (settings_t *settings)
     NVIC_SET_PRIORITY(IRQ_PIT, 2);
     NVIC_ENABLE_IRQ(IRQ_PIT);
 
-    TMR4_ENBL = 0;
+    TMR4_ENBL &= ~(1 << 0);
     TMR4_LOAD0 = 0;
     TMR4_CTRL0 = TMR_CTRL_PCS(0b1000) | TMR_CTRL_ONCE | TMR_CTRL_LENGTH;
     TMR4_CSCTRL0 = TMR_CSCTRL_TCF1EN;
@@ -1981,10 +2006,10 @@ static bool driver_setup (settings_t *settings)
     NVIC_SET_PRIORITY(IRQ_QTIMER4, 0);
     NVIC_ENABLE_IRQ(IRQ_QTIMER4);
 
-    TMR4_ENBL = 1;
+    TMR4_ENBL |= (1 << 0);
 
 #if PLASMA_ENABLE
-    TMR2_ENBL = 0;
+    TMR2_ENBL &= ~(1 << 0);
     TMR2_LOAD0 = 0;
     TMR2_CTRL0 = TMR_CTRL_PCS(0b1000) | TMR_CTRL_ONCE | TMR_CTRL_LENGTH;
     TMR2_CSCTRL0 = TMR_CSCTRL_TCF1EN;
@@ -1993,7 +2018,7 @@ static bool driver_setup (settings_t *settings)
     NVIC_SET_PRIORITY(IRQ_QTIMER2, 0);
     NVIC_ENABLE_IRQ(IRQ_QTIMER2);
 
-    TMR2_ENBL = 1;
+    TMR2_ENBL |= (1 << 0);
 #endif
 
    /****************************
@@ -2002,7 +2027,7 @@ static bool driver_setup (settings_t *settings)
 
     if(hal.driver_cap.software_debounce) {
 
-        TMR3_ENBL = 0;
+        TMR3_ENBL &= ~(1 << 0);
         TMR3_LOAD0 = 0;
         TMR3_CTRL0 = TMR_CTRL_PCS(0b1111) | TMR_CTRL_ONCE | TMR_CTRL_LENGTH;
         TMR3_COMP10 = (uint16_t)((40000UL * F_BUS_MHZ) / 128); // 150 MHz -> 40ms
@@ -2012,7 +2037,7 @@ static bool driver_setup (settings_t *settings)
         NVIC_SET_PRIORITY(IRQ_QTIMER3, 4);
         NVIC_ENABLE_IRQ(IRQ_QTIMER3);
 
-        TMR3_ENBL = 1;
+        TMR3_ENBL |= (1 << 0);
     }
 
    /***********************
@@ -2030,17 +2055,17 @@ static bool driver_setup (settings_t *settings)
 #ifdef SPINDLE_PWM_PIN
 
 #if SPINDLE_PWM_PIN == 12
-    TMR1_ENBL = 0;
+    TMR1_ENBLL &= ~(1 << 1);
     TMR1_LOAD1 = 0;
     TMR1_CTRL1 = TMR_CTRL_PCS(0b1001) | TMR_CTRL_OUTMODE(0b100) | TMR_CTRL_LENGTH;
     TMR1_SCTRL1 = TMR_SCTRL_OEN | TMR_SCTRL_FORCE;
-    TMR1_ENBL = 1 << 1;
+    TMR1_ENBL |= (1 << 1);
 #else // 13
-    TMR2_ENBL = 0;
+    TMR2_ENBL &= (1 << 0);
     TMR2_LOAD0 = 0;
     TMR2_CTRL0 = TMR_CTRL_PCS(0b1001) | TMR_CTRL_OUTMODE(0b100) | TMR_CTRL_LENGTH;
     TMR2_SCTRL0 = TMR_SCTRL_OEN | TMR_SCTRL_FORCE;
-    TMR2_ENBL = 1;
+    TMR2_ENBL |= (1 << 0);
 #endif
 
     *(portConfigRegister(SPINDLE_PWM_PIN)) = 1;
@@ -2300,7 +2325,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "230331";
+    hal.driver_version = "230526";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -2448,14 +2473,14 @@ bool driver_init (void)
     hal.driver_cap.probe_pull_up = On;
 
     input_signal_t *input;
-    static pin_group_pins_t aux_inputs = {0}, aux_outputs = {0};
+    static pin_group_pins_t aux_digital_in = {0}, aux_digital_out = {0}, aux_analog_in = {0}, aux_analog_out = {0};
 
     for(i = 0 ; i < sizeof(inputpin) / sizeof(input_signal_t); i++) {
         input = &inputpin[i];
         if(input->group == PinGroup_AuxInput) {
-            if(aux_inputs.pins.inputs == NULL)
-                aux_inputs.pins.inputs = input;
-            input->id = (pin_function_t)(Input_Aux0 + aux_inputs.n_pins++);
+            if(aux_digital_in.pins.inputs == NULL)
+                aux_digital_in.pins.inputs = input;
+            input->id = (pin_function_t)(Input_Aux0 + aux_digital_in.n_pins++);
             input->cap.pull_mode = PullMode_UpDown;
             input->cap.irq_mode = IRQ_Mode_All;
         }
@@ -2470,14 +2495,21 @@ bool driver_init (void)
     for(i = 0 ; i < sizeof(outputpin) / sizeof(output_signal_t); i++) {
         output = &outputpin[i];
         if(output->group == PinGroup_AuxOutput) {
-            if(aux_outputs.pins.outputs == NULL)
-                aux_outputs.pins.outputs = output;
-            output->id = (pin_function_t)(Output_Aux0 + aux_outputs.n_pins++);
+            if(aux_digital_out.pins.outputs == NULL)
+                aux_digital_out.pins.outputs = output;
+            output->id = (pin_function_t)(Output_Aux0 + aux_digital_out.n_pins++);
+        } else if(output->group == PinGroup_AuxOutputAnalog) {
+            if(aux_analog_out.pins.outputs == NULL)
+                aux_analog_out.pins.outputs = output;
+            output->id = (pin_function_t)(Output_Analog_Aux0 + aux_analog_out.n_pins++);
         }
     }
 
 #ifdef HAS_IOPORTS
-    ioports_init(&aux_inputs, &aux_outputs);
+    ioports_init(&aux_digital_in, &aux_digital_out);
+
+    if(aux_analog_out.n_pins)
+        ioports_init_analog(&aux_analog_in, &aux_analog_out);
 #endif
 
     serialRegisterStreams();
@@ -2746,7 +2778,7 @@ static void gpio_isr (void)
     } while(i);
 
     if(debounce)
-        TMR3_CTRL0 |= TMR_CTRL_CM(0b001); 
+        TMR3_CTRL0 |= TMR_CTRL_CM(0b001);
 
     if(grp & PinGroup_Limit) {
         limit_signals_t state = limitsGetState();

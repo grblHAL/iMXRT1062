@@ -5,7 +5,7 @@
 
   Board by Phil Barrett: https://github.com/phil-barrett/grblHAL-teensy-4.x
 
-  Copyright (c) 2020-2022 Terje Io
+  Copyright (c) 2020-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -33,118 +33,22 @@
 
 #include "grbl/protocol.h"
 
-static char *pnum = NULL;
-static uint_fast8_t aux_n_in, aux_n_out, analog_n_in, *in_map = NULL, *out_map = NULL;;
-static volatile uint32_t event_bits;
-static volatile bool spin_lock = false;
+static io_ports_data_t digital;
 static input_signal_t *aux_in;
 static output_signal_t *aux_out;
-static ioport_bus_t out = {0};
-static char input_ports[50] = "", output_ports[50] = "";
+static ioport_bus_t invert_digital_out;
+static volatile uint32_t event_bits;
+static volatile bool spin_lock = false;
 #if MCP3221_ENABLE
 static xbar_t analog_in;
 static enumerate_pins_ptr on_enumerate_pins;
 #endif
 
-static void aux_settings_load (void);
-static status_code_t aux_set_invert_out (setting_id_t id, uint_fast16_t int_value);
-static uint32_t aux_get_invert_out (setting_id_t setting);
-static bool is_setting_available (const setting_detail_t *setting);
-
-static const setting_group_detail_t aux_groups[] = {
-    { Group_Root, Group_AuxPorts, "Aux ports"}
-};
-
-static const setting_detail_t aux_settings[] = {
-    { Settings_IoPort_InvertIn, Group_AuxPorts, "Invert I/O Port inputs", NULL, Format_Bitfield, input_ports, NULL, NULL, Setting_NonCore, &settings.ioport.invert_in.mask, NULL, is_setting_available },
-    { Settings_IoPort_InvertOut, Group_AuxPorts, "Invert I/O Port outputs", NULL, Format_Bitfield, output_ports, NULL, NULL, Setting_NonCoreFn, aux_set_invert_out, aux_get_invert_out, is_setting_available },
-};
-
-#ifndef NO_SETTINGS_DESCRIPTIONS
-
-static const setting_descr_t aux_settings_descr[] = {
-    { Settings_IoPort_InvertIn, "Invert IOPort inputs." },
-    { Settings_IoPort_InvertOut, "Invert IOPort output." },
-};
-
-#endif
-
-static setting_details_t setting_details = {
-    .groups = aux_groups,
-    .n_groups = sizeof(aux_groups) / sizeof(setting_group_detail_t),
-    .settings = aux_settings,
-    .n_settings = sizeof(aux_settings) / sizeof(setting_detail_t),
-#ifndef NO_SETTINGS_DESCRIPTIONS
-    .descriptions = aux_settings_descr,
-    .n_descriptions = sizeof(aux_settings_descr) / sizeof(setting_descr_t),
-#endif
-    .load = aux_settings_load,
-    .save = settings_write_global
-};
-
-static bool is_setting_available (const setting_detail_t *setting)
-{
-    bool available = false;
-
-    switch(setting->id) {
-
-        case Settings_IoPort_InvertIn:
-        case Settings_IoPort_Pullup_Disable:
-            available = aux_n_in > 0;
-            break;
-
-        case Settings_IoPort_InvertOut:
-        case Settings_IoPort_OD_Enable:
-            available = aux_n_out > 0;
-            break;
-
-        default:
-            break;
-    }
-
-    return available;
-}
-
-static void aux_settings_load (void)
-{
-    uint_fast8_t idx = aux_n_out;
-
-    if(aux_n_out) do {
-        idx--;
-        pinModeOutput(aux_out[idx].port, aux_out[idx].pin);
-        DIGITAL_OUT((*(aux_out[idx].port)), (settings.ioport.invert_out.mask >> idx) & 0x01);
-    } while(idx);
-}
-
-static status_code_t aux_set_invert_out (setting_id_t id, uint_fast16_t value)
-{
-    ioport_bus_t invert;
-    invert.mask = (uint8_t)value & out.mask;
-
-    if(invert.mask != settings.ioport.invert_out.mask) {
-        uint_fast8_t idx = aux_n_out;
-        do {
-            idx--;
-            if(((settings.ioport.invert_out.mask >> idx) & 0x01) != ((invert.mask >> idx) & 0x01))
-                DIGITAL_OUT((*(aux_out[idx].port)), !DIGITAL_IN((*(aux_out[idx].port))));
-        } while(idx);
-
-        settings.ioport.invert_out.mask = invert.mask;
-    }
-
-    return Status_OK;
-}
-
-static uint32_t aux_get_invert_out (setting_id_t setting)
-{
-    return settings.ioport.invert_out.mask;
-}
 
 static void digital_out (uint8_t port, bool on)
 {
-    if(port < aux_n_out) {
-        if(out_map)
-            port = out_map[port];
+    if(port < digital.out.n_ports) {
+        port = ioports_map(digital.out, port);
         DIGITAL_OUT((*(aux_out[port].port)), ((settings.ioport.invert_out.mask >> port) & 0x01) ? !on : on);
     }
 }
@@ -201,43 +105,13 @@ inline static __attribute__((always_inline)) int32_t get_input (const input_sign
     return value;
 }
 
-inline static __attribute__((always_inline)) uint8_t in_map_rev (uint8_t port)
-{
-    if(in_map) {
-        uint_fast8_t idx = aux_n_in;
-        do {
-            if(in_map[--idx] == port) {
-                port = idx;
-                break;
-            }
-        } while(idx);
-    }
-
-    return port;
-}
-
-inline static __attribute__((always_inline)) uint8_t out_map_rev (uint8_t port)
-{
-    if(out_map) {
-        uint_fast8_t idx = aux_n_out;
-        do {
-            if(out_map[--idx] == port) {
-                port = idx;
-                break;
-            }
-        } while(idx);
-    }
-
-    return port;
-}
-
 void ioports_event (input_signal_t *input)
 {
     spin_lock = true;
     event_bits |= input->gpio.bit;
 
     if(input->interrupt_callback)
-        input->interrupt_callback(in_map_rev(input->id - Output_Aux0), !!(input->port->reg->DR & input->port->bit));
+        input->interrupt_callback(ioports_map_reverse(&digital.in, input->id - Output_Aux0), !!(input->port->reg->DR & input->port->bit));
 
     spin_lock = false;
 }
@@ -247,9 +121,8 @@ static int32_t wait_on_input (io_port_type_t type, uint8_t port, wait_mode_t wai
     int32_t value = -1;
 
     if(type == Port_Digital) {
-        if(port < aux_n_in) {
-            if(in_map)
-                port = in_map[port];
+        if(port < digital.in.n_ports) {
+            port = ioports_map(digital.in, port);
             value = get_input(&aux_in[port], (settings.ioport.invert_in.mask << port) & 0x01, wait_mode, timeout);
         }
     }
@@ -265,10 +138,9 @@ static bool register_interrupt_handler (uint8_t port, pin_irq_mode_t irq_mode, i
 {
     bool ok;
 
-    if(in_map)
-        port = in_map[port];
+    port = ioports_map(digital.in, port);
 
-    if((ok = port < aux_n_in && aux_in[port].cap.irq_mode != IRQ_Mode_None)) {
+    if((ok = port < digital.in.n_ports && aux_in[port].cap.irq_mode != IRQ_Mode_None)) {
 
         input_signal_t *input = &aux_in[port];
 
@@ -300,9 +172,8 @@ static xbar_t *get_pin_info (io_port_type_t type, io_port_direction_t dir, uint8
 
         memset(&pin, 0, sizeof(xbar_t));
 
-        if(dir == Port_Input && port < aux_n_in) {
-            if(in_map)
-                port = in_map[port];
+        if(dir == Port_Input && port < digital.in.n_ports) {
+            port = ioports_map(digital.in, port);
             pin.mode.input = On;
             pin.mode.irq_mode = aux_in[port].irq_mode;
             pin.mode.can_remap = !aux_in[port].cap.remapped;
@@ -315,9 +186,8 @@ static xbar_t *get_pin_info (io_port_type_t type, io_port_direction_t dir, uint8
             info = &pin;
         }
 
-        if(dir == Port_Output && port < aux_n_out) {
-            if(out_map)
-                port = out_map[port];
+        if(dir == Port_Output && port < digital.out.n_ports) {
+            port = ioports_map(digital.out, port);
             pin.mode = aux_out[port].mode;
             pin.mode.output = On;
             pin.function = aux_out[port].id;
@@ -340,17 +210,18 @@ static xbar_t *get_pin_info (io_port_type_t type, io_port_direction_t dir, uint8
 static void set_pin_description (io_port_type_t type, io_port_direction_t dir, uint8_t port, const char *s)
 {
     if(type == Port_Digital) {
-        if(dir == Port_Input && port < aux_n_in)
-            aux_in[in_map ? in_map[port] : port].description = s;
+        if(dir == Port_Input && port < digital.in.n_ports)
+            aux_in[ioports_map(digital.in, port)].description = s;
 
-        if(dir == Port_Output && port < aux_n_out)
-            aux_out[out_map ? out_map[port] : port].description = s;
+        if(dir == Port_Output && port < digital.out.n_ports)
+            aux_out[ioports_map(digital.out, port)].description = s;
     }
-}
-
-static char *get_pnum (uint8_t port)
-{
-    return pnum ? (pnum + (port * 3) + (port > 9 ? port - 10 : 0)) : NULL;
+#if AUX_ANALOG
+    else {
+        if(dir == Port_Output && port < analog.out.n_ports)
+            aux_out[ioports_map(analog.out, port)].description = s;
+    }
+#endif
 }
 
 static bool claim (io_port_type_t type, io_port_direction_t dir, uint8_t *port, const char *description)
@@ -361,39 +232,39 @@ static bool claim (io_port_type_t type, io_port_direction_t dir, uint8_t *port, 
 
         if(dir == Port_Input) {
 
-            if((ok = in_map && *port < aux_n_in && !aux_in[*port].cap.claimed)) {
+            if((ok = digital.in.map && *port < digital.in.n_ports && !aux_in[*port].cap.claimed)) {
 
                 uint8_t i;
 
                 hal.port.num_digital_in--;
 
-                for(i = in_map_rev(*port); i < hal.port.num_digital_in ; i++) {
-                    in_map[i] = in_map[i + 1];
-                    aux_in[in_map[i]].description = get_pnum(i);
+                for(i = ioports_map_reverse(&digital.in, *port); i < hal.port.num_digital_in ; i++) {
+                    digital.in.map[i] = digital.in.map[i + 1];
+                    aux_in[digital.in.map[i]].description = iports_get_pnum(digital, i);
                 }
 
                 aux_in[*port].cap.claimed = On;
                 aux_in[*port].description = description;
 
-                in_map[hal.port.num_digital_in] = *port;
+                digital.in.map[hal.port.num_digital_in] = *port;
                 *port = hal.port.num_digital_in;
             }
 
-        } else if((ok = out_map && *port < aux_n_out && !aux_out[*port].mode.claimed)) {
+        } else if((ok = digital.out.map && *port < digital.out.n_ports && !aux_out[*port].mode.claimed)) {
 
             uint8_t i;
 
             hal.port.num_digital_out--;
 
-            for(i = out_map_rev(*port); i < hal.port.num_digital_out; i++) {
-                out_map[i] = out_map[i + 1];
-                aux_out[out_map[i]].description = get_pnum(i);
+            for(i = ioports_map_reverse(&digital.out, *port); i < hal.port.num_digital_out; i++) {
+                digital.out.map[i] = digital.out.map[i + 1];
+                aux_out[digital.out.map[i]].description = iports_get_pnum(digital, i);
             }
 
             aux_out[*port].mode.claimed = On;
             aux_out[*port].description = description;
 
-            out_map[hal.port.num_digital_out] = *port;
+            digital.out.map[hal.port.num_digital_out] = *port;
             *port = hal.port.num_digital_out;
         }
     }
@@ -413,7 +284,7 @@ bool swap_pins (io_port_type_t type, io_port_direction_t dir, uint8_t port_a, ui
 
     if(!ok && type == Port_Digital) {
 
-        if((ok = dir == Port_Input && port_a < aux_n_in && port_b < aux_n_in &&
+        if((ok = dir == Port_Input && port_a < digital.in.n_ports && port_b < digital.in.n_ports &&
                    aux_in[port_a].interrupt_callback == NULL &&
                     aux_in[port_b].interrupt_callback == NULL)) {
 
@@ -426,7 +297,7 @@ bool swap_pins (io_port_type_t type, io_port_direction_t dir, uint8_t port_a, ui
             memcpy(&aux_in[port_b], &tmp, sizeof(input_signal_t));
         }
 
-        if((ok = dir == Port_Output && port_a < aux_n_out && port_b < aux_n_out)) {
+        if((ok = dir == Port_Output && port_a < digital.out.n_ports && port_b < digital.out.n_ports)) {
 
             output_signal_t tmp;
 
@@ -452,75 +323,56 @@ static void enumerate_pins (bool low_level, pin_info_ptr pin_info, void *data)
 
 #endif
 
+static void on_settings_loaded (void)
+{
+    uint_fast8_t idx = digital.out.n_ports;
+
+    invert_digital_out = settings.ioport.invert_out;
+
+    if(digital.out.n_ports) do {
+        idx--;
+        pinModeOutput(aux_out[idx].port, aux_out[idx].pin);
+        DIGITAL_OUT((*(aux_out[idx].port)), (settings.ioport.invert_out.mask >> idx) & 0x01);
+    } while(idx);
+}
+
+static void  on_setting_changed (setting_id_t id)
+{
+    if(id == Settings_IoPort_InvertOut && invert_digital_out.mask != settings.ioport.invert_out.mask) {
+
+        uint_fast8_t idx = digital.out.n_ports;
+        do {
+            idx--;
+            if(((settings.ioport.invert_out.mask >> idx) & 0x01) != ((invert_digital_out.mask >> idx) & 0x01))
+                DIGITAL_OUT((*(aux_out[idx].port)), !DIGITAL_IN((*(aux_out[idx].port))));
+        } while(idx);
+
+        invert_digital_out = settings.ioport.invert_out;
+    }
+}
+
 void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs)
 {
-    uint_fast8_t i, ports;
-
     aux_in = aux_inputs->pins.inputs;
     aux_out = aux_outputs->pins.outputs;
 
-    if((hal.port.num_digital_in = aux_n_in = aux_inputs->n_pins)) {
-        hal.port.wait_on_input = wait_on_input;
-        hal.port.register_interrupt_handler = register_interrupt_handler;
-        in_map = malloc(aux_n_in * sizeof(aux_n_in));
-    }
+    hal.port.set_pin_description = set_pin_description;
 
-    if((hal.port.num_digital_out = aux_n_out = aux_outputs->n_pins)) {
-        hal.port.digital_out = digital_out;
-        out_map = malloc(aux_n_out * sizeof(aux_n_out));
-    }
+    if(ioports_add(&digital, Port_Digital, aux_inputs->n_pins, aux_outputs->n_pins))  {
 
-    if((ports = max(aux_n_in, aux_n_out)) > 0)  {
+        if(digital.in.n_ports) {
+            hal.port.wait_on_input = wait_on_input;
+            hal.port.register_interrupt_handler = register_interrupt_handler;
+        }
 
-        char *pn;
+        if(digital.out.n_ports)
+            hal.port.digital_out = digital_out;
 
         hal.port.claim = claim;
         hal.port.swap_pins = swap_pins;
         hal.port.get_pin_info = get_pin_info;
-        hal.port.set_pin_description = set_pin_description;
 
-        settings_register(&setting_details);
-
-        // Add M62-M65 port number mappings (P<n>) to description
-        pnum = pn = malloc((3 * ports + (ports > 9 ? ports - 10 : 0)) + 1);
-
-        for(i = 0; i < ports; i++) {
-
-            if(pn) {
-                *pn = 'P';
-                strcpy(pn + 1, uitoa(i));
-            }
-
-            if(hal.port.num_digital_in && i < hal.port.num_digital_in) {
-                if(in_map)
-                    in_map[i] = i;
-                if(pn)
-                    aux_in[i].description = pn;
-            }
-
-            if(hal.port.num_digital_out && i < hal.port.num_digital_out) {
-                if(out_map)
-                    out_map[i] = i;
-                if(pn)
-                    aux_out[i].description = pn;
-            }
-
-            if(pn)
-                pn += i > 9 ? 4 : 3;
-        }
-
-        // Add port names for ports up to 8 for $-setting flags
-
-        for(i = 0; i < min(hal.port.num_digital_in, 8); i++) {
-            strcat(input_ports, i == 0 ? "Aux " : ",Aux ");
-            strcat(input_ports, uitoa(i));
-        }
-
-        for(i = 0; i < min(hal.port.num_digital_out, 8) ; i++) {
-            out.mask = (out.mask << 1) + 1;
-            strcat(output_ports, i == 0 ? "Aux " : ",Aux ");
-            strcat(output_ports, uitoa(i));
-        }
+        ioports_add_settings(on_settings_loaded, on_setting_changed);
     }
 
 #if MCP3221_ENABLE
@@ -541,7 +393,7 @@ void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs)
     hal.enumerate_pins = enumerate_pins;
 
 #else
-    UNUSED(analog_n_in);
+//    UNUSED(analog_n_in);
 #endif
 
 }

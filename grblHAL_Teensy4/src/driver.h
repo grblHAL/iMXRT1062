@@ -48,10 +48,10 @@
 // Timer assignments (for reference, Arduino libs does not follow the CMSIS style...)
 
 //#define STEPPER_TIMER     PIT0 (32 bit)
-//#define PULSE_TIMER       TMR4
-//#define SPINDLE_PWM_TIMER TMR1 (pin 12) or TMR2 (pin 3)
-//#define DEBOUNCE_TIMER    TMR3
-//#define PLASMA_TIMER      TMR2
+//#define PULSE_TIMER       TMR4 CH0
+//#define SPINDLE_PWM_TIMER TMR1 C1 (pin 12) or TMR2 CH 0 (pin 3)
+//#define DEBOUNCE_TIMER    TMR3 CH0
+//#define PLASMA_TIMER      TMR2 CH0
 //#define PPI_TIMER         inverse of SPINDLE_PWM_TIMER
 
 // Timers used for spindle encoder if spindle sync is enabled:
@@ -236,6 +236,7 @@ typedef struct {
     pin_group_t group;
     pin_mode_t mode;
     const char *description;
+    uint8_t pwm_idx;
 } output_signal_t;
 
 typedef struct {
@@ -261,6 +262,7 @@ uint32_t xTaskGetTickCount();
 
 #ifdef HAS_IOPORTS
 void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs);
+void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs);
 void ioports_event (input_signal_t *input);
 #endif
 
