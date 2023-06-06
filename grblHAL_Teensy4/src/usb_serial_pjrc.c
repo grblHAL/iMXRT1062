@@ -37,6 +37,17 @@ static stream_block_tx_buffer_t txbuf = {0};
 static stream_rx_buffer_t rxbuf;
 static enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_realtime_command;
 
+extern volatile uint32_t usb_cdc_line_rtsdtr_millis;
+extern volatile uint32_t systick_millis_count;
+extern volatile uint8_t usb_cdc_line_rtsdtr;
+extern volatile uint8_t usb_configuration;
+
+static bool usb_isConnected (void)
+{
+    return usb_configuration && (usb_cdc_line_rtsdtr & USB_SERIAL_DTR) &&
+            ((uint32_t)(systick_millis_count - usb_cdc_line_rtsdtr_millis) >= 15);
+}
+
 //
 // Returns number of characters in serial input buffer
 //
@@ -262,6 +273,7 @@ const io_stream_t *usb_serialInit (void)
     PROGMEM static const io_stream_t stream = {
         .type = StreamType_Serial,
         .state = { .is_usb = On },
+        .is_connected = usb_isConnected,
         .read = usb_serialGetC,
         .write = usb_serialWriteS,
         .write_char = usb_serialPutC,
