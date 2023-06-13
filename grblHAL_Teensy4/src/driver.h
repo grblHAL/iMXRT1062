@@ -40,6 +40,11 @@
 #define I2C_ENABLE 1
 #endif
 
+#if MODBUS_ENABLE & 0b100 // Modbus TCP
+#undef ETHERNET_ENABLE
+#define ETHERNET_ENABLE 1
+#endif
+
 #include "grbl/driver_opts.h"
 
 #define DIGITAL_IN(gpio) (!!(gpio.reg->DR & gpio.bit))
@@ -147,10 +152,6 @@
 #undef MODBUS_TEST
 #undef KEYPAD_TEST
 #undef MPG_TEST
-
-#if MODBUS_ENABLE
-#include "spindle/modbus.h"
-#endif
 
 #if MPG_MODE == 1 && !defined(MPG_MODE_PIN)
 #error "MPG_MODE_PIN must be defined!"
