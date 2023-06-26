@@ -2055,7 +2055,7 @@ static bool driver_setup (settings_t *settings)
 #ifdef SPINDLE_PWM_PIN
 
 #if SPINDLE_PWM_PIN == 12
-    TMR1_ENBLL &= ~(1 << 1);
+    TMR1_ENBL &= ~(1 << 1);
     TMR1_LOAD1 = 0;
     TMR1_CTRL1 = TMR_CTRL_PCS(0b1001) | TMR_CTRL_OUTMODE(0b100) | TMR_CTRL_LENGTH;
     TMR1_SCTRL1 = TMR_SCTRL_OEN | TMR_SCTRL_FORCE;
