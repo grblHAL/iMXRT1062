@@ -74,6 +74,23 @@
         "spindle_sync": 1
       }
     },
+    {
+      "name": "E5XMCS_T41",
+      "symbol": "BOARD_E5XMCS_T41",
+      "URL": "https://www.makerstore.com.au/product/elec-e5xmcst41/",
+      "MAP": "grblHAL_Teensy4/src/E5XMCS_T41_map.h",
+      "caps": {
+        "axes": 5,
+        "ganged_axes": 2,
+        "auto_square": 2,
+        "digital_in": 4,
+        "digital_out": 4,
+        "eeprom": 0,
+        "fram": 0,
+        "i2c": 1,
+        "spindle_sync": 0
+      }
+    },
     { "name": "GRBLHAL2000 - PRINTNC",
       "symbol": "BOARD_GRBLHAL2000",
       "URL": "https://github.com/Expatria-Technologies/grblhal_2000_PrintNC",

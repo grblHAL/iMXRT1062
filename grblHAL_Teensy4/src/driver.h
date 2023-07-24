@@ -86,6 +86,8 @@
   #include "T41BB5X_Pro_map.h"
 #elif defined(BOARD_GRBLHAL2000)
   #include "GRBLHAL2000_map.h"
+#elif defined(BOARD_E5XMCS_T41)
+  #include "E5XMCS_T41_map.h"
 #elif defined(BOARD_MY_MACHINE)
   #include "my_machine_map.h"
 #else // default board
@@ -123,7 +125,7 @@
 #include "encoder/encoder.h"
 #endif
 
-#if MODBUS_ENABLE
+#if MODBUS_ENABLE & MODBUS_RTU_ENABLED
 #define MODBUS_TEST 1
 #else
 #define MODBUS_TEST 0
