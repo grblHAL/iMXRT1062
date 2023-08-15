@@ -44,7 +44,6 @@ static xbar_t analog_in;
 static enumerate_pins_ptr on_enumerate_pins;
 #endif
 
-
 static void digital_out (uint8_t port, bool on)
 {
     if(port < digital.out.n_ports) {
@@ -123,7 +122,7 @@ static int32_t wait_on_input (io_port_type_t type, uint8_t port, wait_mode_t wai
     if(type == Port_Digital) {
         if(port < digital.in.n_ports) {
             port = ioports_map(digital.in, port);
-            value = get_input(&aux_in[port], (settings.ioport.invert_in.mask << port) & 0x01, wait_mode, timeout);
+            value = get_input(&aux_in[port], (settings.ioport.invert_in.mask >> port) & 0x01, wait_mode, timeout);
         }
     }
 #if MCP3221_ENABLE
