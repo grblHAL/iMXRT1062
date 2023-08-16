@@ -30,7 +30,6 @@ static input_signal_t *aux_in_analog;
 static output_signal_t *aux_out_analog;
 static ioports_pwm_t *pwm_data;
 
-static wait_on_input_ptr wait_on_input_digital;
 static set_pin_description_ptr set_pin_description_digital;
 static get_pin_info_ptr get_pin_info_digital;
 static claim_port_ptr claim_digital;
