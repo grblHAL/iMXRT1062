@@ -333,21 +333,21 @@ input_signal_t inputpin[] = {
     { .id = Input_LimitX_2,       .port = &LimitX2,        .pin = X2_LIMIT_PIN,        .group = PinGroup_Limit },
 #endif
 #ifdef X_LIMIT_PIN_MAX
-    { .id = Input_LimitX_Max,     .port = &LimitXMax,      .pin = X_LIMIT_PIN_MAX,     .group = PinGroup_Limit },
+    { .id = Input_LimitX_Max,     .port = &LimitXMax,      .pin = X_LIMIT_PIN_MAX,     .group = PinGroup_LimitMax },
 #endif
     { .id = Input_LimitY,         .port = &LimitY,         .pin = Y_LIMIT_PIN,         .group = PinGroup_Limit },
 #ifdef Y2_LIMIT_PIN
     { .id = Input_LimitY_2,       .port = &LimitY2,        .pin = Y2_LIMIT_PIN,        .group = PinGroup_Limit },
 #endif
 #ifdef Y_LIMIT_PIN_MAX
-    { .id = Input_LimitY_Max,     .port = &LimitYMax,      .pin = Y_LIMIT_PIN_MAX,     .group = PinGroup_Limit },
+    { .id = Input_LimitY_Max,     .port = &LimitYMax,      .pin = Y_LIMIT_PIN_MAX,     .group = PinGroup_LimitMax },
 #endif
     { .id = Input_LimitZ,         .port = &LimitZ,         .pin = Z_LIMIT_PIN,         .group = PinGroup_Limit }
 #ifdef Z2_LIMIT_PIN
   , { .id = Input_LimitZ_2,       .port = &LimitZ2,        .pin = Z2_LIMIT_PIN,        .group = PinGroup_Limit }
 #endif
 #ifdef Z_LIMIT_PIN_MAX
-  , { .id = Input_LimitZ_Max,     .port = &LimitZMax,      .pin = Z_LIMIT_PIN_MAX,     .group = PinGroup_Limit }
+  , { .id = Input_LimitZ_Max,     .port = &LimitZMax,      .pin = Z_LIMIT_PIN_MAX,     .group = PinGroup_LimitMax }
 #endif
 #ifdef A_LIMIT_PIN
   , { .id = Input_LimitA,         .port = &LimitA,         .pin = A_LIMIT_PIN,         .group = PinGroup_Limit }
@@ -1076,19 +1076,24 @@ inline static limit_signals_t limitsGetState()
 // Enable/disable limit pins interrupt.
 // NOTE: the homing parameter is indended for configuring advanced
 //        stepper drivers for sensorless homing.
-static void limitsEnable (bool on, bool homing)
+static void limitsEnable (bool on, axes_signals_t homing_cycle)
 {
+    bool disable = !on;
     uint32_t i = limit_inputs.n_pins;
-
-    on &= settings.limits.flags.hard_enabled;
+    axes_signals_t pin;
+    limit_signals_t homing_source = xbar_get_homing_source_from_cycle(homing_cycle);
 
     do {
         i--;
         limit_inputs.pins.inputs[i].gpio.reg->ISR = limit_inputs.pins.inputs[i].gpio.bit;       // Clear interrupt.
-        if(on)
-            limit_inputs.pins.inputs[i].gpio.reg->IMR |= limit_inputs.pins.inputs[i].gpio.bit;  // Enable interrupt.
-        else
+        if(on && homing_cycle.mask) {
+            pin = xbar_fn_to_axismask(limit_inputs.pins.inputs[i].id);
+            disable = limit_inputs.pins.inputs[i].group == PinGroup_Limit ? (pin.mask & homing_source.min.mask) : (pin.mask & homing_source.max.mask);
+        }
+        if(disable)
             limit_inputs.pins.inputs[i].gpio.reg->IMR &= ~limit_inputs.pins.inputs[i].gpio.bit; // Disable interrupt.
+        else
+            limit_inputs.pins.inputs[i].gpio.reg->IMR |= limit_inputs.pins.inputs[i].gpio.bit;  // Enable interrupt.
     } while(i);
 }
 
@@ -1127,7 +1132,7 @@ inline static control_signals_t systemGetState (void)
 // Sets up the probe pin invert mask to
 // appropriately set the pin logic according to setting for normal-high/normal-low operation
 // and the probing cycle modes for toward-workpiece/away-from-workpiece.
-static void probeConfigure(bool is_probe_away, bool probing)
+static void probeConfigure (bool is_probe_away, bool probing)
 {
     probe.triggered = Off;
     probe.is_probing = probing;
@@ -1893,8 +1898,8 @@ void pinEnableIRQ (const input_signal_t *signal, pin_irq_mode_t irq_mode)
 
     signal->gpio.reg->ISR = signal->gpio.bit;       // Clear interrupt.
 
-    if(!(irq_mode == IRQ_Mode_None || signal->group == PinGroup_Limit)) // If pin is not a limit pin
-        signal->gpio.reg->IMR |= signal->gpio.bit;                      // enable interrupt
+    if(!(irq_mode == IRQ_Mode_None || (signal->group & PinGroup_Limit|PinGroup_LimitMax)))  // If pin is not a limit pin
+        signal->gpio.reg->IMR |= signal->gpio.bit;                                          // enable interrupt
 }
 
 #if QEI_ENABLE
@@ -2325,7 +2330,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "230604";
+    hal.driver_version = "230828";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -2357,7 +2362,6 @@ bool driver_init (void)
 
     hal.limits.enable = limitsEnable;
     hal.limits.get_state = limitsGetState;
-    hal.homing.get_state = limitsGetState;
 
     hal.coolant.set_state = coolantSetState;
     hal.coolant.get_state = coolantGetState;
@@ -2459,6 +2463,7 @@ bool driver_init (void)
     hal.signals_cap.limits_override = On;
 #endif
     hal.limits_cap = get_limits_cap();
+    hal.home_cap = get_home_cap();
 #ifdef COOLANT_MIST_PIN
     hal.driver_cap.mist_control = On;
 #endif
@@ -2484,7 +2489,7 @@ bool driver_init (void)
             input->cap.pull_mode = PullMode_UpDown;
             input->cap.irq_mode = IRQ_Mode_All;
         }
-        if(input->group == PinGroup_Limit) {
+        if(input->group & (PinGroup_Limit|PinGroup_LimitMax)) {
             if(limit_inputs.pins.inputs == NULL)
                 limit_inputs.pins.inputs = input;
             limit_inputs.n_pins++;
@@ -2676,7 +2681,7 @@ static void debounce_isr (void)
             grp |= signal->group;
     }
 
-    if(grp & PinGroup_Limit)
+    if(grp & (PinGroup_Limit|PinGroup_LimitMax))
         hal.limits.interrupt_callback(limitsGetState());
 
     if(grp & PinGroup_Control)
@@ -2780,7 +2785,7 @@ static void gpio_isr (void)
     if(debounce)
         TMR3_CTRL0 |= TMR_CTRL_CM(0b001);
 
-    if(grp & PinGroup_Limit) {
+    if(grp & (PinGroup_Limit|PinGroup_LimitMax)) {
         limit_signals_t state = limitsGetState();
         if(limit_signals_merge(state).value) //TODO: add check for limit switches having same state as when limit_isr were invoked?
             hal.limits.interrupt_callback(state);
