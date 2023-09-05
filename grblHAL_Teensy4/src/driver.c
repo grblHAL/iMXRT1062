@@ -1898,8 +1898,8 @@ void pinEnableIRQ (const input_signal_t *signal, pin_irq_mode_t irq_mode)
 
     signal->gpio.reg->ISR = signal->gpio.bit;       // Clear interrupt.
 
-    if(!(irq_mode == IRQ_Mode_None || (signal->group & PinGroup_Limit|PinGroup_LimitMax)))  // If pin is not a limit pin
-        signal->gpio.reg->IMR |= signal->gpio.bit;                                          // enable interrupt
+    if(!(irq_mode == IRQ_Mode_None || (signal->group & (PinGroup_Limit|PinGroup_LimitMax))))    // If pin is not a limit pin
+        signal->gpio.reg->IMR |= signal->gpio.bit;                                              // enable interrupt
 }
 
 #if QEI_ENABLE
@@ -2330,7 +2330,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "230828";
+    hal.driver_version = "230903";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
