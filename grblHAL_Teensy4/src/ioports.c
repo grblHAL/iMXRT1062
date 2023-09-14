@@ -41,6 +41,7 @@ static volatile uint32_t event_bits;
 static volatile bool spin_lock = false;
 #if MCP3221_ENABLE
 static xbar_t analog_in;
+static uint_fast8_t analog_n_in;
 static enumerate_pins_ptr on_enumerate_pins;
 #endif
 
@@ -391,8 +392,6 @@ void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs)
     on_enumerate_pins = hal.enumerate_pins;
     hal.enumerate_pins = enumerate_pins;
 
-#else
-//    UNUSED(analog_n_in);
 #endif
 
 }
