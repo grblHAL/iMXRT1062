@@ -91,7 +91,7 @@ inline static __attribute__((always_inline)) int32_t get_input (const input_sign
 
         do {
             if((DIGITAL_IN(input->gpio) ^ invert) == wait_for) {
-                value = DIGITAL_IN(input->gpio);
+                value = DIGITAL_IN(input->gpio) ^ invert;
                 break;
             }
             if(delay) {
@@ -270,6 +270,7 @@ static bool claim (io_port_type_t type, io_port_direction_t dir, uint8_t *port, 
     }
 #if MCP3221_ENABLE
     else if(dir == Port_Input && (ok = *port == 0 && analog_in.mode.analog && !analog_in.mode.claimed)) {
+        hal.port.num_analog_in--;
         analog_in.mode.claimed = On;
         analog_in.description = description;
     }
@@ -377,7 +378,7 @@ void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs)
 
 #if MCP3221_ENABLE
 
-    analog_in.function = Input_Aux0;
+    analog_in.function = Input_Analog_Aux0;
     analog_in.group = PinGroup_AuxInput;
     analog_in.pin = 0;
     analog_in.port = "MCP3221:";
