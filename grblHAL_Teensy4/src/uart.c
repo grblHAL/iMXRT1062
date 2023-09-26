@@ -3,8 +3,7 @@
 
   Part of grblHAL
 
-  Some parts of this code is Copyright (c) 2020-2022 Terje Io
-
+  Some parts of this code is Copyright (c) 2020-2023 Terje Io
   Some parts are derived from HardwareSerial.cpp in the Teensyduino Core Library
 
 */
@@ -40,6 +39,8 @@
  */
 
 #include <string.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include "driver.h"
 #include "uart.h"
@@ -181,6 +182,8 @@ static stream_tx_buffer_t txbuffer = {0};
 static stream_rx_buffer_t rxbuffer = {0};
 static enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_realtime_command;
 
+static const io_stream_t *serialInit (uint32_t baud_rate);
+
 static io_stream_properties_t serial[] = {
     {
       .type = StreamType_Serial,
@@ -200,6 +203,25 @@ void serialRegisterStreams (void)
         .n_streams = sizeof(serial) / sizeof(io_stream_properties_t),
         .streams = serial,
     };
+
+    static const periph_pin_t tx = {
+        .function = Output_TX,
+        .group = PinGroup_UART,
+        .pin = TX_PIN,
+        .mode = { .mask = PINMODE_OUTPUT },
+        .description = "UART1"
+    };
+
+    static const periph_pin_t rx = {
+        .function = Input_RX,
+        .group = PinGroup_UART,
+        .pin = RX_PIN,
+        .mode = { .mask = PINMODE_NONE },
+        .description = "UART1"
+    };
+
+    hal.periph_port.register_pin(&rx);
+    hal.periph_port.register_pin(&tx);
 
     stream_register_streams(&streams);
 }
@@ -355,7 +377,7 @@ static enqueue_realtime_command_ptr serialSetRtHandler (enqueue_realtime_command
     return prev;
 }
 
-const io_stream_t *serialInit (uint32_t baud_rate)
+static const io_stream_t *serialInit (uint32_t baud_rate)
 {
     PROGMEM static const io_stream_t stream = {
         .type = StreamType_Serial,
@@ -449,25 +471,6 @@ const io_stream_t *serialInit (uint32_t baud_rate)
     // bit 8 can turn on 2 stop bit mode
     if (format & 0x100)
         UART.port->BAUD |= LPUART_BAUD_SBNS;
-
-    static const periph_pin_t tx = {
-        .function = Output_TX,
-        .group = PinGroup_UART,
-        .pin = TX_PIN,
-        .mode = { .mask = PINMODE_OUTPUT },
-        .description = "UART1"
-    };
-
-    static const periph_pin_t rx = {
-        .function = Input_RX,
-        .group = PinGroup_UART,
-        .pin = RX_PIN,
-        .mode = { .mask = PINMODE_NONE },
-        .description = "UART1"
-    };
-
-    hal.periph_port.register_pin(&rx);
-    hal.periph_port.register_pin(&tx);
 
     return &stream;
 }

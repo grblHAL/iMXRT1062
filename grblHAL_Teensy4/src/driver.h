@@ -159,10 +159,6 @@
 #error "MPG_MODE_PIN must be defined!"
 #endif
 
-#if PLASMA_ENABLE
-#include "plasma/thc.h"
-#endif
-
 #if ODOMETER_ENABLE
 #include "odometer/odometer.h"
 #endif

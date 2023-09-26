@@ -888,7 +888,7 @@ static void stepperPulseStartDelayed (stepper_t *stepper)
 
             next_step_outbits = stepper->step_outbits; // Store out_bits
 
-            attachInterruptVector(IRQ_QTIMER4, stepper_pulse_isr_delayed);
+            attachInterruptVector(IRQ_QTIMER2, stepper_pulse_isr_delayed);
 
             TMR4_COMP10 = pulse_delay;
             TMR4_CTRL0 |= TMR_CTRL_CM(0b001);
@@ -994,19 +994,82 @@ static void stepperPulseStartSynchronized (stepper_t *stepper)
 
 #endif
 
-#if PLASMA_ENABLE
+#if STEP_INJECT_ENABLE
 
-static void output_pulse_isr(void);
+static void output_pulse_isr (void);
+static void output_pulse_isr_delayed (void);
 
 static axes_signals_t pulse_output = {0};
 
+static inline __attribute__((always_inline)) void stepperInjectStep (axes_signals_t step_outbits)
+{
+    if(pulse_output.x) {
+        DIGITAL_OUT(stepX, step_outbits.x);
+#ifdef X2_STEP_PIN
+        DIGITAL_OUT(stepX2, step_outbits.x);
+#endif
+    }
+
+    if(pulse_output.y) {
+        DIGITAL_OUT(stepY, step_outbits.y);
+#ifdef Y2_STEP_PIN
+        DIGITAL_OUT(stepY2, step_outbits.y);
+#endif
+    }
+
+    if(pulse_output.z) {
+        DIGITAL_OUT(stepZ, step_outbits.z);
+#ifdef Z2_STEP_PIN
+        DIGITAL_OUT(stepZ2, step_outbits.z);
+#endif
+    }
+
+#ifdef A_AXIS
+    if(pulse_output.a)
+        DIGITAL_OUT(stepA, step_outbits.a);
+
+#endif
+#ifdef B_AXIS
+    if(pulse_output.b)
+        DIGITAL_OUT(stepB, step_outbits.b);
+#endif
+}
+
 void stepperOutputStep (axes_signals_t step_outbits, axes_signals_t dir_outbits)
 {
-    pulse_output = step_outbits;
-    dir_outbits.value ^= settings.steppers.dir_invert.mask;
+    if(step_outbits.value) {
 
-    DIGITAL_OUT(dirZ, dir_outbits.z);
-    TMR2_CTRL0 |= TMR_CTRL_CM(0b001);
+        pulse_output = step_outbits;
+        dir_outbits.value ^= settings.steppers.dir_invert.mask;
+
+        if(pulse_output.x)
+            DIGITAL_OUT(dirX, dir_outbits.z);
+
+        if(pulse_output.y)
+            DIGITAL_OUT(dirY, dir_outbits.y);
+
+        if(pulse_output.z)
+            DIGITAL_OUT(dirZ, dir_outbits.z);
+
+#ifdef A_AXIS
+        if(pulse_output.a)
+            DIGITAL_OUT(stepA, step_outbits.a);
+#endif
+#ifdef B_AXIS
+        if(pulse_output.b)
+            DIGITAL_OUT(stepB, step_outbits.b);
+#endif
+
+        if(pulse_delay) {
+            attachInterruptVector(IRQ_QTIMER4, output_pulse_isr_delayed);
+            TMR2_COMP10 = pulse_delay;
+            TMR2_CTRL0 |= TMR_CTRL_CM(0b001);
+        } else {
+            step_outbits.value ^= settings.steppers.step_invert.mask;
+            stepperInjectStep(step_outbits);
+            TMR2_CTRL0 |= TMR_CTRL_CM(0b001);
+        }
+    }
 }
 
 #endif
@@ -1592,7 +1655,7 @@ static void settings_changed (settings_t *settings, settings_changed_flags_t cha
         TMR4_CTRL0 &= ~TMR_CTRL_OUTMODE(0b000);
         attachInterruptVector(IRQ_QTIMER4, stepper_pulse_isr);
 
-#if PLASMA_ENABLE
+#if STEP_INJECT_ENABLE
         TMR2_CSCTRL0 &= ~(TMR_CSCTRL_TCF1|TMR_CSCTRL_TCF2);
         TMR2_COMP10 = pulse_length;
         TMR2_CSCTRL0 &= ~TMR_CSCTRL_TCF2EN;
@@ -2013,7 +2076,7 @@ static bool driver_setup (settings_t *settings)
 
     TMR4_ENBL |= (1 << 0);
 
-#if PLASMA_ENABLE
+#if STEP_INJECT_ENABLE
     TMR2_ENBL &= ~(1 << 0);
     TMR2_LOAD0 = 0;
     TMR2_CTRL0 = TMR_CTRL_PCS(0b1000) | TMR_CTRL_ONCE | TMR_CTRL_LENGTH;
@@ -2330,7 +2393,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "230903";
+    hal.driver_version = "230926";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -2359,6 +2422,9 @@ bool driver_init (void)
 #ifdef SQUARING_ENABLED
     hal.stepper.disable_motors = StepperDisableMotors;
 #endif
+#if STEP_INJECT_ENABLE
+    hal.stepper.output_step = stepperOutputStep;
+#endif
 
     hal.limits.enable = limitsEnable;
     hal.limits.get_state = limitsGetState;
@@ -2380,6 +2446,7 @@ bool driver_init (void)
     hal.set_bits_atomic = bitsSetAtomic;
     hal.clear_bits_atomic = bitsClearAtomic;
     hal.set_value_atomic = valueSetAtomic;
+    hal.get_micros = micros;
     hal.get_elapsed_ticks = millis;
     hal.enumerate_pins = enumeratePins;
     hal.periph_port.register_pin = registerPeriphPin;
@@ -2392,11 +2459,14 @@ bool driver_init (void)
     grbl.on_execute_realtime = execute_realtime;
 #endif
 
+    serialRegisterStreams();
+
 #if USB_SERIAL_CDC
     const io_stream_t *st = usb_serialInit();
     stream_connect(st);
 #else
-    stream_connect(serialInit(BAUD_RATE));
+    if(!stream_connect_instance(SERIAL_STREAM, BAUD_RATE))
+        while(true); // Cannot boot if no communication channel is available!
 #endif
 
 #ifdef I2C_PORT
@@ -2517,8 +2587,6 @@ bool driver_init (void)
         ioports_init_analog(&aux_analog_in, &aux_analog_out);
 #endif
 
-    serialRegisterStreams();
-
 #if MPG_MODE == 1
   #if KEYPAD_ENABLE == 2
     if((hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL), false, keypad_enqueue_keycode)))
@@ -2539,11 +2607,6 @@ bool driver_init (void)
 
 #if QEI_ENABLE
     qei_enable = encoder_init(QEI_ENABLE);
-#endif
-
-#if PLASMA_ENABLE
-    hal.stepper.output_step = stepperOutputStep;
-    plasma_init();
 #endif
 
 #include "grbl/plugins_init.h"
@@ -2593,6 +2656,30 @@ static void stepper_pulse_isr_delayed (void)
     TMR4_CTRL0 |= TMR_CTRL_CM(0b001);
 }
 
+#if STEP_INJECT_ENABLE
+
+static void output_pulse_isr (void)
+{
+    TMR2_CSCTRL0 &= ~TMR_CSCTRL_TCF1;
+
+    stepperInjectStep(settings.steppers.step_invert);
+}
+
+static void output_pulse_isr_delayed (void)
+{
+    TMR4_CSCTRL0 &= ~TMR_CSCTRL_TCF1;
+
+    axes_signals_t step_outbits;
+    step_outbits.value =  pulse_output.value ^ settings.steppers.step_invert.mask;
+    stepperInjectStep(step_outbits);
+
+    attachInterruptVector(IRQ_QTIMER2, output_pulse_isr);
+    TMR2_COMP10 = pulse_length;
+    TMR2_CTRL0 |= TMR_CTRL_CM(0b001);
+}
+
+#endif // STEP_INJECT_ENABLE
+
 #if SPINDLE_SYNC_ENABLE && SPINDLE_PULSE_PIN == 14
 
 static void spindle_pulse_isr (void)
@@ -2614,21 +2701,6 @@ static void spindle_pulse_isr (void)
 
 #endif
 
-#if PLASMA_ENABLE
-static void output_pulse_isr(void)
-{
-    axes_signals_t output = {pulse_output.mask ^ settings.steppers.dir_invert.mask};
-
-    TMR2_CSCTRL0 &= ~TMR_CSCTRL_TCF1;
-
-    DIGITAL_OUT(stepZ, output.z);
-
-    if(pulse_output.value) {
-        pulse_output.value = 0;
-        TMR2_CTRL0 |= TMR_CTRL_CM(0b001);
-    }
-}
-#endif
 
 #if PPI_ENABLE
 // Switches off the spindle (laser) after laser.pulse_length time has elapsed

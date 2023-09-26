@@ -4,7 +4,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2021 Terje Io
+  Copyright (c) 2020-2023 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,12 +23,6 @@
 #ifndef _HAL_SERIAL_H_
 #define _HAL_SERIAL_H_
 
-#include <stdbool.h>
-#include <stdint.h>
-
-#include "grbl/hal.h"
-
-const io_stream_t *serialInit (uint32_t baud_rate);
 void serialRegisterStreams (void);
 
 #endif
