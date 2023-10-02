@@ -308,6 +308,13 @@ bool i2c_probe (uint_fast16_t i2cAddr)
 
     } while(!ok && --retries);
 
+    if(!ok) {
+        if(force_clock(hardware)) {
+            port->MCR = LPI2C_MCR_RST;
+            set_clock(port, 100000);
+        }
+    }
+
     return ok;
 }
 
