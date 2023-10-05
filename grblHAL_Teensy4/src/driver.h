@@ -50,14 +50,48 @@
 #define DIGITAL_IN(gpio) (!!(gpio.reg->DR & gpio.bit))
 #define DIGITAL_OUT(gpio, on) { if(on) gpio.reg->DR_SET = gpio.bit; else gpio.reg->DR_CLEAR = gpio.bit; }
 
-// Timer assignments (for reference, Arduino libs does not follow the CMSIS style...)
+#define timer(t) timerN(t)
+#define timerN(t) TMR ## t
+#define timerINT(t) timerint(t)
+#define timerint(t) IRQ_QTIMER ## t
+#define timerENABLE(t) timerena(t)
+#define timerena(t) TMR ## t ## _ENBL
+#define timerCTRL(t, n) timerctrl(t, n)
+#define timerctrl(t, n) TMR ## t ## _CTRL ## n
+#define timerCMPLD1(t, n) timercmpld1(t, n)
+#define timercmpld1(t, n) TMR ## t ## _CMPLD1 ## n
+#define timerCOMP1(t, n) timercomp1(t, n)
+#define timercomp1(t, n) TMR ## t ##  _COMP1 ## n
+#define timerCOMP2(t, n) timercomp2(t, n)
+#define timercomp2(t, n) TMR ## t ##  _COMP2 ## n
+#define timerSCTRL(t, n) timersctrl(t, n)
+#define timersctrl(t, n) (TMR ## t ## _SCTRL ## n)
+#define timerCSCTRL(t, n) timercsctrl(t, n)
+#define timercsctrl(t, n) (TMR ## t ## _CSCTRL ## n)
+#define timerLOAD(t, n) timerload(t, n)
+#define timerload(t, n) TMR ## t ## _LOAD ## n
+
+#define PULSE_TIMER_N               4
+#define PULSE_TIMER                 timer(PULSE_TIMER_N)
+#define PULSE_TIMER_ENABLE          timerENABLE(PULSE_TIMER_N)
+#define PULSE_TIMER_CTRL            timerCTRL(PULSE_TIMER_N, 0)
+#define PULSE_TIMER_CSCTRL          timerCSCTRL(PULSE_TIMER_N, 0)
+#define PULSE_TIMER_COMP1           timerCOMP1(PULSE_TIMER_N, 0)
+#define PULSE_TIMER_LOAD            timerLOAD(PULSE_TIMER_N, 0)
+#define PULSE_TIMER_IRQ             timerINT(PULSE_TIMER_N)
+
+#define DEBOUNCE_TIMER_N            3
+#define DEBOUNCE_TIMER              timer(DEBOUNCE_TIMER_N)
+#define DEBOUNCE_TIMER_ENABLE       timerENABLE(DEBOUNCE_TIMER_N)
+#define DEBOUNCE_TIMER_CTRL         timerCTRL(DEBOUNCE_TIMER_N, 0)
+#define DEBOUNCE_TIMER_CSCTRL       timerCSCTRL(DEBOUNCE_TIMER_N, 0)
+#define DEBOUNCE_TIMER_COMP1        timerCOMP1(DEBOUNCE_TIMER_N, 0)
+#define DEBOUNCE_TIMER_LOAD         timerLOAD(DEBOUNCE_TIMER_N, 0)
+#define DEBOUNCE_TIMER_IRQ          timerINT(DEBOUNCE_TIMER_N)
+
+// Other timer assignments (for reference)
 
 //#define STEPPER_TIMER     PIT0 (32 bit)
-//#define PULSE_TIMER       TMR4 CH0
-//#define SPINDLE_PWM_TIMER TMR1 C1 (pin 12) or TMR2 CH 0 (pin 3)
-//#define DEBOUNCE_TIMER    TMR3 CH0
-//#define PLASMA_TIMER      TMR2 CH0
-//#define PPI_TIMER         inverse of SPINDLE_PWM_TIMER
 
 // Timers used for spindle encoder if spindle sync is enabled:
 //#define RPM_TIMER         GPT1
@@ -94,13 +128,63 @@
 #include "generic_map.h"
 #endif
 
-#if SPINDLE_PWM_PIN == 12
-#define PPI_TIMER       (IMXRT_TMR2)
-#define PPI_TIMERIRQ    IRQ_QTIMER2
-#else
-#define PPI_TIMER       (IMXRT_TMR1)
-#define PPI_TIMERIRQ    IRQ_QTIMER1
+#if SPINDLE_PWM_PIN && !(SPINDLE_PWM_PIN == 12 || SPINDLE_PWM_PIN == 13)
+  #error "SPINDLE_PWM_PIN can only be routed to pin 12 or 13!"
 #endif
+
+#if STEP_INJECT_ENABLE && PPI_ENABLE
+#error "Plasma and PPI mode cannot be enabled at the same time!"
+#endif
+
+#if STEP_INJECT_ENABLE
+
+#if SPINDLE_PWM_PIN == 12
+#define PULSE2_TIMER_N              2
+#else
+#define PULSE2_TIMER_N              1
+#endif
+#define PULSE2_TIMER                timer(PULSE2_TIMER_N)
+#define PULSE2_TIMER_ENABLE         timerENABLE(PULSE2_TIMER_N)
+#define PULSE2_TIMER_CTRL           timerCTRL(PULSE2_TIMER_N, 0)
+#define PULSE2_TIMER_CSCTRL         timerCSCTRL(PULSE2_TIMER_N, 0)
+#define PULSE2_TIMER_COMP1          timerCOMP1(PULSE2_TIMER_N, 0)
+#define PULSE2_TIMER_LOAD           timerLOAD(PULSE2_TIMER_N, 0)
+#define PULSE2_TIMER_IRQ            timerINT(PULSE2_TIMER_N)
+
+#endif
+
+#if PPI_ENABLE
+
+#if SPINDLE_PWM_PIN == 12
+#define PPI_TIMER_N                 2
+#else
+#define PPI_TIMER_N                 1
+#endif
+#define PPI_TIMER                   timer(PPI_TIMER_N)
+#define PPI_TIMER_ENABLE            timerENABLE(PPI_TIMER_N)
+#define PPI_TIMER_CTRL              timerCTRL(PPI_TIMER_N, 0)
+#define PPI_TIMER_CSCTRL            timerCSCTRL(PPI_TIMER_N, 0)
+#define PPI_TIMER_COMP1             timerCOMP1(PPI_TIMER_N, 0)
+#define PPI_TIMER_LOAD              timerLOAD(PPI_TIMER_N, 0)
+#define PPI_TIMER_IRQ               timerINT(PPI_TIMER_N)
+
+#endif
+
+#if SPINDLE_PWM_PIN == 12
+#define SPINDLE_PWM_TIMER_N         1
+#define SPINDLE_PWM_TIMER_C         1
+#else
+#define SPINDLE_PWM_TIMER_N         2
+#define SPINDLE_PWM_TIMER_C         0
+#endif
+#define SPINDLE_PWM_TIMER           timer(SPINDLE_PWM_TIMER_N)
+#define SPINDLE_PWM_TIMER_ENABLE    timerENABLE(SPINDLE_PWM_TIMER_N)
+#define SPINDLE_PWM_TIMER_CTRL      timerCTRL(SPINDLE_PWM_TIMER_N, SPINDLE_PWM_TIMER_C)
+#define SPINDLE_PWM_TIMER_SCTRL     timerSCTRL(SPINDLE_PWM_TIMER_N, SPINDLE_PWM_TIMER_C)
+#define SPINDLE_PWM_TIMER_COMP1     timerCOMP1(SPINDLE_PWM_TIMER_N, SPINDLE_PWM_TIMER_C)
+#define SPINDLE_PWM_TIMER_COMP2     timerCOMP2(SPINDLE_PWM_TIMER_N, SPINDLE_PWM_TIMER_C)
+#define SPINDLE_PWM_TIMER_CMPLD1    timerCMPLD1(SPINDLE_PWM_TIMER_N, SPINDLE_PWM_TIMER_C)
+#define SPINDLE_PWM_TIMER_LOAD      timerLOAD(SPINDLE_PWM_TIMER_N, SPINDLE_PWM_TIMER_C)
 
 // Adjust STEP_PULSE_LATENCY to get accurate step pulse length when required, e.g if using high step rates.
 // The default value is calibrated for 10 microseconds length.
@@ -179,10 +263,6 @@
   #if MCP3221_ENABLE
   #error "MCP3221_ENABLE requires I2C_PORT to be defined!"
   #endif
-#endif
-
-#if SPINDLE_PWM_PIN && !(SPINDLE_PWM_PIN == 12 || SPINDLE_PWM_PIN == 13)
-  #error "SPINDLE_PWM_PIN can only be routed to pin 12 or 13!"
 #endif
 
 #if QEI_ENABLE > 1

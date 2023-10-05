@@ -860,7 +860,7 @@ static void stepperPulseStart (stepper_t *stepper)
 
     if(stepper->step_outbits.value) {
         set_step_outputs(stepper->step_outbits);
-        TMR4_CTRL0 |= TMR_CTRL_CM(0b001);
+        PULSE_TIMER_CTRL |= TMR_CTRL_CM(0b001);
     }
 }
 
@@ -888,10 +888,10 @@ static void stepperPulseStartDelayed (stepper_t *stepper)
 
             next_step_outbits = stepper->step_outbits; // Store out_bits
 
-            attachInterruptVector(IRQ_QTIMER2, stepper_pulse_isr_delayed);
+            attachInterruptVector(PULSE_TIMER_IRQ, stepper_pulse_isr_delayed);
 
-            TMR4_COMP10 = pulse_delay;
-            TMR4_CTRL0 |= TMR_CTRL_CM(0b001);
+            PULSE_TIMER_COMP1 = pulse_delay;
+            PULSE_TIMER_CTRL |= TMR_CTRL_CM(0b001);
         }
 
         return;
@@ -899,7 +899,7 @@ static void stepperPulseStartDelayed (stepper_t *stepper)
 
     if(stepper->step_outbits.value) {
         set_step_outputs(stepper->step_outbits);
-        TMR4_CTRL0 |= TMR_CTRL_CM(0b001);
+        PULSE_TIMER_CTRL |= TMR_CTRL_CM(0b001);
     }
 }
 
@@ -935,7 +935,7 @@ static void stepperPulseStartSynchronized (stepper_t *stepper)
 
     if(stepper->step_outbits.value) {
         set_step_outputs(stepper->step_outbits);
-        TMR4_CTRL0 |= TMR_CTRL_CM(0b001);
+        PULSE_TIMER_CTRL |= TMR_CTRL_CM(0b001);
     }
 
     if(spindle_tracker.segment_id != stepper->exec_segment->id) {
@@ -999,7 +999,7 @@ static void stepperPulseStartSynchronized (stepper_t *stepper)
 static void output_pulse_isr (void);
 static void output_pulse_isr_delayed (void);
 
-static axes_signals_t pulse_output = {0};
+static volatile axes_signals_t pulse_output = {0};
 
 static inline __attribute__((always_inline)) void stepperInjectStep (axes_signals_t step_outbits)
 {
@@ -1037,6 +1037,9 @@ static inline __attribute__((always_inline)) void stepperInjectStep (axes_signal
 
 void stepperOutputStep (axes_signals_t step_outbits, axes_signals_t dir_outbits)
 {
+    if(pulse_output.value)
+        return;
+
     if(step_outbits.value) {
 
         pulse_output = step_outbits;
@@ -1061,13 +1064,13 @@ void stepperOutputStep (axes_signals_t step_outbits, axes_signals_t dir_outbits)
 #endif
 
         if(pulse_delay) {
-            attachInterruptVector(IRQ_QTIMER4, output_pulse_isr_delayed);
-            TMR2_COMP10 = pulse_delay;
-            TMR2_CTRL0 |= TMR_CTRL_CM(0b001);
+            attachInterruptVector(PULSE2_TIMER_IRQ, output_pulse_isr_delayed);
+            PULSE2_TIMER_COMP1 = pulse_delay;
+            PULSE2_TIMER_CTRL |= TMR_CTRL_CM(0b001);
         } else {
             step_outbits.value ^= settings.steppers.step_invert.mask;
             stepperInjectStep(step_outbits);
-            TMR2_CTRL0 |= TMR_CTRL_CM(0b001);
+            PULSE2_TIMER_CTRL |= TMR_CTRL_CM(0b001);
         }
     }
 }
@@ -1262,41 +1265,22 @@ static void spindle_set_speed (uint_fast16_t pwm_value)
             spindle_off();
         pwmEnabled = false;
         if(spindle_pwm.always_on) {
-#if SPINDLE_PWM_PIN == 12
-            TMR1_COMP21 = spindle_pwm.off_value;
-            TMR1_CMPLD11 = spindle_pwm.period - spindle_pwm.off_value;
-            TMR1_CTRL1 |= TMR_CTRL_CM(0b001);
-#else // 13
-            TMR2_COMP20 = spindle_pwm.off_value;
-            TMR2_CMPLD10 = spindle_pwm.period - spindle_pwm.off_value;
-            TMR2_CTRL0 |= TMR_CTRL_CM(0b001);
-#endif
-
+            SPINDLE_PWM_TIMER_COMP2 = spindle_pwm.off_value;
+            SPINDLE_PWM_TIMER_CMPLD1 = spindle_pwm.period - spindle_pwm.off_value;
+            SPINDLE_PWM_TIMER_CTRL |= TMR_CTRL_CM(0b001);
         } else {
-#if SPINDLE_PWM_PIN == 12
-            TMR1_CTRL1 &= ~TMR_CTRL_CM(0b111);
-            TMR1_SCTRL1 &= ~TMR_SCTRL_VAL;
-            TMR1_SCTRL1 |= TMR_SCTRL_FORCE;
-#else // 13
-            TMR2_CTRL0 &= ~TMR_CTRL_CM(0b111);
-            TMR2_SCTRL0 &= ~TMR_SCTRL_VAL;
-            TMR2_SCTRL0 |= TMR_SCTRL_FORCE;
-#endif
+            SPINDLE_PWM_TIMER_CTRL &= ~TMR_CTRL_CM(0b111);
+            SPINDLE_PWM_TIMER_SCTRL &= ~TMR_SCTRL_VAL;
+            SPINDLE_PWM_TIMER_SCTRL |= TMR_SCTRL_FORCE;
         }
      } else {
         if(!pwmEnabled) {
             spindle_on();
             pwmEnabled = true;
         }
-#if SPINDLE_PWM_PIN == 12
-        TMR1_COMP21 = pwm_value;
-        TMR1_CMPLD11 = spindle_pwm.period - pwm_value;
-        TMR1_CTRL1 |= TMR_CTRL_CM(0b001);
-#else // 13
-        TMR2_COMP20 = pwm_value;
-        TMR2_CMPLD10 = spindle_pwm.period - pwm_value;
-        TMR2_CTRL0 |= TMR_CTRL_CM(0b001);
-#endif
+        SPINDLE_PWM_TIMER_COMP2 = pwm_value;
+        SPINDLE_PWM_TIMER_CMPLD1 = spindle_pwm.period - pwm_value;
+        SPINDLE_PWM_TIMER_CTRL |= TMR_CTRL_CM(0b001);
     }
 }
 
@@ -1347,23 +1331,14 @@ bool spindleConfig (spindle_ptrs_t *spindle)
             spindle_precompute_pwm_values(spindle, &spindle_pwm, F_BUS_ACTUAL / prescaler);
         }
 
-#if SPINDLE_PWM_PIN == 12
-        TMR1_CTRL1 = TMR_CTRL_PCS(divider) | TMR_CTRL_OUTMODE(0b100) | TMR_CTRL_LENGTH;
-        TMR1_COMP11 = spindle_pwm.period;
-        TMR1_CMPLD11 = spindle_pwm.period;
+        SPINDLE_PWM_TIMER_CTRL = TMR_CTRL_PCS(divider) | TMR_CTRL_OUTMODE(0b100) | TMR_CTRL_LENGTH;
+        SPINDLE_PWM_TIMER_COMP1 = spindle_pwm.period;
+        SPINDLE_PWM_TIMER_CMPLD1 = spindle_pwm.period;
         if(settings.spindle.invert.pwm)
-            TMR1_SCTRL0 |= TMR_SCTRL_OPS;
+            SPINDLE_PWM_TIMER_SCTRL |= TMR_SCTRL_OPS;
         else
-            TMR1_SCTRL0 &= ~TMR_SCTRL_OPS;
-#else // 13
-        TMR2_CTRL0 = TMR_CTRL_PCS(divider) | TMR_CTRL_OUTMODE(0b100) | TMR_CTRL_LENGTH;
-        TMR2_COMP10 = spindle_pwm.period;
-        TMR2_CMPLD10 = spindle_pwm.period;
-        if(settings.spindle.invert.pwm)
-            TMR2_SCTRL0 |= TMR_SCTRL_OPS;
-        else
-            TMR2_SCTRL0 &= ~TMR_SCTRL_OPS;
-#endif
+            SPINDLE_PWM_TIMER_SCTRL &= ~TMR_SCTRL_OPS;
+
         spindle->set_state = spindleSetStateVariable;
     } else {
         if(pwmEnabled)
@@ -1388,11 +1363,11 @@ static void spindlePulseOn (uint_fast16_t pulse_length)
 
     if(plen != pulse_length) {
         plen = pulse_length;
-        PPI_TIMER.CH[0].COMP1 = (uint16_t)((pulse_length * F_BUS_MHZ) / 128);
+        PPI_TIMER_COMP1 = (uint16_t)((pulse_length * F_BUS_MHZ) / 128);
     }
 
     spindle_on();
-    PPI_TIMER.CH[0].CTRL |= TMR_CTRL_CM(0b001);
+    PPI_TIMER_CTRL |= TMR_CTRL_CM(0b001);
 }
 
 #endif
@@ -1637,7 +1612,7 @@ static void settings_changed (settings_t *settings, settings_changed_flags_t cha
 #endif
 
         // Stepper pulse timeout setup.
-        TMR4_CSCTRL0 &= ~(TMR_CSCTRL_TCF1|TMR_CSCTRL_TCF2);
+        PULSE_TIMER_CSCTRL &= ~(TMR_CSCTRL_TCF1|TMR_CSCTRL_TCF2);
 
         pulse_length = (uint16_t)((float)F_BUS_MHZ * (settings->steppers.pulse_microseconds - STEP_PULSE_LATENCY));
 
@@ -1650,16 +1625,16 @@ static void settings_changed (settings_t *settings, settings_changed_flags_t cha
         } else
             hal.stepper.pulse_start = stepperPulseStart;
 
-        TMR4_COMP10 = pulse_length;
-        TMR4_CSCTRL0 &= ~TMR_CSCTRL_TCF2EN;
-        TMR4_CTRL0 &= ~TMR_CTRL_OUTMODE(0b000);
-        attachInterruptVector(IRQ_QTIMER4, stepper_pulse_isr);
+        PULSE_TIMER_COMP1 = pulse_length;
+        PULSE_TIMER_CSCTRL &= ~TMR_CSCTRL_TCF2EN;
+        PULSE_TIMER_CTRL &= ~TMR_CTRL_OUTMODE(0b000);
+        attachInterruptVector(PULSE_TIMER_IRQ, stepper_pulse_isr);
 
 #if STEP_INJECT_ENABLE
-        TMR2_CSCTRL0 &= ~(TMR_CSCTRL_TCF1|TMR_CSCTRL_TCF2);
-        TMR2_COMP10 = pulse_length;
-        TMR2_CSCTRL0 &= ~TMR_CSCTRL_TCF2EN;
-        TMR2_CTRL0 &= ~TMR_CTRL_OUTMODE(0b000);
+        PULSE2_TIMER_CSCTRL &= ~(TMR_CSCTRL_TCF1|TMR_CSCTRL_TCF2);
+        PULSE2_TIMER_COMP1 = pulse_length;
+        PULSE2_TIMER_CSCTRL &= ~TMR_CSCTRL_TCF2EN;
+        PULSE2_TIMER_CTRL &= ~TMR_CTRL_OUTMODE(0b000);
 #endif
 
         /****************************************
@@ -2065,28 +2040,28 @@ static bool driver_setup (settings_t *settings)
     NVIC_SET_PRIORITY(IRQ_PIT, 2);
     NVIC_ENABLE_IRQ(IRQ_PIT);
 
-    TMR4_ENBL &= ~(1 << 0);
-    TMR4_LOAD0 = 0;
-    TMR4_CTRL0 = TMR_CTRL_PCS(0b1000) | TMR_CTRL_ONCE | TMR_CTRL_LENGTH;
-    TMR4_CSCTRL0 = TMR_CSCTRL_TCF1EN;
+    PULSE_TIMER_ENABLE &= ~(1 << 0);
+    PULSE_TIMER_LOAD = 0;
+    PULSE_TIMER_CTRL = TMR_CTRL_PCS(0b1000) | TMR_CTRL_ONCE | TMR_CTRL_LENGTH;
+    PULSE_TIMER_CSCTRL = TMR_CSCTRL_TCF1EN;
 
-    attachInterruptVector(IRQ_QTIMER4, stepper_pulse_isr);
-    NVIC_SET_PRIORITY(IRQ_QTIMER4, 0);
-    NVIC_ENABLE_IRQ(IRQ_QTIMER4);
+    attachInterruptVector(PULSE_TIMER_IRQ, stepper_pulse_isr);
+    NVIC_SET_PRIORITY(PULSE_TIMER_IRQ, 0);
+    NVIC_ENABLE_IRQ(PULSE_TIMER_IRQ);
 
-    TMR4_ENBL |= (1 << 0);
+    PULSE_TIMER_ENABLE |= (1 << 0);
 
 #if STEP_INJECT_ENABLE
-    TMR2_ENBL &= ~(1 << 0);
-    TMR2_LOAD0 = 0;
-    TMR2_CTRL0 = TMR_CTRL_PCS(0b1000) | TMR_CTRL_ONCE | TMR_CTRL_LENGTH;
-    TMR2_CSCTRL0 = TMR_CSCTRL_TCF1EN;
+    PULSE2_TIMER_ENABLE &= ~(1 << 0);
+    PULSE2_TIMER_LOAD = 0;
+    PULSE2_TIMER_CTRL = TMR_CTRL_PCS(0b1000) | TMR_CTRL_ONCE | TMR_CTRL_LENGTH;
+    PULSE2_TIMER_CSCTRL = TMR_CSCTRL_TCF1EN;
 
-    attachInterruptVector(IRQ_QTIMER2, output_pulse_isr);
-    NVIC_SET_PRIORITY(IRQ_QTIMER2, 0);
-    NVIC_ENABLE_IRQ(IRQ_QTIMER2);
+    attachInterruptVector(PULSE2_TIMER_IRQ, output_pulse_isr);
+    NVIC_SET_PRIORITY(PULSE2_TIMER_IRQ, 0);
+    NVIC_ENABLE_IRQ(PULSE2_TIMER_IRQ);
 
-    TMR2_ENBL |= (1 << 0);
+    PULSE2_TIMER_ENABLE |= (1 << 0);
 #endif
 
    /****************************
@@ -2095,17 +2070,17 @@ static bool driver_setup (settings_t *settings)
 
     if(hal.driver_cap.software_debounce) {
 
-        TMR3_ENBL &= ~(1 << 0);
-        TMR3_LOAD0 = 0;
-        TMR3_CTRL0 = TMR_CTRL_PCS(0b1111) | TMR_CTRL_ONCE | TMR_CTRL_LENGTH;
-        TMR3_COMP10 = (uint16_t)((40000UL * F_BUS_MHZ) / 128); // 150 MHz -> 40ms
-        TMR3_CSCTRL0 = TMR_CSCTRL_TCF1EN;
+        DEBOUNCE_TIMER_ENABLE &= ~(1 << 0);
+        DEBOUNCE_TIMER_LOAD = 0;
+        DEBOUNCE_TIMER_CTRL = TMR_CTRL_PCS(0b1111) | TMR_CTRL_ONCE | TMR_CTRL_LENGTH;
+        DEBOUNCE_TIMER_COMP1 = (uint16_t)((40000UL * F_BUS_MHZ) / 128); // 150 MHz -> 40ms
+        DEBOUNCE_TIMER_CSCTRL = TMR_CSCTRL_TCF1EN;
 
-        attachInterruptVector(IRQ_QTIMER3, debounce_isr);
-        NVIC_SET_PRIORITY(IRQ_QTIMER3, 4);
-        NVIC_ENABLE_IRQ(IRQ_QTIMER3);
+        attachInterruptVector(DEBOUNCE_TIMER_IRQ, debounce_isr);
+        NVIC_SET_PRIORITY(DEBOUNCE_TIMER_IRQ, 4);
+        NVIC_ENABLE_IRQ(DEBOUNCE_TIMER_IRQ);
 
-        TMR3_ENBL |= (1 << 0);
+        DEBOUNCE_TIMER_ENABLE |= (1 << 0);
     }
 
    /***********************
@@ -2122,19 +2097,11 @@ static bool driver_setup (settings_t *settings)
 
 #ifdef SPINDLE_PWM_PIN
 
-#if SPINDLE_PWM_PIN == 12
-    TMR1_ENBL &= ~(1 << 1);
-    TMR1_LOAD1 = 0;
-    TMR1_CTRL1 = TMR_CTRL_PCS(0b1001) | TMR_CTRL_OUTMODE(0b100) | TMR_CTRL_LENGTH;
-    TMR1_SCTRL1 = TMR_SCTRL_OEN | TMR_SCTRL_FORCE;
-    TMR1_ENBL |= (1 << 1);
-#else // 13
-    TMR2_ENBL &= (1 << 0);
-    TMR2_LOAD0 = 0;
-    TMR2_CTRL0 = TMR_CTRL_PCS(0b1001) | TMR_CTRL_OUTMODE(0b100) | TMR_CTRL_LENGTH;
-    TMR2_SCTRL0 = TMR_SCTRL_OEN | TMR_SCTRL_FORCE;
-    TMR2_ENBL |= (1 << 0);
-#endif
+    SPINDLE_PWM_TIMER_ENABLE &= (1 << SPINDLE_PWM_TIMER_C);
+    SPINDLE_PWM_TIMER_LOAD = 0;
+    SPINDLE_PWM_TIMER_CTRL = TMR_CTRL_PCS(0b1001) | TMR_CTRL_OUTMODE(0b100) | TMR_CTRL_LENGTH;
+    SPINDLE_PWM_TIMER_SCTRL = TMR_SCTRL_OEN | TMR_SCTRL_FORCE;
+    SPINDLE_PWM_TIMER_ENABLE |= (1 << SPINDLE_PWM_TIMER_C);
 
     *(portConfigRegister(SPINDLE_PWM_PIN)) = 1;
 
@@ -2149,17 +2116,17 @@ static bool driver_setup (settings_t *settings)
 
 #if PPI_ENABLE
 
-    PPI_TIMER.ENBL = 0;
-    PPI_TIMER.CH[0].LOAD = 0;
-    PPI_TIMER.CH[0].COMP1 = (uint16_t)((1500UL * F_BUS_MHZ) / 128);
-    PPI_TIMER.CH[0].CTRL = TMR_CTRL_PCS(0b1111) | TMR_CTRL_ONCE | TMR_CTRL_LENGTH;
-    PPI_TIMER.CH[0].CSCTRL = TMR_CSCTRL_TCF1EN;
+    PPI_TIMER_ENABLE = 0;
+    PPI_TIMER_LOAD = 0;
+    PPI_TIMER_COMP1 = (uint16_t)((1500UL * F_BUS_MHZ) / 128);
+    PPI_TIMER_CTRL = TMR_CTRL_PCS(0b1111) | TMR_CTRL_ONCE | TMR_CTRL_LENGTH;
+    PPI_TIMER_CSCTRL = TMR_CSCTRL_TCF1EN;
 
-    attachInterruptVector(PPI_TIMERIRQ, ppi_timeout_isr);
-    NVIC_SET_PRIORITY(PPI_TIMERIRQ, 3);
-    NVIC_ENABLE_IRQ(PPI_TIMERIRQ);
+    attachInterruptVector(PPI_TIMER_IRQ, ppi_timeout_isr);
+    NVIC_SET_PRIORITY(PPI_TIMER_IRQ, 3);
+    NVIC_ENABLE_IRQ(PPI_TIMER_IRQ);
 
-    PPI_TIMER.ENBL = 1;
+    PPI_TIMER_ENABLE = 1;
 
     ppi_init();
 
@@ -2393,7 +2360,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "230926";
+    hal.driver_version = "231004";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -2640,42 +2607,43 @@ static void stepper_driver_isr (void)
 // completing one step cycle.
 static void stepper_pulse_isr (void)
 {
-    TMR4_CSCTRL0 &= ~TMR_CSCTRL_TCF1;
+    PULSE_TIMER_CSCTRL &= ~TMR_CSCTRL_TCF1;
 
     set_step_outputs((axes_signals_t){0});
 }
 
 static void stepper_pulse_isr_delayed (void)
 {
-    TMR4_CSCTRL0 &= ~TMR_CSCTRL_TCF1;
+    PULSE_TIMER_CSCTRL &= ~TMR_CSCTRL_TCF1;
 
     set_step_outputs(next_step_outbits);
 
-    attachInterruptVector(IRQ_QTIMER4, stepper_pulse_isr);
-    TMR4_COMP10 = pulse_length;
-    TMR4_CTRL0 |= TMR_CTRL_CM(0b001);
+    attachInterruptVector(PULSE_TIMER_IRQ, stepper_pulse_isr);
+    PULSE_TIMER_COMP1 = pulse_length;
+    PULSE_TIMER_CTRL |= TMR_CTRL_CM(0b001);
 }
 
 #if STEP_INJECT_ENABLE
 
 static void output_pulse_isr (void)
 {
-    TMR2_CSCTRL0 &= ~TMR_CSCTRL_TCF1;
+    PULSE2_TIMER_CSCTRL &= ~TMR_CSCTRL_TCF1;
 
     stepperInjectStep(settings.steppers.step_invert);
+    pulse_output.mask = 0;
 }
 
 static void output_pulse_isr_delayed (void)
 {
-    TMR4_CSCTRL0 &= ~TMR_CSCTRL_TCF1;
+    PULSE2_TIMER_CSCTRL &= ~TMR_CSCTRL_TCF1;
 
     axes_signals_t step_outbits;
     step_outbits.value =  pulse_output.value ^ settings.steppers.step_invert.mask;
     stepperInjectStep(step_outbits);
 
-    attachInterruptVector(IRQ_QTIMER2, output_pulse_isr);
-    TMR2_COMP10 = pulse_length;
-    TMR2_CTRL0 |= TMR_CTRL_CM(0b001);
+    attachInterruptVector(PULSE2_TIMER_IRQ, output_pulse_isr);
+    PULSE2_TIMER_COMP1 = pulse_length;
+    PULSE2_TIMER_CTRL |= TMR_CTRL_CM(0b001);
 }
 
 #endif // STEP_INJECT_ENABLE
@@ -2706,7 +2674,7 @@ static void spindle_pulse_isr (void)
 // Switches off the spindle (laser) after laser.pulse_length time has elapsed
 static void ppi_timeout_isr (void)
 {
-    PPI_TIMER.CH[0].CSCTRL &= ~TMR_CSCTRL_TCF1;
+    PPI_TIMER_CSCTRL &= ~TMR_CSCTRL_TCF1;
     spindle_off();
 }
 #endif
@@ -2743,7 +2711,7 @@ static void debounce_isr (void)
     uint32_t grp = 0;
     input_signal_t *signal;
 
-    TMR3_CSCTRL0 &= ~TMR_CSCTRL_TCF1;
+    DEBOUNCE_TIMER_CSCTRL &= ~TMR_CSCTRL_TCF1;
 
     while((signal = get_debounce())) {
 
@@ -2855,7 +2823,7 @@ static void gpio_isr (void)
     } while(i);
 
     if(debounce)
-        TMR3_CTRL0 |= TMR_CTRL_CM(0b001);
+        DEBOUNCE_TIMER_CTRL |= TMR_CTRL_CM(0b001);
 
     if(grp & (PinGroup_Limit|PinGroup_LimitMax)) {
         limit_signals_t state = limitsGetState();
