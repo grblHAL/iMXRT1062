@@ -56,7 +56,17 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 //#define SAFETY_DOOR_ENABLE   1 // Enable safety door input.
 //#define USB_SERIAL_WAIT      1 // Wait for USB connection before starting grblHAL.
 //#define BLUETOOTH_ENABLE     2 // Set to 2 for HC-05 module. Requires and claims one auxillary input pin.
-//#define VFD_ENABLE           1 // Set to 1 or 2 for Huanyang VFD spindle. More here https://github.com/grblHAL/Plugins_spindle
+// Spindle selection:
+// Up to four specific spindle drivers can be instantiated at a time
+// depending on N_SPINDLE and N_SYS_SPINDLE definitions in grbl/config.h.
+// If none are specified the default PWM spindle is instantiated.
+// Spindle definitions can be found in grbl/spindle_control.h.
+// More here https://github.com/grblHAL/Plugins_spindle
+//#define SPINDLE0_ENABLE        SPINDLE_HUANYANG1
+//#define SPINDLE1_ENABLE        SPINDLE_PWM0
+//#define SPINDLE2_ENABLE        SPINDLE_NONE 
+//#define SPINDLE2_ENABLE        SPINDLE_NONE
+// **********************
 //#define MODBUS_ENABLE        1 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
 //#define WEBUI_ENABLE         3 // Enable ESP3D-WEBUI plugin along with networking and SD card plugins.
 //#define ETHERNET_ENABLE      1 // Ethernet streaming. Enables networking plugin.

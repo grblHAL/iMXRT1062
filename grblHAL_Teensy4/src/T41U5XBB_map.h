@@ -31,7 +31,6 @@
 
 #define BOARD_NAME "T41U5XBB"
 #define BOARD_URL "https://github.com/phil-barrett/grbl-teensy-4"
-#define HAS_IOPORTS
 
 #define X_STEP_PIN          (2u)
 #define X_DIRECTION_PIN     (3u)
@@ -70,11 +69,24 @@
 #define MPG_MODE_PIN        (28u)
 #endif
 
-// Define spindle enable and spindle direction output pins.
+// Define driver spindle pins
+
+#if DRIVER_SPINDLE_PWM_ENABLE
+#define SPINDLE_PWM_PIN         (13u)
+#else
+#define AUXOUTPUT5_PIN          (13u)
+#endif
+
+#if DRIVER_SPINDLE_DIR_ENABLE
+#define SPINDLE_DIRECTION_PIN   (11u)
+#else
+#define AUXOUTPUT4_PIN          (11u)
+#endif
+
 #if DRIVER_SPINDLE_ENABLE
 #define SPINDLE_ENABLE_PIN      (12u)
-#define SPINDLE_DIRECTION_PIN   (11u)
-#define SPINDLE_PWM_PIN         (13u) // NOTE: only pin 12 or pin 13 can be assigned!
+#else
+#define AUXOUTPUT3_PIN          (12u)
 #endif
 
 // Define flood and mist coolant enable output pins.
@@ -109,17 +121,13 @@
 #define AUXOUTPUT0_PIN      (31u) // AUX0
 #define AUXOUTPUT1_PIN      (32u) // AUX1
 #define AUXOUTPUT2_PIN      (33u) // AUX2
-#if !DRIVER_SPINDLE_ENABLE
-#define AUXOUTPUT3_PIN      (12u) // AUX3
-#define AUXOUTPUT4_PIN      (11u) // AUX4
-#endif
 
 #if I2C_STROBE_ENABLE
-#define I2C_STROBE_PIN   (41u) // I2C ST
+#define I2C_STROBE_PIN      (41u) // I2C ST
 #endif
 
 #if I2C_ENABLE
-#define I2C_PORT    4
-#define I2C_SCL4    (24u) // Not referenced, for info only
-#define I2C_SDA4    (25u) // Not referenced, for info only
+#define I2C_PORT            4
+#define I2C_SCL4            (24u) // Not referenced, for info only
+#define I2C_SDA4            (25u) // Not referenced, for info only
 #endif

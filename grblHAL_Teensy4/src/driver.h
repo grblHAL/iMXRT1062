@@ -339,10 +339,8 @@ void pinModeOutput (gpio_t *gpio, uint8_t pin);
 void pinEnableIRQ (const input_signal_t *signal, pin_irq_mode_t irq_mode);
 uint32_t xTaskGetTickCount();
 
-#ifdef HAS_IOPORTS
 void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs);
 void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs);
 void ioports_event (input_signal_t *input);
-#endif
 
 #endif // __DRIVER_H__

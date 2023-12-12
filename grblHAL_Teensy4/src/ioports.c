@@ -24,8 +24,6 @@
 #include "driver.h"
 #include "mcp3221.h"
 
-#ifdef HAS_IOPORTS
-
 //#include "Arduino.h"
 #include <math.h>
 #include <string.h>
@@ -396,5 +394,3 @@ void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs)
 #endif
 
 }
-
-#endif

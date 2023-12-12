@@ -132,111 +132,116 @@ const struct pwm_pin_info_struct pwm_pin_infos[] = {
 
 static uint_fast16_t set_pwm_values (pwm_config_t *config, ioports_pwm_t *pwm_data)
 {
+    bool ok;
     uint_fast16_t prescaler = 2, divider = 0b1001;
 
-    ioports_precompute_pwm_values(config, pwm_data, F_BUS_ACTUAL / prescaler);
-
-    while(pwm_data->period > 65534 && divider < 15) {
+    if((ok = ioports_precompute_pwm_values(config, pwm_data, F_BUS_ACTUAL / prescaler)))
+      while(pwm_data->period > 65534 && divider < 15) {
         prescaler <<= 1;
         divider++;
         ioports_precompute_pwm_values(config, pwm_data, F_BUS_ACTUAL / prescaler);
     }
 
-    return divider;
+    return ok ? divider : 0;
 }
 
-static void init_pwm (xbar_t *output, pwm_config_t *config)
+static bool init_pwm (xbar_t *output, pwm_config_t *config)
 {
     const struct pwm_pin_info_struct *hw = pwm_pin_infos + output->pin;
 
+    uint32_t prescaler, module, submodule;
     ioports_pwm_t *pwm_data = (ioports_pwm_t *)output->port;
-    uint32_t prescaler = set_pwm_values(config, pwm_data), module, submodule;
+    
+    if((prescaler = set_pwm_values(config, pwm_data))) {
 
-    module = (hw->module >> 4) & 0b11;
-    submodule = hw->module & 0b11;
+        module = (hw->module >> 4) & 0b11;
+        submodule = hw->module & 0b11;
 
-    if(hw->type == 1) {
+        if(hw->type == 1) {
 
-        IMXRT_FLEXPWM_t *flexpwm;
+            IMXRT_FLEXPWM_t *flexpwm;
 
-        switch(module) {
+            switch(module) {
 
-            case 0:
-                flexpwm = &IMXRT_FLEXPWM1;
-                CCM_CCGR4 |= CCM_CCGR4_PWM1(CCM_CCGR_ON);
-                break;
+                case 0:
+                    flexpwm = &IMXRT_FLEXPWM1;
+                    CCM_CCGR4 |= CCM_CCGR4_PWM1(CCM_CCGR_ON);
+                    break;
 
-            case 1:
-                flexpwm = &IMXRT_FLEXPWM2;
-                CCM_CCGR4 |= CCM_CCGR4_PWM2(CCM_CCGR_ON);
-                break;
+                case 1:
+                    flexpwm = &IMXRT_FLEXPWM2;
+                    CCM_CCGR4 |= CCM_CCGR4_PWM2(CCM_CCGR_ON);
+                    break;
 
-            case 2:
-                flexpwm = &IMXRT_FLEXPWM3;
-                CCM_CCGR4 |= CCM_CCGR4_PWM3(CCM_CCGR_ON);
-                break;
+                case 2:
+                    flexpwm = &IMXRT_FLEXPWM3;
+                    CCM_CCGR4 |= CCM_CCGR4_PWM3(CCM_CCGR_ON);
+                    break;
 
-            default:
-                flexpwm = &IMXRT_FLEXPWM4;
-                CCM_CCGR4 |= CCM_CCGR4_PWM4(CCM_CCGR_ON);
+                default:
+                    flexpwm = &IMXRT_FLEXPWM4;
+                    CCM_CCGR4 |= CCM_CCGR4_PWM4(CCM_CCGR_ON);
+            }
+
+            flexpwm->FCTRL0 = FLEXPWM_FCTRL0_FLVL(15); // logic high = fault
+            flexpwm->FSTS0 = 0x000F; // clear fault status
+            flexpwm->FFILT0 = 0;
+            flexpwm->MCTRL |= FLEXPWM_MCTRL_CLDOK(15);
+            flexpwm->SM[submodule].CTRL2 = FLEXPWM_SMCTRL2_INDEP | FLEXPWM_SMCTRL2_WAITEN | FLEXPWM_SMCTRL2_DBGEN;
+            flexpwm->SM[submodule].CTRL = FLEXPWM_SMCTRL_FULL | FLEXPWM_SMCTRL_PRSC(prescaler);
+            flexpwm->SM[submodule].OCTRL = 0;
+            flexpwm->SM[submodule].DTCNT0 = 0;
+            flexpwm->SM[submodule].INIT = 0;
+            flexpwm->SM[submodule].VAL0 = 0;
+            flexpwm->SM[submodule].VAL1 = pwm_data->period;
+            flexpwm->SM[submodule].VAL2 = 0;
+            flexpwm->SM[submodule].VAL3 = 0;
+            flexpwm->SM[submodule].VAL4 = 0;
+            flexpwm->SM[submodule].VAL5 = 0;
+            flexpwm->MCTRL |= FLEXPWM_MCTRL_LDOK(1 << submodule);
+            flexpwm->MCTRL |= FLEXPWM_MCTRL_RUN(15);
+
+            *(portConfigRegister(output->pin)) = hw->muxval;
+
+        } else if(hw->type == 2) {
+
+            IMXRT_TMR_t *qtimer;
+
+            switch(module) {
+
+                case 0:
+                    qtimer = &IMXRT_TMR1;
+                    CCM_CCGR6 |= CCM_CCGR6_QTIMER1(CCM_CCGR_ON);
+                    break;
+
+                case 1:
+                    qtimer = &IMXRT_TMR2;
+                    CCM_CCGR6 |= CCM_CCGR6_QTIMER2(CCM_CCGR_ON);
+                    break;
+
+                case 2:
+                    qtimer = &IMXRT_TMR3;
+                    CCM_CCGR6 |= CCM_CCGR6_QTIMER3(CCM_CCGR_ON);
+                    break;
+
+                default:
+                    CCM_CCGR6 |= CCM_CCGR6_QTIMER4(CCM_CCGR_ON);
+                    qtimer = &IMXRT_TMR4;
+            }
+
+            qtimer->CH[submodule].CTRL = 0;
+            qtimer->CH[submodule].SCTRL = config->invert ? (TMR_SCTRL_OEN|TMR_SCTRL_FORCE|TMR_SCTRL_VAL|TMR_SCTRL_OPS) : (TMR_SCTRL_OEN|TMR_SCTRL_FORCE|TMR_SCTRL_VAL);
+            qtimer->CH[submodule].LOAD = 0;
+            qtimer->CH[submodule].COMP1 = pwm_data->period;
+            qtimer->CH[submodule].CMPLD1 = pwm_data->period;
+            qtimer->CH[submodule].CTRL = TMR_CTRL_CM(0b001) | TMR_CTRL_PCS(prescaler) | TMR_CTRL_LENGTH | TMR_CTRL_OUTMODE(0b100);
+            qtimer->ENBL |= 1 << submodule;
+
+            *(portConfigRegister(output->pin)) = hw->muxval;
         }
-
-        flexpwm->FCTRL0 = FLEXPWM_FCTRL0_FLVL(15); // logic high = fault
-        flexpwm->FSTS0 = 0x000F; // clear fault status
-        flexpwm->FFILT0 = 0;
-        flexpwm->MCTRL |= FLEXPWM_MCTRL_CLDOK(15);
-        flexpwm->SM[submodule].CTRL2 = FLEXPWM_SMCTRL2_INDEP | FLEXPWM_SMCTRL2_WAITEN | FLEXPWM_SMCTRL2_DBGEN;
-        flexpwm->SM[submodule].CTRL = FLEXPWM_SMCTRL_FULL | FLEXPWM_SMCTRL_PRSC(prescaler);
-        flexpwm->SM[submodule].OCTRL = 0;
-        flexpwm->SM[submodule].DTCNT0 = 0;
-        flexpwm->SM[submodule].INIT = 0;
-        flexpwm->SM[submodule].VAL0 = 0;
-        flexpwm->SM[submodule].VAL1 = pwm_data->period;
-        flexpwm->SM[submodule].VAL2 = 0;
-        flexpwm->SM[submodule].VAL3 = 0;
-        flexpwm->SM[submodule].VAL4 = 0;
-        flexpwm->SM[submodule].VAL5 = 0;
-        flexpwm->MCTRL |= FLEXPWM_MCTRL_LDOK(1 << submodule);
-        flexpwm->MCTRL |= FLEXPWM_MCTRL_RUN(15);
-
-        *(portConfigRegister(output->pin)) = hw->muxval;
-
-    } else if(hw->type == 2) {
-
-        IMXRT_TMR_t *qtimer;
-
-        switch(module) {
-
-            case 0:
-                qtimer = &IMXRT_TMR1;
-                CCM_CCGR6 |= CCM_CCGR6_QTIMER1(CCM_CCGR_ON);
-                break;
-
-            case 1:
-                qtimer = &IMXRT_TMR2;
-                CCM_CCGR6 |= CCM_CCGR6_QTIMER2(CCM_CCGR_ON);
-                break;
-
-            case 2:
-                qtimer = &IMXRT_TMR3;
-                CCM_CCGR6 |= CCM_CCGR6_QTIMER3(CCM_CCGR_ON);
-                break;
-
-            default:
-                CCM_CCGR6 |= CCM_CCGR6_QTIMER4(CCM_CCGR_ON);
-                qtimer = &IMXRT_TMR4;
-        }
-
-        qtimer->CH[submodule].CTRL = 0;
-        qtimer->CH[submodule].SCTRL = config->invert ? (TMR_SCTRL_OEN|TMR_SCTRL_FORCE|TMR_SCTRL_VAL|TMR_SCTRL_OPS) : (TMR_SCTRL_OEN|TMR_SCTRL_FORCE|TMR_SCTRL_VAL);
-        qtimer->CH[submodule].LOAD = 0;
-        qtimer->CH[submodule].COMP1 = pwm_data->period;
-        qtimer->CH[submodule].CMPLD1 = pwm_data->period;
-        qtimer->CH[submodule].CTRL = TMR_CTRL_CM(0b001) | TMR_CTRL_PCS(prescaler) | TMR_CTRL_LENGTH | TMR_CTRL_OUTMODE(0b100);
-        qtimer->ENBL |= 1 << submodule;
-
-        *(portConfigRegister(output->pin)) = hw->muxval;
     }
+    
+    return prescaler != 0; 
 }
 
 static bool analog_out (uint8_t port, float value)

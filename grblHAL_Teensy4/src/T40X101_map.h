@@ -79,6 +79,26 @@
 #define SPINDLE_PWM_PIN         (13u) // NOTE: only pin 12 or pin 13 can be assigned!
 #endif
 
+// Define driver spindle pins
+
+#if DRIVER_SPINDLE_PWM_ENABLE
+#define SPINDLE_PWM_PIN         (13u)
+#else
+#define AUXOUTPUT2_PIN          (13u)
+#endif
+
+#if DRIVER_SPINDLE_DIR_ENABLE
+#define SPINDLE_DIRECTION_PIN   (11u)
+#else
+#define AUXOUTPUT1_PIN          (11u)
+#endif
+
+#if DRIVER_SPINDLE_ENABLE
+#define SPINDLE_ENABLE_PIN      (12u)
+#else
+#define AUXOUTPUT0_PIN          (12u)
+#endif
+
 // Define flood and mist coolant enable output pins.
 #define COOLANT_FLOOD_PIN   (19u)
 #define COOLANT_MIST_PIN    (18u)
@@ -94,13 +114,8 @@
 // Define probe switch input pin.
 #define PROBE_PIN           (15U)
 
-#if !DRIVER_SPINDLE_ENABLE
-#define AUXOUTPUT0_PIN      (12u)
-#define AUXOUTPUT1_PIN      (11u)
-#endif
-
 #if I2C_ENABLE
-#define I2C_PORT    4
-#define I2C_SCL4    (24u) // Not referenced, for info only
-#define I2C_SDA4    (25u) // Not referenced, for info only
+#define I2C_PORT            4
+#define I2C_SCL4            (24u) // Not referenced, for info only
+#define I2C_SDA4            (25u) // Not referenced, for info only
 #endif
