@@ -120,7 +120,10 @@ static debounce_queue_t debounce_queue = {0};
 static gpio_t Reset, FeedHold, CycleStart, Probe, LimitX, LimitY, LimitZ;
 
 // Standard outputs
-static gpio_t Mist, Flood, stepX, stepY, stepZ, dirX, dirY, dirZ;
+static gpio_t Flood, stepX, stepY, stepZ, dirX, dirY, dirZ;
+#ifdef COOLANT_MIST_PIN
+static gpio_t Mist;
+#endif
 
 #if DRIVER_SPINDLE_ENABLE
 static spindle_id_t spindle_id = -1;
@@ -1490,24 +1493,25 @@ static void spindleDataReset (void)
 #endif // SPINDLE_ENCODER_ENABLE
 
 // Start/stop coolant (and mist if enabled).
-// coolant_state_t is defined in grbl/coolant_control.h.
 static void coolantSetState (coolant_state_t mode)
 {
     mode.value ^= settings.coolant_invert.mask;
 
     DIGITAL_OUT(Flood, mode.flood);
+#ifdef COOLANT_MIST_PIN
     DIGITAL_OUT(Mist, mode.mist);
+#endif
 }
 
 // Returns coolant state in a coolant_state_t variable.
-// coolant_state_t is defined in grbl/coolant_control.h.
 static coolant_state_t coolantGetState (void)
 {
-    coolant_state_t state = {0};
+    coolant_state_t state = { settings.coolant_invert.mask };
 
     state.flood = (Flood.reg->DR & Flood.bit) != 0;
+#ifdef COOLANT_MIST_PIN
     state.mist = (Mist.reg->DR & Mist.bit) != 0;
- 
+#endif
     state.value ^= settings.coolant_invert.mask;
 
     return state;
@@ -2356,7 +2360,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "231211";
+    hal.driver_version = "231214";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
