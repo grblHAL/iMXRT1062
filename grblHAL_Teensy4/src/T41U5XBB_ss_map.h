@@ -23,6 +23,8 @@
   along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+// Boar modification info: https://www.grbl.org/single-post/modifying-a-t41u5xbb-for-lathe-spindle-sync
+
 #if N_ABC_MOTORS > 2
 #error "Axis configuration is not supported!"
 #endif

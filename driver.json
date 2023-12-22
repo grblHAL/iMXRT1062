@@ -60,6 +60,23 @@
       }
     },
     {
+      "name": "T41U5XBB Spindle Sync",
+      "symbol": "BOARD_T41U5XBB_SS",
+      "URL": "https://www.grbl.org/single-post/modifying-a-t41u5xbb-for-lathe-spindle-sync",
+      "MAP": "grblHAL_Teensy4/src/T41U5XBB_ss_map.h",
+      "caps": {
+        "axes": 5,
+        "ganged_axes": 2,
+        "auto_square": 2,
+        "digital_in": 4,
+        "digital_out": 2,
+        "eeprom": 0,
+        "fram": 0,
+        "i2c": 1,
+        "spindle_sync": 1
+      }
+    },
+    {
       "name": "T41BB5X Pro",
       "symbol": "BOARD_T41BB5X_PRO",
       "URL": "https://github.com/phil-barrett/grbl-teensy-4",
