@@ -103,12 +103,18 @@
 #define COOLANT_FLOOD_PIN   (19u)
 #define COOLANT_MIST_PIN    (18u)
 
+// Define auxillary input pins
+#define AUXINPUT0_PIN       (29u) // Safety door
+
 // Define user-control CONTROLs (cycle start, reset, feed hold, door) input pins.
 #define RESET_PIN           (14u)
 #define FEED_HOLD_PIN       (16u)
 #define CYCLE_START_PIN     (17u)
+
 #if SAFETY_DOOR_ENABLE
-#define SAFETY_DOOR_PIN     (29u)
+#define SAFETY_DOOR_PIN     AUXINPUT0_PIN
+#elif MOTOR_FAULT_ENABLE
+#define MOTOR_FAULT_PIN     AUXINPUT0_PIN
 #endif
 
 // Define probe switch input pin.

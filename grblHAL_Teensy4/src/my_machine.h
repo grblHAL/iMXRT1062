@@ -51,51 +51,61 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 
 */
 #ifndef USB_SERIAL_CDC
-#define USB_SERIAL_CDC      2 // 1 for Arduino class library and 2 for PJRC C library. Comment out or set to 0 to use UART communication.
+#define USB_SERIAL_CDC         2 // 1 for Arduino class library and 2 for PJRC C library. Comment out or set to 0 to use UART communication.
 #endif
-//#define SAFETY_DOOR_ENABLE   1 // Enable safety door input.
-//#define USB_SERIAL_WAIT      1 // Wait for USB connection before starting grblHAL.
-//#define BLUETOOTH_ENABLE     2 // Set to 2 for HC-05 module. Requires and claims one auxillary input pin.
+//#define USB_SERIAL_WAIT         1 // Wait for USB connection before starting grblHAL.
+//#define BLUETOOTH_ENABLE        2 // Set to 2 for HC-05 module. Requires and claims one auxillary input pin.
 // Spindle selection:
 // Up to four specific spindle drivers can be instantiated at a time
 // depending on N_SPINDLE and N_SYS_SPINDLE definitions in grbl/config.h.
 // If none are specified the default PWM spindle is instantiated.
 // Spindle definitions can be found in grbl/spindle_control.h.
 // More here https://github.com/grblHAL/Plugins_spindle
-//#define SPINDLE0_ENABLE        SPINDLE_HUANYANG1
-//#define SPINDLE1_ENABLE        SPINDLE_PWM0
-//#define SPINDLE2_ENABLE        SPINDLE_NONE 
-//#define SPINDLE2_ENABLE        SPINDLE_NONE
+//#define SPINDLE0_ENABLE         SPINDLE_HUANYANG1
+//#define SPINDLE1_ENABLE         SPINDLE_PWM0
+//#define SPINDLE2_ENABLE         SPINDLE_NONE
+//#define SPINDLE2_ENABLE         SPINDLE_NONE
 // **********************
-//#define MODBUS_ENABLE        1 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
-//#define WEBUI_ENABLE         3 // Enable ESP3D-WEBUI plugin along with networking and SD card plugins.
-//#define ETHERNET_ENABLE      1 // Ethernet streaming. Enables networking plugin.
-//#define SDCARD_ENABLE        1 // Run gcode programs from SD card. Set to 2 to enable YModem upload.
-//#define LITTLEFS_ENABLE      1 // Enable flash based storage, automatically enabled if WebUI is enabled
-//#define QEI_ENABLE           1 // Enable quadrature encoder interfaces. Max value is 1. Requires encoder plugin.
-//#define MPG_ENABLE           1 // Enable MPG interface. Requires serial port and one handshake pin unless
-                                 // KEYPAD_ENABLE is set to 2 when mode switching is done by the CMD_MPG_MODE_TOGGLE (0x8B)
-                                 // command character. Set both MPG_ENABLE and KEYPAD_ENABLE to 2 to use a handshake pin anyway.
-//#define KEYPAD_ENABLE        1 // Set to 1 for I2C keypad, 2 for other input such as serial data. If KEYPAD_ENABLE is set to 2
-                                 // and MPG_ENABLE is uncommented then a serial stream is shared with the MPG.
-//#define DISPLAY_ENABLE       1 // Set to 1 for I2C display protocol, 2 for I2C LED protocol.
-//#define MACROS_ENABLE        1 // Macros plugin. For macros that can be triggered by keypad plugin or auxillary inputs.
-                                 // Set to 1 for aux input triggers, 2 for keypad triggers or 3 for both.
-//#define N_MACROS             1 // Number of macros to enable, max 8. If commented out default is 4 when triggered by aux inputs, 8 otherwise.
-//#define PLASMA_ENABLE        1 // Plasma/THC plugin. To be completed.
-//#define MCP3221_ENABLE       1 // Enable analog input via MCP3221 ADC.
-//#define PPI_ENABLE           1 // Laser PPI plugin. To be completed.
-//#define LASER_COOLANT_ENABLE 1 // Laser coolant plugin. To be completed.
-//#define LB_CLUSTERS_ENABLE   1 // LaserBurn cluster support.
-//#define ODOMETER_ENABLE      1 // Odometer plugin.
-//#define OPENPNP_ENABLE       1 // OpenPNP plugin. To be completed.
-//#define FANS_ENABLE          1 // Enable fan control via M106/M107. Enables fans plugin.
-//#define EEPROM_ENABLE       16 // I2C EEPROM/FRAM support. Set to 16 for 2K, 32 for 4K, 64 for 8K, 128 for 16K and 256 for 16K capacity.
-//#define EEPROM_IS_FRAM       1 // Uncomment when EEPROM is enabled and chip is FRAM, this to remove write delay.
-//#define SPINDLE_SYNC_ENABLE  1 // Enable spindle sync support (G33, G76). !! NOTE: Alpha quality - enable only for test or verification.
-                                 // Currently only available for BOARD_T41BB5X_PRO and BOARD_T41U5XBB_SS.
-//#define ESTOP_ENABLE         0 // When enabled only real-time report requests will be executed when the reset pin is asserted.
-                                 // Note: if left commented out the default setting is determined from COMPATIBILITY_LEVEL.
+//#define MODBUS_ENABLE           1 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
+//#define WEBUI_ENABLE            3 // Enable ESP3D-WEBUI plugin along with networking and SD card plugins.
+//#define ETHERNET_ENABLE         1 // Ethernet streaming. Enables networking plugin.
+//#define SDCARD_ENABLE           1 // Run gcode programs from SD card. Set to 2 to enable YModem upload.
+//#define LITTLEFS_ENABLE         1 // Enable flash based storage, automatically enabled if WebUI is enabled
+//#define QEI_ENABLE              1 // Enable quadrature encoder interfaces. Max value is 1. Requires encoder plugin.
+//#define MPG_ENABLE              1 // Enable MPG interface. Requires serial port and one handshake pin unless
+                                    // KEYPAD_ENABLE is set to 2 when mode switching is done by the CMD_MPG_MODE_TOGGLE (0x8B)
+                                    // command character. Set both MPG_ENABLE and KEYPAD_ENABLE to 2 to use a handshake pin anyway.
+//#define KEYPAD_ENABLE           1 // Set to 1 for I2C keypad, 2 for other input such as serial data. If KEYPAD_ENABLE is set to 2
+                                    // and MPG_ENABLE is uncommented then a serial stream is shared with the MPG.
+//#define DISPLAY_ENABLE          1 // Set to 1 for I2C display protocol, 2 for I2C LED protocol.
+//#define MACROS_ENABLE           1 // Macros plugin. For macros that can be triggered by keypad plugin or auxillary inputs.
+                                    // Set to 1 for aux input triggers, 2 for keypad triggers or 3 for both.
+//#define N_MACROS                1 // Number of macros to enable, max 8. If commented out default is 4 when triggered by aux inputs, 8 otherwise.
+//#define PLASMA_ENABLE           1 // Plasma/THC plugin. To be completed.
+//#define MCP3221_ENABLE          1 // Enable analog input via MCP3221 ADC.
+//#define PPI_ENABLE              1 // Laser PPI plugin. To be completed.
+//#define LASER_COOLANT_ENABLE    1 // Laser coolant plugin. To be completed.
+//#define LB_CLUSTERS_ENABLE      1 // LaserBurn cluster support.
+//#define ODOMETER_ENABLE         1 // Odometer plugin.
+//#define OPENPNP_ENABLE          1 // OpenPNP plugin. To be completed.
+//#define FANS_ENABLE             1 // Enable fan control via M106/M107. Enables fans plugin.
+//#define EEPROM_ENABLE          16 // I2C EEPROM/FRAM support. Set to 16 for 2K, 32 for 4K, 64 for 8K, 128 for 16K and 256 for 16K capacity.
+//#define EEPROM_IS_FRAM          1 // Uncomment when EEPROM is enabled and chip is FRAM, this to remove write delay.
+//#define SPINDLE_SYNC_ENABLE     1 // Enable spindle sync support (G33, G76). !! NOTE: Alpha quality - enable only for test or verification.
+                                    // Currently only available for BOARD_T41BB5X_PRO and BOARD_T41U5XBB_SS.
+//#define ESTOP_ENABLE            0 // When enabled only real-time report requests will be executed when the reset pin is asserted.
+                                    // Note: if left commented out the default setting is determined from COMPATIBILITY_LEVEL.
+// Optional control signals:
+// These will be assigned to aux input pins. Use the $pins command to check which pins are assigned.
+// NOTE: If not enough pins are available assignment will silently fail.
+//#define SAFETY_DOOR_ENABLE      1
+//#define MOTOR_FAULT_ENABLE      1
+//#define MOTOR_WARNING_ENABLE    1
+//#define PROBE_DISCONNECT_ENABLE 1
+//#define STOP_DISABLE_ENABLE     1
+//#define BLOCK_DELETE_ENABLE     1
+//#define SINGLE_BLOCK_ENABLE     1
+//#define LIMITS_OVERRIDE_ENABLE  1
 
 // If the selected board map supports more than three motors ganging and/or auto-squaring
 // of axes can be enabled here.

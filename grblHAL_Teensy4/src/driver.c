@@ -31,6 +31,7 @@
 #include "grbl/protocol.h"
 #include "grbl/machine_limits.h"
 #include "grbl/state_machine.h"
+#include "grbl/pin_bits_masks.h"
 
 #ifdef I2C_PORT
 #include "i2c.h"
@@ -155,10 +156,10 @@ static void stepperPulseStartSynchronized (stepper_t *stepper);
 #endif
 
 // Optional I/O
-#ifdef SAFETY_DOOR_PIN
+#if SAFETY_DOOR_BIT
 static gpio_t SafetyDoor;
 #endif
-#ifdef LIMITS_OVERRIDE_PIN
+#if LIMITS_OVERRIDE_BIT
 static gpio_t LimitsOverride;
 #endif
 #ifdef A_AXIS
@@ -326,10 +327,10 @@ input_signal_t inputpin[] = {
 #endif
     { .id = Input_FeedHold,       .port = &FeedHold,       .pin = FEED_HOLD_PIN,       .group = PinGroup_Control },
     { .id = Input_CycleStart,     .port = &CycleStart,     .pin = CYCLE_START_PIN,     .group = PinGroup_Control },
-#ifdef SAFETY_DOOR_PIN
+#if SAFETY_DOOR_BIT
     { .id = Input_SafetyDoor,     .port = &SafetyDoor,     .pin = SAFETY_DOOR_PIN,     .group = PinGroup_Control },
 #endif
-#if defined(LIMITS_OVERRIDE_PIN)
+#if LIMITS_OVERRIDE_BIT
     { .id = Input_LimitsOverride, .port = &LimitsOverride, .pin = LIMITS_OVERRIDE_PIN, .group = PinGroup_Control },
 #endif
 #ifdef MPG_MODE_PIN
@@ -537,6 +538,9 @@ static output_signal_t outputpin[] = {
 #endif
 };
 
+#if AUX_CONTROLS_ENABLED
+static input_signal_t *door_pin;
+#endif
 static pin_group_pins_t limit_inputs = {0};
 
 #if QEI_ENABLE
@@ -605,6 +609,19 @@ static void driver_delay_ms (uint32_t ms, delay_callback_ptr callback)
         if(callback)
             callback();
     }
+}
+
+inline static bool enqueue_debounce (input_signal_t *signal)
+{
+    bool ok;
+    uint_fast8_t bptr = (debounce_queue.head + 1) & (DEBOUNCE_QUEUE - 1);
+
+    if((ok = bptr != debounce_queue.tail)) {
+        debounce_queue.signal[debounce_queue.head] = signal;
+        debounce_queue.head = bptr;
+    }
+
+    return ok;
 }
 
 // Set stepper pulse output pins.
@@ -1166,25 +1183,79 @@ inline static control_signals_t systemGetState (void)
     signals.value = settings.control_invert.value;
 
 #if ESTOP_ENABLE
-    signals.e_stop = (Reset.reg->DR & Reset.bit) != 0;
+    signals.e_stop = DIGITAL_IN(Reset);
 #else
-    signals.reset = (Reset.reg->DR & Reset.bit) != 0;
+    signals.reset = DIGITAL_IN(Reset);
 #endif
-    signals.feed_hold = (FeedHold.reg->DR & FeedHold.bit) != 0;
-    signals.cycle_start = (CycleStart.reg->DR & CycleStart.bit) != 0;
-#ifdef SAFETY_DOOR_PIN
-    signals.safety_door_ajar = (SafetyDoor.reg->DR & SafetyDoor.bit) != 0;
+    signals.feed_hold = DIGITAL_IN(FeedHold);
+    signals.cycle_start = DIGITAL_IN(CycleStart);
+#if SAFETY_DOOR_BIT
+    signals.safety_door_ajar = DIGITAL_IN(SafetyDoort);
+#endif
+#if LIMITS_OVERRIDE_BIT
+    signals.limits_override = DIGITAL_IN(LimitsOverride);
+#endif
+
+#if AUX_CONTROLS_ENABLED
+    uint_fast8_t i;
+    for(i = 0; i < AuxCtrl_NumEntries; i++) {
+        if(aux_ctrl[i].enabled) {
+            if(i == AuxCtrl_SafetyDoor && aux_ctrl[i].debouncing)
+                signals.safety_door_ajar = !settings.control_invert.safety_door_ajar;
+            else {
+                signals.mask &= ~aux_ctrl[i].cap.mask;
+                if(hal.port.wait_on_input(Port_Digital, aux_ctrl[i].port, WaitMode_Immediate, 0.0f) == 1)
+                    signals.mask |= aux_ctrl[i].cap.mask;
+            }
+        }
+    }
 #endif
 
     if(settings.control_invert.value)
         signals.value ^= settings.control_invert.value;
 
-#ifdef LIMITS_OVERRIDE_PIN
-    signals.limits_override = (LimitsOverride.reg->DR & LimitsOverride.bit) == 0;
-#endif
-
     return signals;
 }
+
+#if AUX_CONTROLS_ENABLED
+
+static void aux_irq_handler (uint8_t port, bool state)
+{
+    uint_fast8_t i;
+    control_signals_t signals = systemGetState();
+
+    for(i = 0; i < AuxCtrl_NumEntries; i++) {
+        if(aux_ctrl[i].port == port) {
+            if(!aux_ctrl[i].debouncing) {
+                signals.mask |= aux_ctrl[i].cap.mask;
+                if(i == AuxCtrl_SafetyDoor && (aux_ctrl[i].debouncing = enqueue_debounce(door_pin)))
+                    DEBOUNCE_TIMER_CTRL |= TMR_CTRL_CM(0b001);
+            }
+        }
+    }
+
+    if(signals.mask)
+        hal.control.interrupt_callback(signals);
+}
+
+bool aux_claim (xbar_t *properties, uint8_t port, void *data)
+{
+    ((aux_ctrl_t *)data)->port = port;
+
+    return ioport_claim(Port_Digital, Port_Input, &((aux_ctrl_t *)data)->port, xbar_fn_to_pinname(((aux_ctrl_t *)data)->function));
+}
+
+static bool aux_claim_explicit (aux_ctrl_t *aux)
+{
+    if((aux->enabled = aux->port != 0xFF && ioport_claim(Port_Digital, Port_Input, &aux->port, xbar_fn_to_pinname(aux->function))))
+        hal.signals_cap.mask |= aux->cap.mask;
+    else
+        aux->port = 0xFF;
+
+    return aux->enabled;
+}
+
+#endif
 
 // Sets up the probe pin invert mask to
 // appropriately set the pin logic according to setting for normal-high/normal-low operation
@@ -1688,13 +1759,13 @@ static void settings_changed (settings_t *settings, settings_changed_flags_t cha
                     signal->irq_mode = control_fei.cycle_start ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                     break;
 
-#ifdef SAFETY_DOOR_PIN
+#if SAFETY_DOOR_BIT
                 case Input_SafetyDoor:
                     pullup = !settings->control_disable_pullup.safety_door_ajar;
                     signal->irq_mode = control_fei.safety_door_ajar ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                     break;
 #endif
-#ifdef LIMITS_OVERRIDE_PIN
+#if LIMITS_OVERRIDE_BIT
                 case Input_LimitsOverride:
                     pullup = true;
                     break;
@@ -1817,6 +1888,15 @@ static void settings_changed (settings_t *settings, settings_changed_flags_t cha
                     signal->active = signal->active ^ (signal->irq_mode == IRQ_Mode_Falling ? 0 : 1);
             }
         } while(i);
+
+#if AUX_CONTROLS_ENABLED
+        for(i = 0; i < AuxCtrl_NumEntries; i++) {
+            if(aux_ctrl[i].enabled && aux_ctrl[i].irq_mode != IRQ_Mode_None) {
+                aux_ctrl[i].irq_mode = door_pin->irq_mode = (settings->control_invert.mask & aux_ctrl[i].cap.mask) ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                hal.port.register_interrupt_handler(aux_ctrl[i].port, aux_ctrl[i].irq_mode, aux_irq_handler);
+            }
+        }
+#endif
 
         NVIC_ENABLE_IRQ(IRQ_GPIO6789);
     }
@@ -2360,7 +2440,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "231214";
+    hal.driver_version = "231228";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -2506,10 +2586,10 @@ bool driver_init (void)
     hal.signals_cap.reset = Off;
     hal.signals_cap.e_stop = On;
 #endif
-#ifdef SAFETY_DOOR_PIN
+#if SAFETY_DOOR_BIT
     hal.signals_cap.safety_door_ajar = On;
 #endif
-#ifdef LIMITS_OVERRIDE_PIN
+#if LIMITS_OVERRIDE_BIT
     hal.signals_cap.limits_override = On;
 #endif
     hal.limits_cap = get_limits_cap();
@@ -2545,8 +2625,21 @@ bool driver_init (void)
             input->id = (pin_function_t)(Input_Aux0 + aux_digital_in.n_pins++);
             input->cap.pull_mode = PullMode_UpDown;
             input->cap.irq_mode = IRQ_Mode_All;
-        }
-        if(input->group & (PinGroup_Limit|PinGroup_LimitMax)) {
+#if SAFETY_DOOR_ENABLE
+            if(input->pin == SAFETY_DOOR_PIN && input->cap.irq_mode != IRQ_Mode_None) {
+                door_pin = input;
+                aux_ctrl[AuxCtrl_SafetyDoor].port = aux_digital_in.n_pins - 1;
+            }
+#endif
+#if MOTOR_FAULT_ENABLE
+            if(input->pin == MOTOR_FAULT_PIN && input->cap.irq_mode != IRQ_Mode_None)
+                aux_ctrl[AuxCtrl_MotorFault].port = aux_digital_in.n_pins - 1;
+#endif
+#if MOTOR_WARNING_ENABLE
+            if(input->pin == MOTOR_WARNING_PIN && input->cap.irq_mode != IRQ_Mode_None)
+                aux_control_port[AuxCtrl_MotorWarning] = aux_digital_in.n_pins - 1;
+#endif
+        } else if(input->group & (PinGroup_Limit|PinGroup_LimitMax)) {
             if(limit_inputs.pins.inputs == NULL)
                 limit_inputs.pins.inputs = input;
             limit_inputs.n_pins++;
@@ -2567,11 +2660,37 @@ bool driver_init (void)
         }
     }
 
-
     ioports_init(&aux_digital_in, &aux_digital_out);
 
     if(aux_analog_out.n_pins)
         ioports_init_analog(&aux_analog_in, &aux_analog_out);
+
+#if SAFETY_DOOR_ENABLE
+    aux_claim_explicit(&aux_ctrl[AuxCtrl_SafetyDoor]);
+#elif defined(SAFETY_DOOR_PIN)
+    hal.signals_cap.safety_door = On;
+#endif
+
+#if MOTOR_FAULT_ENABLE
+    aux_claim_explicit(&aux_ctrl[AuxCtrl_MotorFault]);
+#elif defined(MOTOR_FAULT_PIN)
+    hal.signals_cap.motor_fault = On;
+#endif
+
+#if MOTOR_WARNING_ENABLE
+    aux_claim_explicit(&aux_ctrl[AuxCtrl_MotorWarning]);
+#elif defined(MOTOR_WARNING_PIN)
+    hal.signals_cap.motor_warning = On;
+#endif
+
+#if AUX_CONTROLS_ENABLED
+    for(i = AuxCtrl_ProbeDisconnect; i < AuxCtrl_NumEntries; i++) {
+        if(aux_ctrl[i].enabled) {
+            if((aux_ctrl[i].enabled = ioports_enumerate(Port_Digital, Port_Input, (pin_mode_t){ .irq_mode = aux_ctrl[i].irq_mode }, true, aux_claim, (void *)&aux_ctrl[i])))
+                hal.signals_cap.mask |= aux_ctrl[i].cap.mask;
+        }
+    }
+#endif
 
 #if MPG_MODE == 1
   #if KEYPAD_ENABLE == 2
@@ -2698,19 +2817,6 @@ static void ppi_timeout_isr (void)
 }
 #endif
 
-inline static bool enqueue_debounce (input_signal_t *signal)
-{
-    bool ok;
-    uint_fast8_t bptr = (debounce_queue.head + 1) & (DEBOUNCE_QUEUE - 1);
-
-    if((ok = bptr != debounce_queue.tail)) {
-        debounce_queue.signal[debounce_queue.head] = signal;
-        debounce_queue.head = bptr;
-    }
-
-    return ok;
-}
-
 // Returns NULL if no debounce checks enqueued
 inline static input_signal_t *get_debounce (void)
 {
@@ -2745,6 +2851,11 @@ static void debounce_isr (void)
 
     if(grp & PinGroup_Control)
         hal.control.interrupt_callback(systemGetState());
+
+#if AUX_CONTROLS_ENABLED
+    if(grp & PinGroup_AuxInput)
+        aux_ctrl[AuxCtrl_SafetyDoor].debouncing = false;
+#endif
 
 #if QEI_SELECT_ENABLED
 

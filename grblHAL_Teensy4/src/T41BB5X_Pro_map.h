@@ -104,12 +104,32 @@
 #define COOLANT_FLOOD_PIN   (19u)
 #define COOLANT_MIST_PIN    (18u)
 
+// Define auxillary input pins
+#define AUXINPUT0_PIN       (36u) // ST0
+#if !QEI_ENABLE
+#define AUXINPUT1_PIN       (30u) // ST1
+#if !SPINDLE_SYNC_ENABLE
+#define AUXINPUT2_PIN       (31u) // ST2
+#define AUXINPUT3_PIN       (14u) // ST3
+#endif
+#endif
+#define AUXINPUT4_PIN       (29u) // Safety door
+
 // Define user-control CONTROLs (cycle start, reset, feed hold, door) input pins.
 #define RESET_PIN           (40u)
 #define FEED_HOLD_PIN       (16u)
 #define CYCLE_START_PIN     (17u)
+
 #if SAFETY_DOOR_ENABLE
-#define SAFETY_DOOR_PIN     (29u)
+#define SAFETY_DOOR_PIN     AUXINPUT4_PIN
+#endif
+
+#if MOTOR_FAULT_ENABLE
+#define MOTOR_FAULT_PIN     AUXINPUT0_PIN
+#endif
+
+#if MOTOR_WARNING_ENABLE && !QEI_ENABLE
+#define MOTOR_WARNING_PIN   AUXINPUT1_PIN
 #endif
 
 // Define probe switch input pin.
@@ -127,20 +147,14 @@
 #define SPINDLE_PULSE_PIN   (14u) // ST3
 #endif
 
-// Define auxillary input pins
-#define AUXINPUT0_PIN       (36u) // ST0
-#if !QEI_ENABLE
-#define AUXINPUT1_PIN       (30u) // ST1
-#if !SPINDLE_SYNC_ENABLE
-#define AUXINPUT2_PIN       (31u) // ST2
-#define AUXINPUT3_PIN       (14u) // ST3
-#endif
-#endif
-
 // Define auxillary output pins
 #define AUXOUTPUT0_PIN      (34U)
 #define AUXOUTPUT1_PIN      (32U)
+#if SPINDLE_ENABLE & (1<<SPINDLE_PWM2)
+#define AUXOUTPUT0_PWM_PIN  (33U)
+#else
 #define AUXOUTPUT2_PIN      (33U)
+#endif
 
 #if I2C_STROBE_ENABLE
 #define I2C_STROBE_PIN      (41U)
