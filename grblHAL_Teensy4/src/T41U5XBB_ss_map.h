@@ -111,6 +111,7 @@
 #define AUXINPUT3_PIN       (14u) // ST3
 #endif
 #endif
+#define AUXINPUT4_PIN       (29u) // Safety door
 
 // Define user-control CONTROLs (cycle start, reset, feed hold, door) input pins.
 #define RESET_PIN           (35u)
