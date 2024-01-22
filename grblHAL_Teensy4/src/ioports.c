@@ -175,7 +175,6 @@ static xbar_t *get_pin_info (io_port_type_t type, io_port_direction_t dir, uint8
             pin.mode = aux_in[port].mode;
             pin.cap = aux_in[port].cap;
             pin.cap.claimable = !pin.mode.claimed;
-            pin.cap = aux_in[port].cap;
             pin.function = aux_in[port].id;
             pin.group = aux_in[port].group;
             pin.pin = aux_in[port].pin;
