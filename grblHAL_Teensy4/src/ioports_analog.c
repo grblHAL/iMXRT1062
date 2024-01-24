@@ -29,6 +29,7 @@ static io_ports_data_t analog;
 static input_signal_t *aux_in_analog;
 static output_signal_t *aux_out_analog;
 static ioports_pwm_t *pwm_data;
+static float *pwm_values;
 
 static set_pin_description_ptr set_pin_description_digital;
 static get_pin_info_ptr get_pin_info_digital;
@@ -259,6 +260,13 @@ static bool init_pwm (xbar_t *output, pwm_config_t *config)
     return prescaler != 0; 
 }
 
+static float pwm_get_value (struct xbar *output)
+{
+    int_fast8_t ch = output->function - Output_Analog_Aux0;
+
+    return pwm_values && ch >= 0 && ch < analog.out.n_ports ? pwm_values[ch] : -1.0f;
+}
+
 static bool analog_out (uint8_t port, float value)
 {
     if(port < analog.out.n_ports) {
@@ -270,6 +278,9 @@ static bool analog_out (uint8_t port, float value)
 
         module = (hw->module >> 4) & 0b11;
         submodule = hw->module & 0b11;
+
+        if(pwm_values)
+            pwm_values[aux_out_analog[port].id - Output_Analog_Aux0] = value;
 
         if(hw->type == 1) {
 
@@ -370,6 +381,7 @@ static xbar_t *get_pin_info (io_port_type_t type, io_port_direction_t dir, uint8
             if(pin.mode.pwm || pin.mode.servo_pwm) {
                 pin.port = &pwm_data[aux_out_analog[port].pwm_idx];
                 pin.config = (xbar_config_ptr)init_pwm;
+                pin.get_value = pwm_get_value;
             }
             info = &pin;
         }
@@ -460,6 +472,7 @@ void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_ou
             }
 
             pwm_data = calloc(n_pwm, sizeof(ioports_pwm_t));
+            pwm_values = calloc(n_pwm, sizeof(float));
 
             n_pwm = 0;
             for(i = 0; i < analog.out.n_ports; i++) {

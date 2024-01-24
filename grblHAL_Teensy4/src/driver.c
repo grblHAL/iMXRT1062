@@ -2454,7 +2454,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "240119";
+    hal.driver_version = "240124";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -2638,8 +2638,8 @@ bool driver_init (void)
             if(aux_digital_in.pins.inputs == NULL)
                 aux_digital_in.pins.inputs = input;
             input->id = (pin_function_t)(Input_Aux0 + aux_digital_in.n_pins++);
-            input->cap.pull_mode = PullMode_UpDown;
             input->cap.irq_mode = IRQ_Mode_All;
+            input->mode.pull_mode = input->cap.pull_mode = PullMode_Up;
 #if SAFETY_DOOR_ENABLE
             if(input->pin == SAFETY_DOOR_PIN && input->cap.irq_mode != IRQ_Mode_None) {
                 door_pin = input;
