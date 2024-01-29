@@ -209,6 +209,12 @@
 #include "encoder/encoder.h"
 #endif
 
+#if USB_SERIAL_CDC
+#define SP0 1
+#else
+#define SP0 0
+#endif
+
 #if MODBUS_ENABLE & MODBUS_RTU_ENABLED
 #define MODBUS_TEST 1
 #else
@@ -227,14 +233,15 @@
 #define KEYPAD_TEST 0
 #endif
 
-#if USB_SERIAL_CDC == 0 && (MODBUS_TEST + KEYPAD_TEST + MPG_TEST + BLUETOOTH_ENABLE) > 0
+#if USB_SERIAL_CDC == 0
+#if (MODBUS_TEST + KEYPAD_TEST + MPG_TEST + BLUETOOTH_ENABLE)
 #error "Options that uses the UART serial port can only be enabled with USB serial CDC!"
 #endif
-
-#if MODBUS_TEST + KEYPAD_TEST + MPG_TEST + BLUETOOTH_ENABLE > 1
+#elif (MODBUS_TEST + KEYPAD_TEST + MPG_TEST + (BLUETOOTH_ENABLE ? 1 : 0)) > SP0
 #error "Only one option that uses the UART serial port can be enabled!"
 #endif
 
+#undef SP0
 #undef MODBUS_TEST
 #undef KEYPAD_TEST
 #undef MPG_TEST
