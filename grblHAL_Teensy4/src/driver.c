@@ -2261,7 +2261,7 @@ static bool driver_setup (settings_t *settings)
         .function = Input_SpindlePulse,
         .group = PinGroup_SpindlePulse,
         .pin = SPINDLE_PULSE_PIN,
-        .mode = { .input = On, .peripheral = On }
+        .mode = { .input = On }
     };
 
     hal.periph_port.register_pin(&spp);
@@ -2454,7 +2454,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "240125";
+    hal.driver_version = "240130";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
