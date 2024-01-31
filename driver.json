@@ -1,12 +1,13 @@
 {
   "caps":
   {
+    "informal": 1,
     "axes": 6,
     "usb_cdc": 1,
     "uart": 1,
     "spindle_pwm": 1,
     "spindle_dir": 1,
-    "serial_ports": 2,
+    "serial_ports": 1,
     "eeprom": 1,
     "ganged_axes": 1,
     "auto_square": 1,
@@ -54,9 +55,10 @@
         "auto_square": 2,
         "digital_in": 4,
         "digital_out": 2,
-        "eeprom": 0,
-        "fram": 0,
-        "i2c": 1
+        "serial_ports": 1,
+        "sdcard": 1,
+        "ethernet": 1,
+        "eeprom": 1
       }
     },
     {
@@ -70,9 +72,10 @@
         "auto_square": 2,
         "digital_in": 4,
         "digital_out": 2,
-        "eeprom": 0,
-        "fram": 0,
-        "i2c": 1,
+        "serial_ports": 1,
+        "sdcard": 1,
+        "ethernet": 1,
+        "eeprom": 1,
         "spindle_sync": 1
       }
     },
@@ -87,9 +90,10 @@
         "auto_square": 2,
         "digital_in": 4,
         "digital_out": 2,
-        "eeprom": 0,
-        "fram": 0,
-        "i2c": 1,
+        "serial_ports": 1,
+        "sdcard": 1,
+        "ethernet": 1,
+        "eeprom": 1,
         "spindle_sync": 1
       }
     },
@@ -104,8 +108,10 @@
         "auto_square": 2,
         "digital_in": 4,
         "digital_out": 4,
+        "serial_ports": 1,
+        "sdcard": 1,
+        "ethernet": 1,
         "eeprom": 0,
-        "fram": 0,
         "i2c": 1,
         "spindle_sync": 0
       }
@@ -118,6 +124,9 @@
         "axes": 4,
         "digital_in": 4,
         "digital_out": 3,
+        "serial_ports": 1,
+        "sdcard": 1,
+        "ethernet": 1,
         "eeprom": 1,
         "fram": 1,
         "spindle_sync": 1
@@ -131,12 +140,7 @@
       "pio_board": "teensy40",
       "caps": {
         "axes": 4,
-        "digital_in": 0,
-        "digital_out": 0,
-        "eeprom": 0,
-        "fram": 0,
-        "i2c": 1,
-        "ethernet": 0
+        "serial_ports": 1
       }
     }
   ]
