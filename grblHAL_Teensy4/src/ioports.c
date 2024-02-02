@@ -352,19 +352,18 @@ static void enumerate_pins (bool low_level, pin_info_ptr pin_info, void *data)
 static void on_settings_loaded (void)
 {
     bool write = false;
-    uint_fast8_t port = digital.out.n_ports;
+    uint_fast8_t port;
 
     invert_digital_out = settings.ioport.invert_out;
 
-    if(digital.out.n_ports) do {
+    if((port = digital.out.n_ports)) do {
         port--;
         pinModeOutput(aux_out[port].port, aux_out[port].pin);
         aux_out[port].mode.inverted = !!(settings.ioport.invert_out.mask & (1 << port));
         DIGITAL_OUT((*(aux_out[port].port)), aux_out[port].mode.inverted);
     } while(port);
 
-    port = digital.in.n_ports;
-    do {
+    if((port = digital.in.n_ports)) do {
         if(aux_in[--port].aux_ctrl &&
             !!(settings.control_invert.mask & aux_in[port].aux_ctrl->cap.mask) !=
              !!(settings.ioport.invert_in.mask & (1 << port))) {
@@ -389,8 +388,7 @@ static void on_setting_changed (setting_id_t id)
     switch(id) {
 
         case Settings_IoPort_InvertIn:
-            port = digital.in.n_ports;
-            do {
+            if((port = digital.in.n_ports)) do {
                 port--;
                 aux_in[port].mode.inverted = !!(settings.ioport.invert_in.mask & (1 << port));
                 if(aux_in[port].aux_ctrl) {
@@ -404,8 +402,7 @@ static void on_setting_changed (setting_id_t id)
             break;
 
         case Settings_IoPort_InvertOut:
-            if(invert_digital_out.mask != settings.ioport.invert_out.mask) {
-                port = digital.out.n_ports;
+            if((port = digital.out.n_ports) && invert_digital_out.mask != settings.ioport.invert_out.mask) {
                 do {
                     port--;
                     aux_out[port].mode.inverted = !!(settings.ioport.invert_out.mask & (1 << port));
@@ -418,8 +415,7 @@ static void on_setting_changed (setting_id_t id)
             break;
 
         case Setting_ControlInvertMask:
-            port = digital.in.n_ports;
-            do {
+            if((port = digital.in.n_ports)) do {
                 if(aux_in[--port].aux_ctrl) {
                     write = true;
                     if(settings.control_invert.mask & aux_in[port].aux_ctrl->cap.mask)
