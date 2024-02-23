@@ -7,20 +7,20 @@
 
   Board by Phil Barrett: https://github.com/phil-barrett/grblHAL-teensy-4.x
 
-  Copyright (c) 2020-2023 Terje Io
+  Copyright (c) 2020-2024 Terje Io
 
-  Grbl is free software: you can redistribute it and/or modify
+  grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  Grbl is distributed in the hope that it will be useful,
+  grblHAL is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
+  along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
 */
 
 // Boar modification info: https://www.grbl.org/single-post/modifying-a-t41u5xbb-for-lathe-spindle-sync
@@ -69,10 +69,6 @@
 #define M4_ENABLE_PIN       (37u)
 #endif
 
-#if MPG_MODE == 1 && !defined(M4_LIMIT_PIN)
-#define MPG_MODE_PIN        (28u)
-#endif
-
 // Define spindle enable and spindle direction output pins.
 #define SPINDLE_ENABLE_PIN      (12u)
 #define SPINDLE_DIRECTION_PIN   (11u)
@@ -102,24 +98,43 @@
 #define COOLANT_FLOOD_PIN   (19u)
 #define COOLANT_MIST_PIN    (18u)
 
-// Define auxillary input pins
-#define AUXINPUT0_PIN       (36u) // ST0
-#if !QEI_ENABLE
-#define AUXINPUT1_PIN       (30u) // ST1
-#if !SPINDLE_SYNC_ENABLE
-#define AUXINPUT2_PIN       (34u) // ST2
-#define AUXINPUT3_PIN       (14u) // ST3
-#endif
-#endif
-#define AUXINPUT4_PIN       (29u) // Safety door
-
 // Define user-control CONTROLs (cycle start, reset, feed hold, door) input pins.
 #define RESET_PIN           (35u)
 #define FEED_HOLD_PIN       (16u)
 #define CYCLE_START_PIN     (17u)
 
+// Define auxillary input pins
+#define AUXINPUT0_PIN       (36u) // ST0
+#if !QEI_ENABLE
+#define AUXINPUT1_PIN       (30u) // ST1
+#endif
+#if !SPINDLE_SYNC_ENABLE && !QEI_ENABLE
+#define AUXINPUT2_PIN       (34u) // ST2
+#endif
+#if !SPINDLE_SYNC_ENABLE
+#define AUXINPUT3_PIN       (14u) // ST3
+#endif
+#define AUXINPUT4_PIN       (41u) // I2C strobe
+#if !defined(M4_LIMIT_PIN)
+#define AUXINPUT5_PIN       (28u) // MPG mode
+#endif
+#define AUXINPUT6_PIN       (29u) // Safety door
+#define AUXINPUT7_PIN       (15u) // Probe
+
+#if PROBE_ENABLE
+#define PROBE_PIN           AUXINPUT7_PIN
+#endif
+
 #if SAFETY_DOOR_ENABLE
-#define SAFETY_DOOR_PIN     AUXINPUT4_PIN
+#define SAFETY_DOOR_PIN     AUXINPUT6_PIN
+#endif
+
+#if MPG_MODE == 1 && defined(AUXINPUT5_PIN)
+#define MPG_MODE_PIN        AUXINPUT5_PIN
+#endif
+
+#if I2C_STROBE_ENABLE
+#define I2C_STROBE_PIN      AUXINPUT4_PIN
 #endif
 
 #if MOTOR_FAULT_ENABLE
@@ -136,7 +151,9 @@
 #if QEI_ENABLE
 #define QEI_A_PIN           (30u) // ST1
 #define QEI_B_PIN           (34u) // ST2
-#define QEI_SELECT_PIN      (14u) // ST3
+#ifdef AUXINPUT3_PIN
+#define QEI_SELECT_PIN      AUXINPUT3_PIN // ST3
+#endif
 #endif
 
 #if SPINDLE_SYNC_ENABLE
@@ -147,10 +164,6 @@
 #define AUXOUTPUT0_PIN      (31u) // AUX0
 #define AUXOUTPUT1_PIN      (32u) // AUX1
 #define AUXOUTPUT2_PIN      (33u) // AUX2
-
-#if I2C_STROBE_ENABLE
-#define I2C_STROBE_PIN      (41u) // I2C ST
-#endif
 
 #if I2C_ENABLE
 #define I2C_PORT            4

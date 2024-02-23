@@ -40,6 +40,7 @@ extern "C" {
 
 static stream_block_tx_buffer_t txbuf = {0};
 static stream_rx_buffer_t rxbuf;
+static on_execute_realtime_ptr on_execute_realtime;
 static enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_realtime_command;
 
 static bool usb_isConnected (void)
@@ -228,6 +229,8 @@ static void usb_execute_realtime (sys_state_t state)
     static volatile bool lock = false;
     static char tmpbuf[BLOCK_RX_BUFFER_SIZE];
 
+    on_execute_realtime(state);
+
     if(lock)
         return;
 
@@ -296,6 +299,7 @@ const io_stream_t *usb_serialInit (void)
     txbuf.max_length = SerialUSB.availableForWrite(); // 6144 bytes
     txbuf.max_length = (txbuf.max_length > BLOCK_TX_BUFFER_SIZE ? BLOCK_TX_BUFFER_SIZE : txbuf.max_length) - 20;
 
+    on_execute_realtime = grbl.on_execute_realtime;
     grbl.on_execute_realtime = usb_execute_realtime;
 
     return &stream;

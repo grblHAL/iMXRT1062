@@ -3,20 +3,20 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2023 Terje Io
+  Copyright (c) 2020-2024 Terje Io
 
-  Grbl is free software: you can redistribute it and/or modify
+  grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  Grbl is distributed in the hope that it will be useful,
+  grblHAL is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
+  along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #if N_ABC_MOTORS > 2
@@ -85,33 +85,40 @@
 #define COOLANT_FLOOD_PIN   (19u)
 #define COOLANT_MIST_PIN    (18u)
 
-// Define auxillary input pins
-#define AUXINPUT0_PIN       (29u) // Safety door
-
 // Define user-control CONTROLs (cycle start, reset, feed hold, door) input pins.
 #define RESET_PIN           (14u)
 #define FEED_HOLD_PIN       (16u)
 #define CYCLE_START_PIN     (17u)
 
+// Define auxillary input pins
+#if !QEI_ENABLE
+#define AUXINPUT0_PIN       (0u)
+#define AUXINPUT1_PIN       (3u)
+#endif
+#define AUXINPUT2_PIN       (1u)
+#define AUXINPUT3_PIN       (29u) // Safety door
+#define AUXINPUT4_PIN       (15u) // Probe
+
+#if PROBE_ENABLE
+#define PROBE_PIN           AUXINPUT4_PIN
+#endif
+
 #if SAFETY_DOOR_ENABLE
-#define SAFETY_DOOR_PIN     AUXINPUT0_PIN
+#define SAFETY_DOOR_PIN     AUXINPUT3_PIN
 #elif MOTOR_FAULT_ENABLE
-#define MOTOR_FAULT_PIN     AUXINPUT0_PIN
+#define MOTOR_FAULT_PIN     AUXINPUT3_PIN
 #endif
 
 // Define probe switch input pin.
-#define PROBE_PIN           (15U)
 
 #if I2C_ENABLE
-#define I2C_PORT    4
-#define I2C_SCL4    (24u) // Not referenced, for info only
-#define I2C_SDA4    (25u) // Not referenced, for info only
+#define I2C_PORT            4
+#define I2C_SCL4            (24u) // Not referenced, for info only
+#define I2C_SDA4            (25u) // Not referenced, for info only
 #endif
 
 #if QEI_ENABLE
-#define QEI_A_PIN      (0)
-#define QEI_B_PIN      (3)
-// #define QEI_INDEX_PIN  GPIO2_PIN
-#define QEI_SELECT_PIN (1)
+#define QEI_A_PIN           (0)
+#define QEI_B_PIN           (3)
+#define QEI_SELECT_PIN      AUXINPUT2_PIN
 #endif
-

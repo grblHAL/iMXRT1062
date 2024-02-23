@@ -5,20 +5,20 @@
 
   Board by Phil Barrett: https://github.com/phil-barrett/grblHAL-teensy-4.x
 
-  Copyright (c) 2021-2023 Terje Io
+  Copyright (c) 2021-2024 Terje Io
 
-  Grbl is free software: you can redistribute it and/or modify
+  grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  Grbl is distributed in the hope that it will be useful,
+  grblHAL is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
+  along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #if N_ABC_MOTORS > 2
@@ -76,10 +76,6 @@
 #define M4_ENABLE_PIN       (37u)
 #endif
 
-#if MPG_MODE == 1 && !defined(M4_LIMIT_PIN)
-#define MPG_MODE_PIN        (28u)
-#endif
-
 // Define driver spindle pins
 
 #if DRIVER_SPINDLE_PWM_ENABLE
@@ -104,42 +100,57 @@
 #define COOLANT_FLOOD_PIN   (19u)
 #define COOLANT_MIST_PIN    (18u)
 
-// Define auxillary input pins
-#define AUXINPUT0_PIN       (36u) // ST0
-#if !QEI_ENABLE
-#define AUXINPUT1_PIN       (30u) // ST1
-#if !SPINDLE_SYNC_ENABLE
-#define AUXINPUT2_PIN       (31u) // ST2
-#define AUXINPUT3_PIN       (14u) // ST3
-#endif
-#endif
-#define AUXINPUT4_PIN       (29u) // Safety door
-
 // Define user-control CONTROLs (cycle start, reset, feed hold, door) input pins.
 #define RESET_PIN           (40u)
 #define FEED_HOLD_PIN       (16u)
 #define CYCLE_START_PIN     (17u)
 
-#if SAFETY_DOOR_ENABLE
-#define SAFETY_DOOR_PIN     AUXINPUT4_PIN
+// Define auxillary input pins
+#if !QEI_ENABLE
+#define AUXINPUT0_PIN       (36u) // ST0
+#define AUXINPUT1_PIN       (30u) // ST1
+#endif
+#if !SPINDLE_SYNC_ENABLE
+#define AUXINPUT2_PIN       (31u) // ST2
+#define AUXINPUT3_PIN       (41u) // ST3
+#endif
+#define AUXINPUT4_PIN       (41u) // I2C strobe
+#if !defined(M4_LIMIT_PIN)
+#define AUXINPUT5_PIN       (28u) // MPG mode
+#endif
+#define AUXINPUT6_PIN       (29u) // Safety door
+#define AUXINPUT7_PIN       (15u) // Probe
+
+#if PROBE_ENABLE
+#define PROBE_PIN           AUXINPUT7_PIN
 #endif
 
-#if MOTOR_FAULT_ENABLE
+#if SAFETY_DOOR_ENABLE
+#define SAFETY_DOOR_PIN     AUXINPUT6_PIN
+#endif
+
+#if MPG_MODE == 1 && defined(AUXINPUT5_PIN)
+#define MPG_MODE_PIN        AUXINPUT5_PIN
+#endif
+
+#if I2C_STROBE_ENABLE
+#define I2C_STROBE_PIN      AUXINPUT4_PIN
+#endif
+
+#if MOTOR_FAULT_ENABLE && defined(AUXINPUT0_PIN)
 #define MOTOR_FAULT_PIN     AUXINPUT0_PIN
 #endif
 
-#if MOTOR_WARNING_ENABLE && !QEI_ENABLE
+#if MOTOR_WARNING_ENABLE && defined(AUXINPUT1_PIN)
 #define MOTOR_WARNING_PIN   AUXINPUT1_PIN
 #endif
 
-// Define probe switch input pin.
-#define PROBE_PIN           (15u)
-
 #if QEI_ENABLE
-#define QEI_A_PIN           (36u)
-#define QEI_B_PIN           (30u)
-//#define QEI_INDEX_PIN       (36u)
-#define QEI_SELECT_PIN      (31u)
+#define QEI_A_PIN           (36u) // ST0
+#define QEI_B_PIN           (30u) // ST1
+#ifdef AUXINPUT2_PIN
+#define QEI_SELECT_PIN      AUXINPUT2_PIN
+#endif
 #endif
 
 #if SPINDLE_SYNC_ENABLE
@@ -154,10 +165,6 @@
 #define AUXOUTPUT0_PWM_PIN  (33U)
 #else
 #define AUXOUTPUT2_PIN      (33U)
-#endif
-
-#if I2C_STROBE_ENABLE
-#define I2C_STROBE_PIN      (41U)
 #endif
 
 #if I2C_ENABLE

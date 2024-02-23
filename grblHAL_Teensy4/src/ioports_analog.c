@@ -5,18 +5,18 @@
 
   Copyright (c) 2023-2024 Terje Io and PJRC
 
-  Grbl is free software: you can redistribute it and/or modify
+  grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  Grbl is distributed in the hope that it will be useful,
+  grblHAL is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
+  along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "driver.h"
@@ -133,16 +133,10 @@ const struct pwm_pin_info_struct pwm_pin_infos[] = {
 
 static void set_pwm_cap (xbar_t *output, bool servo_pwm)
 {
-    uint_fast8_t i = analog.out.n_ports;
-
-    if(output) do {
-        i--;
-        if(aux_out_analog[i].pin == output->pin) {
-            aux_out_analog[i].mode.pwm = !servo_pwm;
-            aux_out_analog[i].mode.servo_pwm = servo_pwm;
-            break;
-        }
-    } while(i);
+    if(output && output->id < analog.out.n_ports) {
+        aux_out_analog[output->id].mode.pwm = !servo_pwm;
+        aux_out_analog[output->id].mode.servo_pwm = servo_pwm;
+    }
 }
 
 static uint_fast16_t set_pwm_values (pwm_config_t *config, ioports_pwm_t *pwm_data)
@@ -160,7 +154,7 @@ static uint_fast16_t set_pwm_values (pwm_config_t *config, ioports_pwm_t *pwm_da
     return ok ? divider : 0;
 }
 
-static bool init_pwm (xbar_t *output, pwm_config_t *config)
+static bool init_pwm (xbar_t *output, pwm_config_t *config, bool persistent)
 {
     const struct pwm_pin_info_struct *hw = pwm_pin_infos + output->pin;
 
@@ -260,11 +254,9 @@ static bool init_pwm (xbar_t *output, pwm_config_t *config)
     return prescaler != 0; 
 }
 
-static float pwm_get_value (struct xbar *output)
+static float pwm_get_value (xbar_t *output)
 {
-    int_fast8_t ch = output->function - Output_Analog_Aux0;
-
-    return pwm_values && ch >= 0 && ch < analog.out.n_ports ? pwm_values[ch] : -1.0f;
+    return pwm_values && output->id < analog.out.n_ports ? pwm_values[output->id] : -1.0f;
 }
 
 static bool analog_out (uint8_t port, float value)
@@ -369,18 +361,17 @@ static xbar_t *get_pin_info (io_port_type_t type, io_port_direction_t dir, uint8
     else if(dir == Port_Output) {
 
         if(dir == Port_Output && port < analog.out.n_ports) {
-            port = ioports_map(analog.out, port);
-            pin.mode = aux_out_analog[port].mode;
+            pin.id = ioports_map(analog.out, port);
+            pin.mode = aux_out_analog[pin.id].mode;
             pin.mode.pwm = !pin.mode.servo_pwm; //?? for easy filtering
             XBAR_SET_CAP(pin.cap, pin.mode);
-            pin.function = aux_out_analog[port].id;
-            pin.group = aux_out_analog[port].group;
-            pin.pin = aux_out_analog[port].pin;
-            pin.bit = 1 << pin.pin;
-            pin.description = aux_out_analog[port].description;
+            pin.function = aux_out_analog[pin.id].id;
+            pin.group = aux_out_analog[pin.id].group;
+            pin.pin = aux_out_analog[pin.id].pin;
+            pin.description = aux_out_analog[pin.id].description;
             if(pin.mode.pwm || pin.mode.servo_pwm) {
-                pin.port = &pwm_data[aux_out_analog[port].pwm_idx];
-                pin.config = (xbar_config_ptr)init_pwm;
+                pin.port = &pwm_data[aux_out_analog[pin.id].pwm_idx];
+                pin.config = init_pwm;
                 pin.get_value = pwm_get_value;
             }
             info = &pin;
@@ -479,7 +470,7 @@ void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_ou
                 aux_out_analog[i].description = iports_get_pnum(analog, i);
                 if(aux_out_analog[i].mode.pwm && !!pwm_data) {
                     aux_out_analog[i].pwm_idx = n_pwm++;
-                    init_pwm(get_pin_info(Port_Analog, Port_Output, i), &config);
+                    init_pwm(get_pin_info(Port_Analog, Port_Output, i), &config, false);
                 }
                 analog_out(i, 0);
             }

@@ -5,20 +5,20 @@
 
   Board by Phil Barrett: https://github.com/phil-barrett/grblHAL-teensy-4.x
 
-  Copyright (c) 2020-2023 Terje Io
+  Copyright (c) 2020-2024 Terje Io
 
-  Grbl is free software: you can redistribute it and/or modify
+  grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  Grbl is distributed in the hope that it will be useful,
+  grblHAL is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
+  along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #define BOARD_NAME "T40X101"
@@ -105,20 +105,22 @@
 
 // Define auxillary input pins
 #define AUXINPUT0_PIN       (29u) // Safety door
+#define AUXINPUT1_PIN       (15u) // Probe
 
 // Define user-control CONTROLs (cycle start, reset, feed hold, door) input pins.
 #define RESET_PIN           (14u)
 #define FEED_HOLD_PIN       (16u)
 #define CYCLE_START_PIN     (17u)
 
+#if PROBE_ENABLE
+#define PROBE_PIN           AUXINPUT1_PIN
+#endif
+
 #if SAFETY_DOOR_ENABLE
 #define SAFETY_DOOR_PIN     AUXINPUT0_PIN
 #elif MOTOR_FAULT_ENABLE
 #define MOTOR_FAULT_PIN     AUXINPUT0_PIN
 #endif
-
-// Define probe switch input pin.
-#define PROBE_PIN           (15U)
 
 #if I2C_ENABLE
 #define I2C_PORT            4

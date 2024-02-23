@@ -5,18 +5,18 @@
 
   Copyright (c) 2021-2024 Terje Io
 
-  Grbl is free software: you can redistribute it and/or modify
+  grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  Grbl is distributed in the hope that it will be useful,
+  grblHAL is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
+  along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #define BOARD_NAME "GRBLHAL2000 - PRINTNC"
@@ -98,20 +98,26 @@
 #define COOLANT_MIST_PIN    (18u)
 
 // Define auxillary input pins
-#define AUXINPUT0_PIN       (36u) // ST0
 #if !QEI_ENABLE
+#define AUXINPUT0_PIN       (36u) // ST0
 #define AUXINPUT1_PIN       (30u) // ST1
+#endif
 #if !SPINDLE_SYNC_ENABLE
 #define AUXINPUT2_PIN       (31u) // ST2
 #define AUXINPUT3_PIN       (14u) // ST3
 #endif
-#endif
 #define AUXINPUT4_PIN       (29u) // Safety door
+#define AUXINPUT5_PIN       (41u) // I2C strobe
+#define AUXINPUT6_PIN       (15u) // Probe
 
 // Define user-control CONTROLs (cycle start, reset, feed hold, door) input pins.
 #define RESET_PIN           (40u)  //this is halt?
 #define FEED_HOLD_PIN       (16u)
 #define CYCLE_START_PIN     (17u)
+
+#if PROBE_ENABLE
+#define PROBE_PIN           AUXINPUT6_PIN
+#endif
 
 #if SAFETY_DOOR_ENABLE
 #define SAFETY_DOOR_PIN     AUXINPUT4_PIN
@@ -119,14 +125,16 @@
 #define MOTOR_FAULT_PIN     AUXINPUT4_PIN
 #endif
 
-// Define probe switch input pin.
-#define PROBE_PIN           (15u)
+#if I2C_STROBE_ENABLE
+#define I2C_STROBE_PIN      AUXINPUT5_PIN
+#endif
 
 #if QEI_ENABLE
 #define QEI_A_PIN           (36u)
 #define QEI_B_PIN           (30u)
-//#define QEI_INDEX_PIN       (36u)
-#define QEI_SELECT_PIN      (31u)
+#if defined(AUXINPUT2_PIN)
+#define QEI_SELECT_PIN      AUXINPUT2_PIN
+#endif
 #endif
 
 #if SPINDLE_SYNC_ENABLE
@@ -139,10 +147,6 @@
 #define AUXOUTPUT1_PIN      (32u)
 #define AUXOUTPUT2_PIN      (33u)
 #define AUXOUTPUT3_PIN      (38u)
-
-#if I2C_STROBE_ENABLE
-#define I2C_STROBE_PIN      (41u)
-#endif
 
 #if I2C_ENABLE
 #define I2C_PORT            4

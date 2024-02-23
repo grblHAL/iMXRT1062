@@ -3,20 +3,20 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2021 Terje Io
+  Copyright (c) 2020-2024 Terje Io
 
-  Grbl is free software: you can redistribute it and/or modify
+  grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
   the Free Software Foundation, either version 3 of the License, or
   (at your option) any later version.
 
-  Grbl is distributed in the hope that it will be useful,
+  grblHAL is distributed in the hope that it will be useful,
   but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
   GNU General Public License for more details.
 
   You should have received a copy of the GNU General Public License
-  along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
+  along with grblHAL. If not, see <http://www.gnu.org/licenses/>.
 */
 
 #define BOARD_NAME "CNC BoosterPack"
@@ -33,26 +33,36 @@
 #ifdef EEPROM_ENABLE
 #undef EEPROM_ENABLE
 #endif
-#define EEPROM_ENABLE   1 // CNC BoosterPack has on-board EEPROM
+#define EEPROM_ENABLE       16 // CNC BoosterPack has on-board EEPROM
+
+#if I2C_ENABLE
+#define I2C_PORT            0
+#define I2C_SCL0            (19u) // Not referenced, for info only
+#define I2C_SDA0            (18u) // Not referenced, for info only
+#endif
+
+#define UART_PORT           5
+#define UART_RX5            (21u) // Not referenced, for info only
+#define UART_TX5            (20u) // Not referenced, for info only
 
 // Define step pulse output pins.
-#define X_STEP_PIN      (32u)
-#define Y_STEP_PIN      (30u)
-#define Z_STEP_PIN      (26u)
+#define X_STEP_PIN          (32u)
+#define Y_STEP_PIN          (30u)
+#define Z_STEP_PIN          (26u)
 
 // Define step direction output pins.
-#define X_DIRECTION_PIN (5u)
-#define Y_DIRECTION_PIN (33u)
-#define Z_DIRECTION_PIN (13u)
+#define X_DIRECTION_PIN     (5u)
+#define Y_DIRECTION_PIN     (33u)
+#define Z_DIRECTION_PIN     (13u)
 
 // Define stepper driver enable/disable output pin(s).
 #define STEPPERS_ENABLE_PIN (24u)
 #define Z_ENABLE_PIN        (8u)
 
 // Define homing/hard limit switch input pins.
-#define X_LIMIT_PIN     (10u)
-#define Y_LIMIT_PIN     (1u)
-#define Z_LIMIT_PIN     (0u)
+#define X_LIMIT_PIN         (10u)
+#define Y_LIMIT_PIN         (1u)
+#define Z_LIMIT_PIN         (0u)
 
 // Define driver spindle pins
 
@@ -82,37 +92,36 @@
 #define RESET_PIN           (11u)
 #define FEED_HOLD_PIN       (7u)
 #define CYCLE_START_PIN     (6u)
-#if SAFETY_DOOR_ENABLE
-#define SAFETY_DOOR_PIN     (9u)
+
+#if !QEI_ENABLE
+#define AUXINPUT0_PIN       (3u)
+#endif
+#define AUXINPUT1_PIN       (29u)
+#define AUXINPUT2_PIN       (27u)
+#if !QEI_ENABLE
+#define AUXINPUT3_PIN       (2u)
+#endif
+#define AUXINPUT4_PIN       (28u) // I2C strobe
+#define AUXINPUT5_PIN       (9u)  // Safety door
+#define AUXINPUT6_PIN       (15u) // Probe
+
+#if PROBE_ENABLE
+#define PROBE_PIN           AUXINPUT6_PIN
 #endif
 
-// Define probe switch input pin.
-#define PROBE_PIN           (15U)
+#if SAFETY_DOOR_ENABLE
+#define SAFETY_DOOR_PIN     AUXINPUT5_PIN
+#endif
 
 #if I2C_STROBE_ENABLE
-#define I2C_STROBE_PIN   (28U)
+#define I2C_STROBE_PIN      AUXINPUT4_PIN
 #endif
-
-#if EEPROM_ENABLE || I2C_STROBE_ENABLE
-#define I2C_PORT    0
-#define I2C_SCL0    (19u) // Not referenced, for info only
-#define I2C_SDA0    (18u) // Not referenced, for info only
-#endif
-
-#define UART_PORT   5
-#define UART_RX5    (21u) // Not referenced, for info only
-#define UART_TX5    (20u) // Not referenced, for info only
-
-#define GPIO0_PIN   (3u)
-#define GPIO1_PIN   (29u)
-#define GPIO2_PIN   (27u)
-#define GPIO3_PIN   (2u)
 
 #if QEI_ENABLE
-    #define QEI_A_PIN      GPIO0_PIN
-    #define QEI_B_PIN      GPIO3_PIN
+    #define QEI_A_PIN       (3u)
+    #define QEI_B_PIN       (2u)
 //    #define QEI_INDEX_PIN  GPIO2_PIN
-    #define QEI_SELECT_PIN GPIO1_PIN
+    #define QEI_SELECT_PIN AUXINPUT1_PIN
 #endif
 
 /* EOF */

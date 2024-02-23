@@ -80,15 +80,6 @@
 #define PULSE_TIMER_LOAD            timerLOAD(PULSE_TIMER_N, 0)
 #define PULSE_TIMER_IRQ             timerINT(PULSE_TIMER_N)
 
-#define DEBOUNCE_TIMER_N            3
-#define DEBOUNCE_TIMER              timer(DEBOUNCE_TIMER_N)
-#define DEBOUNCE_TIMER_ENABLE       timerENABLE(DEBOUNCE_TIMER_N)
-#define DEBOUNCE_TIMER_CTRL         timerCTRL(DEBOUNCE_TIMER_N, 0)
-#define DEBOUNCE_TIMER_CSCTRL       timerCSCTRL(DEBOUNCE_TIMER_N, 0)
-#define DEBOUNCE_TIMER_COMP1        timerCOMP1(DEBOUNCE_TIMER_N, 0)
-#define DEBOUNCE_TIMER_LOAD         timerLOAD(DEBOUNCE_TIMER_N, 0)
-#define DEBOUNCE_TIMER_IRQ          timerINT(DEBOUNCE_TIMER_N)
-
 // Other timer assignments (for reference)
 
 //#define STEPPER_TIMER     PIT0 (32 bit)
@@ -302,17 +293,17 @@ typedef struct {
 
 typedef struct {
     pin_function_t id;
-    pin_group_t group;
+    pin_cap_t cap;
+    pin_mode_t mode;
     uint8_t pin;
+    uint32_t bit;
+    pin_group_t group;
     gpio_t *port;
     gpio_t gpio; // doubled up for now for speed...
     uint8_t offset;
+    uint8_t user_port;
     volatile bool active;
-    volatile bool debounce;
-    pin_cap_t cap;
-    pin_mode_t mode;
     ioport_interrupt_callback_ptr interrupt_callback;
-    aux_ctrl_t *aux_ctrl;
     const char *description;
 } input_signal_t;
 

@@ -35,6 +35,7 @@
 
 static stream_block_tx_buffer_t txbuf = {0};
 static stream_rx_buffer_t rxbuf;
+static on_execute_realtime_ptr on_execute_realtime;
 static enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_realtime_command;
 
 extern volatile uint32_t usb_cdc_line_rtsdtr_millis;
@@ -233,6 +234,8 @@ void usb_execute_realtime (sys_state_t state)
     //if(lock)
     //    return;
 
+    on_execute_realtime(state);
+
     uint32_t current_micros;
     if(lock || ((current_micros = micros()) - last_micros) < 50)
         return;
@@ -292,6 +295,7 @@ const io_stream_t *usb_serialInit (void)
     txbuf.max_length = usb_serial_write_buffer_free(); // 6144
     txbuf.max_length = (txbuf.max_length > BLOCK_TX_BUFFER_SIZE ? BLOCK_TX_BUFFER_SIZE : txbuf.max_length) - 20;
 
+    on_execute_realtime = grbl.on_execute_realtime;
     grbl.on_execute_realtime = usb_execute_realtime;
 
     return &stream;
