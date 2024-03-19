@@ -1632,6 +1632,13 @@ static spindle_data_t *spindleGetData (spindle_data_request_t request)
                 spindle_data.rpm = spindle_encoder.rpm_factor / (float)pulse_length;
             break;
 
+        case SpindleData_AtSpeed:
+            if(!stopped)
+                spindle_data.rpm = spindle_encoder.rpm_factor / (float)pulse_length;
+            spindle_data.state_programmed.at_speed = settings.spindle.at_speed_tolerance <= 0.0f || (spindle_data.rpm >= spindle_data.rpm_low_limit && spindle_data.rpm <= spindle_data.rpm_high_limit);
+            spindle_data.state_programmed.encoder_error = spindle_encoder.error_count > 0;
+            break;
+
         case SpindleData_AngularPosition:;
             while(spindleLock);
             int32_t d = encoder.last_count - encoder.last_index;
