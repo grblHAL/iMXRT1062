@@ -2495,7 +2495,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "240220";
+    hal.driver_version = "240320";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -2956,7 +2956,7 @@ static void gpio_isr (void)
                         break;
 #endif
 
-#if I2C_STROBE_ENABLE
+#if I2C_STROBE_ENABLE && !defined(AUX_DEVICES)
                     case PinGroup_Keypad:
                         if(i2c_strobe.callback)
                             i2c_strobe.callback(0, !(KeypadStrobe.reg->DR & KeypadStrobe.bit));

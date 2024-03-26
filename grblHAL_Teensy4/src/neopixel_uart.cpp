@@ -56,30 +56,30 @@ static settings_changed_ptr settings_changed;
 
 void onSettingsChanged (settings_t *settings, settings_changed_flags_t changed)
 {
-    if(neopixel.leds == NULL || hal.rgb.num_devices != settings->rgb_strip0_length) {
+    if(neopixel.leds == NULL || hal.rgb0.num_devices != settings->rgb_strip0_length) {
 
         if(settings->rgb_strip0_length == 0)
-            settings->rgb_strip0_length = hal.rgb.num_devices;
+            settings->rgb_strip0_length = hal.rgb0.num_devices;
         else
-            hal.rgb.num_devices = settings->rgb_strip0_length;
+            hal.rgb0.num_devices = settings->rgb_strip0_length;
 
         if(neopixel.leds) {
             free(neopixel.leds);
             neopixel.leds = NULL;
         }
 
-        if(hal.rgb.num_devices) {
-            neopixel.num_bytes = hal.rgb.num_devices * 3;
+        if(hal.rgb0.num_devices) {
+            neopixel.num_bytes = hal.rgb0.num_devices * 3;
             if((neopixel.leds = (uint8_t *)calloc(neopixel.num_bytes, sizeof(uint8_t)))) {
-                if(!(frameBuffer = (uint8_t *)malloc(hal.rgb.num_devices * 12))) {
-                    hal.rgb.num_devices = 0;
+                if(!(frameBuffer = (uint8_t *)malloc(hal.rgb0.num_devices * 12))) {
+                    hal.rgb0.num_devices = 0;
                     free(neopixel.leds);
                     neopixel.leds = NULL;
                 }
             }
         }
 
-        neopixel.num_leds = hal.rgb.num_devices;
+        neopixel.num_leds = hal.rgb0.num_devices;
     }
 
     if(settings_changed)
@@ -275,12 +275,12 @@ void neopixel_init (void)
 
         hal.periph_port.register_pin(&neopix);
 
-        hal.rgb.out = neopixel_out;
-        hal.rgb.out_masked = neopixel_out_masked;
-        hal.rgb.set_intensity = neopixels_set_intensity;
-        hal.rgb.write = neopixels_write;
-        hal.rgb.num_devices = NEOPIXELS_NUM;
-        hal.rgb.cap.R = hal.rgb.cap.G = hal.rgb.cap.B = 255;
+        hal.rgb0.out = neopixel_out;
+        hal.rgb0.out_masked = neopixel_out_masked;
+        hal.rgb0.set_intensity = neopixels_set_intensity;
+        hal.rgb0.write = neopixels_write;
+        hal.rgb0.num_devices = NEOPIXELS_NUM;
+        hal.rgb0.cap.R = hal.rgb0.cap.G = hal.rgb0.cap.B = 255;
 
         settings_changed = hal.settings_changed;
         hal.settings_changed = onSettingsChanged;

@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Some parts of this code is Copyright (c) 2020-2023 Terje Io
+  Some parts of this code is Copyright (c) 2020-2024 Terje Io
   Some parts are derived from HardwareSerial.cpp in the Teensyduino Core Library
 
 */
@@ -65,12 +65,19 @@ typedef struct {
     pin_info_t tx_pin;
 } uart_hardware_t;
 
+static uint16_t tx_fifo_size;
+static stream_tx_buffer_t txbuffer = {0};
+static stream_rx_buffer_t rxbuffer = {0};
+static enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_realtime_command;
+
+static const io_stream_t *serialInit (uint32_t baud_rate);
 static void uart_interrupt_handler (void);
 
 #ifndef UART_PORT
 
-#define RX_PIN 0
-#define TX_PIN 1
+#define RX_PIN    0
+#define TX_PIN    1
+#define UART_PORT 6
 
 static const uart_hardware_t uart_hardware =
 {
@@ -94,32 +101,6 @@ static const uart_hardware_t uart_hardware =
 };
 
 #elif UART_PORT == 5
-
-#define RX_PIN 21
-#define TX_PIN 20
-
-static const uart_hardware_t uart_hardware =
-{
-    .port = &IMXRT_LPUART8,
-    .ccm_register = &CCM_CCGR6,
-    .ccm_value = CCM_CCGR6_LPUART8(CCM_CCGR_ON),
-    .irq = IRQ_LPUART8,
-    .irq_handler = uart_interrupt_handler,
-    .rx_pin = {
-        .pin = RX_PIN,
-        .mux_val = 2,
-        .select_reg = &IOMUXC_LPUART8_RX_SELECT_INPUT,
-        .select_val = 1
-    },
-    .tx_pin = {
-        .pin = TX_PIN,
-        .mux_val = 2,
-        .select_reg = &IOMUXC_LPUART8_TX_SELECT_INPUT,
-        .select_val = 1
-    }
-};
-
-#elif UART_PORT == 8
 
 #define RX_PIN 34
 #define TX_PIN 35
@@ -145,44 +126,160 @@ static const uart_hardware_t uart_hardware =
     }
 };
 
+#elif UART_PORT == 8
+
+#define RX_PIN 21
+#define TX_PIN 20
+
+static const uart_hardware_t uart_hardware =
+{
+    .port = &IMXRT_LPUART8,
+    .ccm_register = &CCM_CCGR6,
+    .ccm_value = CCM_CCGR6_LPUART8(CCM_CCGR_ON),
+    .irq = IRQ_LPUART8,
+    .irq_handler = uart_interrupt_handler,
+    .rx_pin = {
+        .pin = RX_PIN,
+        .mux_val = 2,
+        .select_reg = &IOMUXC_LPUART8_RX_SELECT_INPUT,
+        .select_val = 1
+    },
+    .tx_pin = {
+        .pin = TX_PIN,
+        .mux_val = 2,
+        .select_reg = &IOMUXC_LPUART8_TX_SELECT_INPUT,
+        .select_val = 1
+    }
+};
+
+
 #else
 #error "UART port not available!"
 #endif
 
-/*
+#ifdef UART1_PORT
 
-#define PIN_TO_BASEREG(pin)             (portOutputRegister(pin))
-#define PIN_TO_BITMASK(pin)             (digitalPinToBitMask(pin))
-#define IO_REG_TYPE uint32_t
-#define IO_REG_BASE_ATTR
-#define IO_REG_MASK_ATTR
-#define DIRECT_READ(base, mask)         ((*((base)+2) & (mask)) ? 1 : 0)
-#define DIRECT_MODE_INPUT(base, mask)   (*((base)+1) &= ~(mask))
-#define DIRECT_MODE_OUTPUT(base, mask)  (*((base)+1) |= (mask))
-#define DIRECT_WRITE_LOW(base, mask)    (*((base)+34) = (mask))
-#define DIRECT_WRITE_HIGH(base, mask)   (*((base)+33) = (mask))
+#if UART1_PORT == UART_PORT
+#error Conflicting use of UART peripherals!
+#endif
 
+static uint16_t tx1_fifo_size;
+static stream_tx_buffer_t tx1buffer = {0};
+static stream_rx_buffer_t rx1buffer = {0};
+static enqueue_realtime_command_ptr enqueue_realtime_command1 = protocol_enqueue_realtime_command;
 
-static bool transmitting_ = 0;
-volatile uint32_t   *transmit_pin_baseReg_ = 0;
-uint32_t            transmit_pin_bitmask_ = 0;
+static const io_stream_t *serial1Init (uint32_t baud_rate);
+static void uart1_interrupt_handler (void);
 
-void transmitterEnable(uint8_t pin)
+#define UART1 uart1_hardware
+
+#if UART1_PORT == 1
+
+#define RX1_PIN 25
+#define TX1_PIN 24
+
+static const uart_hardware_t uart1_hardware =
 {
-    while (transmitting_) ;
-    pinMode(pin, OUTPUT);
-    transmit_pin_baseReg_ = PIN_TO_BASEREG(pin);
-    transmit_pin_bitmask_ = PIN_TO_BITMASK(pin);
-    DIRECT_WRITE_LOW(transmit_pin_baseReg_, transmit_pin_bitmask_);
-}
-*/
+    .port = &IMXRT_LPUART1,
+    .ccm_register = &CCM_CCGR5,
+    .ccm_value = CCM_CCGR5_LPUART1(CCM_CCGR_ON),
+    .irq = IRQ_LPUART1,
+    .irq_handler = uart1_interrupt_handler,
+    .rx_pin = {
+        .pin = RX1_PIN,
+        .mux_val = 2,
+        .select_reg = NULL,
+        .select_val = 0
+    },
+    .tx_pin = {
+        .pin = TX1_PIN,
+        .mux_val = 2,
+        .select_reg = NULL,
+        .select_val = 0
+    }
+};
 
-static uint16_t tx_fifo_size;
-static stream_tx_buffer_t txbuffer = {0};
-static stream_rx_buffer_t rxbuffer = {0};
-static enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_realtime_command;
+#elif UART1_PORT == 5
 
-static const io_stream_t *serialInit (uint32_t baud_rate);
+#define RX1_PIN 34
+#define TX1_PIN 35
+
+static const uart_hardware_t uart1_hardware =
+{
+    .port = &IMXRT_LPUART5,
+    .ccm_register = &CCM_CCGR3,
+    .ccm_value = CCM_CCGR3_LPUART5(CCM_CCGR_ON),
+    .irq = IRQ_LPUART5,
+    .irq_handler = uart1_interrupt_handler,
+    .rx_pin = {
+        .pin = RX1_PIN,
+        .mux_val = 1,
+        .select_reg = &IOMUXC_LPUART5_RX_SELECT_INPUT,
+        .select_val = 1
+    },
+    .tx_pin = {
+        .pin = TX1_PIN,
+        .mux_val = 1,
+        .select_reg = &IOMUXC_LPUART5_TX_SELECT_INPUT,
+        .select_val = 1
+    }
+};
+
+#elif UART1_PORT == 6
+
+#define RX1_PIN 0
+#define TX1_PIN 1
+
+static const uart_hardware_t uart1_hardware =
+{
+    .port = &IMXRT_LPUART6,
+    .ccm_register = &CCM_CCGR3,
+    .ccm_value = CCM_CCGR3_LPUART6(CCM_CCGR_ON),
+    .irq = IRQ_LPUART6,
+    .irq_handler = uart1_interrupt_handler,
+    .rx_pin = {
+        .pin = RX1_PIN,
+        .mux_val = 2,
+        .select_reg = &IOMUXC_LPUART6_RX_SELECT_INPUT,
+        .select_val = 1
+    },
+    .tx_pin = {
+        .pin = TX1_PIN,
+        .mux_val = 2,
+        .select_reg = NULL,
+        .select_val = 0
+    }
+};
+
+#elif UART1_PORT == 8
+
+#define RX1_PIN 21
+#define TX1_PIN 20
+
+static const uart_hardware_t uart1_hardware =
+{
+    .port = &IMXRT_LPUART8,
+    .ccm_register = &CCM_CCGR6,
+    .ccm_value = CCM_CCGR6_LPUART8(CCM_CCGR_ON),
+    .irq = IRQ_LPUART8,
+    .irq_handler = uart1_interrupt_handler,
+    .rx_pin = {
+        .pin = RX1_PIN,
+        .mux_val = 2,
+        .select_reg = &IOMUXC_LPUART8_RX_SELECT_INPUT,
+        .select_val = 1
+    },
+    .tx_pin = {
+        .pin = TX1_PIN,
+        .mux_val = 2,
+        .select_reg = &IOMUXC_LPUART8_TX_SELECT_INPUT,
+        .select_val = 1
+    }
+};
+
+#endif
+
+#endif // UART1_PORT
 
 static io_stream_properties_t serial[] = {
     {
@@ -195,6 +292,18 @@ static io_stream_properties_t serial[] = {
       .flags.modbus_ready = On,
       .claim = serialInit
     }
+#ifdef UART1_PORT
+  , {
+      .type = StreamType_Serial,
+      .instance = 1,
+      .flags.claimable = On,
+      .flags.claimed = Off,
+      .flags.connected = On,
+      .flags.can_set_baud = On,
+      .flags.modbus_ready = On,
+      .claim = serial1Init
+    }
+#endif
 };
 
 void serialRegisterStreams (void)
@@ -223,8 +332,134 @@ void serialRegisterStreams (void)
     hal.periph_port.register_pin(&rx);
     hal.periph_port.register_pin(&tx);
 
+#ifdef UART1_PORT
+
+    static const periph_pin_t tx1 = {
+        .function = Output_TX,
+        .group = PinGroup_UART2,
+        .pin = TX1_PIN,
+        .mode = { .mask = PINMODE_OUTPUT },
+        .description = "UART2"
+    };
+
+    static const periph_pin_t rx1 = {
+        .function = Input_RX,
+        .group = PinGroup_UART2,
+        .pin = RX1_PIN,
+        .mode = { .mask = PINMODE_NONE },
+        .description = "UART2"
+    };
+
+    hal.periph_port.register_pin(&rx1);
+    hal.periph_port.register_pin(&tx1);
+
+#endif
+
     stream_register_streams(&streams);
 }
+
+static bool setBaudRate (uart_hardware_t *uart, uint32_t baud_rate)
+{
+    float base = (float)UART_CLOCK / (float)baud_rate;
+    float besterr = 1e20;
+    int bestdiv = 1;
+    int bestosr = 4;
+    for (int osr = 4; osr <= 32; osr++) {
+        float div = base / (float)osr;
+        int divint = (int)(div + 0.5f);
+        if (divint < 1)
+            divint = 1;
+        else if (divint > 8191)
+            divint = 8191;
+        float err = ((float)divint - div) / div;
+        if (err < 0.0f)
+            err = -err;
+        if (err <= besterr) {
+            besterr = err;
+            bestdiv = divint;
+            bestosr = osr;
+        }
+    }
+
+    uart->port->BAUD = LPUART_BAUD_OSR(bestosr - 1) | LPUART_BAUD_SBR(bestdiv) | (bestosr <= 8 ? LPUART_BAUD_BOTHEDGE : 0);
+
+    return true;
+}
+
+static uint32_t uartConfig (uart_hardware_t *uart, uint32_t baud_rate)
+{
+    uint32_t tx_fifo_size;
+
+    *uart->ccm_register |= uart->ccm_value;
+
+    *(portControlRegister(uart->rx_pin.pin)) = IOMUXC_PAD_DSE(7) | IOMUXC_PAD_PKE | IOMUXC_PAD_PUE | IOMUXC_PAD_PUS(3) | IOMUXC_PAD_HYS;
+    *(portConfigRegister(uart->rx_pin.pin)) = uart->rx_pin.mux_val;
+    if (uart->rx_pin.select_reg)
+        *(uart->rx_pin.select_reg) = uart->rx_pin.select_val;
+
+    *(portControlRegister(uart->tx_pin.pin)) = IOMUXC_PAD_SRE | IOMUXC_PAD_DSE(3) | IOMUXC_PAD_SPEED(3);
+    *(portConfigRegister(uart->tx_pin.pin)) = uart->tx_pin.mux_val;
+    if (uart->tx_pin.select_reg)
+        *(uart->tx_pin.select_reg) = uart->tx_pin.select_val;
+
+    setBaudRate(uart, baud_rate);
+
+    uart->port->PINCFG = 0;
+
+    // Enable the transmitter, receiver and enable receiver interrupt
+    NVIC_DISABLE_IRQ(uart->irq);
+    attachInterruptVector(uart->irq, uart->irq_handler);
+    NVIC_SET_PRIORITY(uart->irq, 0);
+    NVIC_ENABLE_IRQ(uart->irq);
+
+    tx_fifo_size = (uart->port->FIFO >> 4) & 0x7;
+    tx_fifo_size = tx_fifo_size ? (2 << tx_fifo_size) : 1;
+
+    uint8_t tx_water = (tx_fifo_size < 16) ? tx_fifo_size >> 1 : 7;
+    uint16_t rx_fifo_size = (((uart->port->FIFO >> 0) & 0x7) << 2);
+    uint8_t rx_water = (rx_fifo_size < 16) ? rx_fifo_size >> 1 : 7;
+
+    uart->port->WATER = LPUART_WATER_RXWATER(rx_water) | LPUART_WATER_TXWATER(tx_water);
+    uart->port->FIFO |= LPUART_FIFO_TXFE | LPUART_FIFO_RXFE;
+    // lets configure up our CTRL register value
+    uint32_t ctrl = CTRL_TX_INACTIVE;
+
+    uint16_t format = 0;
+
+    // Now process the bits in the Format value passed in
+    // Bits 0-2 - Parity plus 9  bit.
+    ctrl |= (format & (LPUART_CTRL_PT | LPUART_CTRL_PE) );  // configure parity - turn off PT, PE, M and configure PT, PE
+    if (format & 0x04)
+        ctrl |= LPUART_CTRL_M;       // 9 bits (might include parity)
+    if ((format & 0x0F) == 0x04)
+        ctrl |=  LPUART_CTRL_R9T8; // 8N2 is 9 bit with 9th bit always 1
+
+    // Bit 5 TXINVERT
+    if (format & 0x20)
+        ctrl |= LPUART_CTRL_TXINV;       // tx invert
+
+    // write out computed CTRL
+    uart->port->CTRL = ctrl;
+
+    // Bit 3 10 bit - Will assume that begin already cleared it.
+    // process some other bits which change other registers.
+    if (format & 0x08)
+        uart->port->BAUD |= LPUART_BAUD_M10;
+
+    // Bit 4 RXINVERT
+    uint32_t c = uart->port->STAT & ~LPUART_STAT_RXINV;
+    if (format & 0x10)
+        c |= LPUART_STAT_RXINV;      // rx invert
+    uart->port->STAT = c;
+
+    // bit 8 can turn on 2 stop bit mode
+    if (format & 0x100)
+        uart->port->BAUD |= LPUART_BAUD_SBNS;
+
+    return tx_fifo_size;
+}
+
+// *******
 
 //
 // serialGetC - returns -1 if no data available
@@ -326,30 +561,7 @@ static uint16_t serialTxCount(void) {
 
 static bool serialSetBaudRate (uint32_t baud_rate)
 {
-    float base = (float)UART_CLOCK / (float)baud_rate;
-    float besterr = 1e20;
-    int bestdiv = 1;
-    int bestosr = 4;
-    for (int osr = 4; osr <= 32; osr++) {
-        float div = base / (float)osr;
-        int divint = (int)(div + 0.5f);
-        if (divint < 1)
-            divint = 1;
-        else if (divint > 8191)
-            divint = 8191;
-        float err = ((float)divint - div) / div;
-        if (err < 0.0f)
-            err = -err;
-        if (err <= besterr) {
-            besterr = err;
-            bestdiv = divint;
-            bestosr = osr;
-        }
-    }
-
-    UART.port->BAUD = LPUART_BAUD_OSR(bestosr - 1) | LPUART_BAUD_SBR(bestdiv) | (bestosr <= 8 ? LPUART_BAUD_BOTHEDGE : 0);
-
-    return true;
+    return setBaudRate(&UART, baud_rate);
 }
 
 static bool serialDisable (bool disable)
@@ -404,73 +616,7 @@ static const io_stream_t *serialInit (uint32_t baud_rate)
 
     serial[0].flags.claimed = On;
 
-    *UART.ccm_register |= UART.ccm_value;
-
-    *(portControlRegister(UART.rx_pin.pin)) = IOMUXC_PAD_DSE(7) | IOMUXC_PAD_PKE | IOMUXC_PAD_PUE | IOMUXC_PAD_PUS(3) | IOMUXC_PAD_HYS;
-    *(portConfigRegister(UART.rx_pin.pin)) = UART.rx_pin.mux_val;
-    if (UART.rx_pin.select_reg)
-        *(UART.rx_pin.select_reg) = UART.rx_pin.select_val;
-
-    *(portControlRegister(UART.tx_pin.pin)) = IOMUXC_PAD_SRE | IOMUXC_PAD_DSE(3) | IOMUXC_PAD_SPEED(3);
-    *(portConfigRegister(UART.tx_pin.pin)) = UART.tx_pin.mux_val;
-    if (UART.tx_pin.select_reg)
-        *(UART.tx_pin.select_reg) = UART.tx_pin.select_val;
-
-    serialSetBaudRate(baud_rate);
-
-    UART.port->PINCFG = 0;
-
-    // Enable the transmitter, receiver and enable receiver interrupt
-    NVIC_DISABLE_IRQ(UART.irq);
-    attachInterruptVector(UART.irq, UART.irq_handler);
-    NVIC_SET_PRIORITY(UART.irq, 0);
-    NVIC_ENABLE_IRQ(UART.irq);
-
-    tx_fifo_size = (UART.port->FIFO >> 4) & 0x7;
-    tx_fifo_size = tx_fifo_size ? (2 << tx_fifo_size) : 1;
-
-    uint8_t tx_water = (tx_fifo_size < 16) ? tx_fifo_size >> 1 : 7;
-    uint16_t rx_fifo_size = (((UART.port->FIFO >> 0) & 0x7) << 2);
-    uint8_t rx_water = (rx_fifo_size < 16) ? rx_fifo_size >> 1 : 7;
-    /*
-    Serial.printf("SerialX::begin stat:%x ctrl:%x fifo:%x water:%x\n", UART.port->STAT, UART.port->CTRL, UART.port->FIFO, UART.port->WATER );
-    Serial.printf("  FIFO sizes: tx:%d rx:%d\n",tx_fifo_size, rx_fifo_size);
-    Serial.printf("  Watermark tx:%d, rx: %d\n", tx_water, rx_water);
-    */
-    UART.port->WATER = LPUART_WATER_RXWATER(rx_water) | LPUART_WATER_TXWATER(tx_water);
-    UART.port->FIFO |= LPUART_FIFO_TXFE | LPUART_FIFO_RXFE;
-    // lets configure up our CTRL register value
-    uint32_t ctrl = CTRL_TX_INACTIVE;
-
-    uint16_t format = 0;
-
-    // Now process the bits in the Format value passed in
-    // Bits 0-2 - Parity plus 9  bit.
-    ctrl |= (format & (LPUART_CTRL_PT | LPUART_CTRL_PE) );  // configure parity - turn off PT, PE, M and configure PT, PE
-    if (format & 0x04)
-        ctrl |= LPUART_CTRL_M;       // 9 bits (might include parity)
-    if ((format & 0x0F) == 0x04)
-        ctrl |=  LPUART_CTRL_R9T8; // 8N2 is 9 bit with 9th bit always 1
-
-    // Bit 5 TXINVERT
-    if (format & 0x20)
-        ctrl |= LPUART_CTRL_TXINV;       // tx invert
-
-    // write out computed CTRL
-    UART.port->CTRL = ctrl;
-
-    // Bit 3 10 bit - Will assume that begin already cleared it.
-    // process some other bits which change other registers.
-    if (format & 0x08)  UART.port->BAUD |= LPUART_BAUD_M10;
-
-    // Bit 4 RXINVERT
-    uint32_t c = UART.port->STAT & ~LPUART_STAT_RXINV;
-    if (format & 0x10) c |= LPUART_STAT_RXINV;      // rx invert
-    UART.port->STAT = c;
-
-    // bit 8 can turn on 2 stop bit mode
-    if (format & 0x100)
-        UART.port->BAUD |= LPUART_BAUD_SBNS;
+    tx_fifo_size = uartConfig(&UART, baud_rate);
 
     return &stream;
 }
@@ -517,3 +663,211 @@ static void uart_interrupt_handler (void)
             UART.port->STAT |= LPUART_STAT_IDLE; // writing a 1 to idle should clear it.
     }
 }
+
+#ifdef UART1_PORT
+
+//
+// serial1GetC - returns -1 if no data available
+//
+static int16_t serial1GetC (void)
+{
+    uint_fast16_t tail = rx1buffer.tail;         // Get buffer pointer
+
+    if(tail == rx1buffer.head)
+        return -1; // no data available
+
+    int16_t data = rx1buffer.data[tail];         // Get next character, increment tmp pointer
+    rx1buffer.tail = BUFNEXT(tail, rx1buffer);    // and update pointer
+
+    return data;
+}
+
+static void serial1TxFlush (void)
+{
+    tx1buffer.tail = tx1buffer.head;
+}
+
+static uint16_t serial1RxCount (void)
+{
+    uint_fast16_t head = rx1buffer.head, tail = rx1buffer.tail;
+
+    return BUFCOUNT(head, tail, RX_BUFFER_SIZE);
+}
+
+static uint16_t serial1RxFree (void)
+{
+    return (RX_BUFFER_SIZE - 1) - serial1RxCount();
+}
+
+static void serial1RxFlush (void)
+{
+    rx1buffer.tail = rx1buffer.head;
+    rx1buffer.overflow = false;
+}
+
+static void serial1RxCancel (void)
+{
+    serial1RxFlush();
+    rx1buffer.data[rx1buffer.head] = ASCII_CAN;
+    rx1buffer.head = BUFNEXT(rx1buffer.head, rx1buffer);
+}
+
+static bool serial1PutC (const char c)
+{
+    if(tx1buffer.head == tx1buffer.tail && ((UART1.port->WATER >> 8) & 0x7) < tx1_fifo_size) {
+        UART1.port->DATA  = c;
+        return true;
+    }
+
+    uint_fast16_t next_head = BUFNEXT(tx1buffer.head, tx1buffer);   // Get next head pointer
+
+    while(tx1buffer.tail == next_head) {             // Buffer full, block until space is available...
+        if(!hal.stream_blocking_callback())
+            return false;
+    }
+
+    tx1buffer.data[tx1buffer.head] = c;               // Add data to buffer
+    tx1buffer.head = next_head;                      // and update head pointer
+
+    __disable_irq();
+    UART1.port->CTRL |= LPUART_CTRL_TIE; // (may need to handle this issue)BITBAND_SET_BIT(LPUART0_CTRL, TIE_BIT); // Enable TX interrupts
+    __enable_irq();
+
+    return true;
+}
+
+static void serial1WriteS (const char *data)
+{
+    char c, *ptr = (char *)data;
+
+    while((c = *ptr++) != '\0')
+        serial1PutC(c);
+}
+
+static void serial1Write(const char *s, uint16_t length)
+{
+    char *ptr = (char *)s;
+
+    while(length--)
+        serial1PutC(*ptr++);
+}
+
+static bool serial1SuspendInput (bool suspend)
+{
+    return stream_rx_suspend(&rx1buffer, suspend);
+}
+
+static uint16_t serial1TxCount(void)
+{
+    uint_fast16_t head = tx1buffer.head, tail = tx1buffer.tail;
+
+    return BUFCOUNT(head, tail, TX_BUFFER_SIZE) + ((UART1.port->WATER >> 8) & 0x7) + ((UART1.port->STAT & LPUART_STAT_TC) ? 0 : 1);
+}
+
+static bool serial1SetBaudRate (uint32_t baud_rate)
+{
+    return setBaudRate(&UART1, baud_rate);
+}
+
+static bool serial1Disable (bool disable)
+{
+    if(disable)
+        UART1.port->CTRL &= ~LPUART_CTRL_RIE;
+    else
+        UART1.port->CTRL |= LPUART_CTRL_RIE;
+
+    return true;
+}
+
+static bool serial1EnqueueRtCommand (char c)
+{
+    return enqueue_realtime_command1(c);
+}
+
+static enqueue_realtime_command_ptr serial1SetRtHandler (enqueue_realtime_command_ptr handler)
+{
+    enqueue_realtime_command_ptr prev = enqueue_realtime_command1;
+
+    if(handler)
+        enqueue_realtime_command1 = handler;
+
+    return prev;
+}
+
+static const io_stream_t *serial1Init (uint32_t baud_rate)
+{
+    PROGMEM static const io_stream_t stream = {
+        .type = StreamType_Serial,
+        .instance = 1,
+        .state.connected = On,
+        .read = serial1GetC,
+        .write = serial1WriteS,
+        .write_n = serial1Write,
+        .write_char = serial1PutC,
+        .enqueue_rt_command = serial1EnqueueRtCommand,
+        .get_rx_buffer_free = serial1RxFree,
+        .get_rx_buffer_count = serial1RxCount,
+        .get_tx_buffer_count = serial1TxCount,
+        .reset_write_buffer = serial1TxFlush,
+        .reset_read_buffer = serial1RxFlush,
+        .cancel_read_buffer = serial1RxCancel,
+        .suspend_read = serial1SuspendInput,
+        .disable_rx = serial1Disable,
+        .set_baud_rate = serial1SetBaudRate,
+        .set_enqueue_rt_handler = serial1SetRtHandler
+    };
+
+    if(serial[1].flags.claimed)
+        return NULL;
+
+    serial[1].flags.claimed = On;
+
+    tx1_fifo_size = uartConfig(&UART1, baud_rate);
+
+    return &stream;
+}
+
+static void uart1_interrupt_handler (void)
+{
+    uint32_t ctrl = UART1.port->CTRL;
+
+    if((ctrl & LPUART_CTRL_TIE) && (UART1.port->STAT & LPUART_STAT_TDRE))
+    {
+        uint_fast16_t tail = tx1buffer.tail;                // Get buffer pointer
+
+        do {
+            if(tx1buffer.head != tail) {
+                UART1.port->DATA = tx1buffer.data[tail];    // Put character in TXT register
+                tail = BUFNEXT(tail, tx1buffer);            // and update tmp tail pointer
+            } else
+                break;
+        } while(((UART1.port->WATER >> 8) & 0x7) < tx1_fifo_size);
+
+        if((tx1buffer.tail = tail) == tx1buffer.head)  // Disable TX interrups
+            UART1.port->CTRL &= ~LPUART_CTRL_TIE;
+    }
+
+    if ((ctrl & LPUART_CTRL_TCIE) && (UART1.port->STAT & LPUART_STAT_TC))
+        UART1.port->CTRL &= ~LPUART_CTRL_TCIE;
+
+    if(UART1.port->STAT & (LPUART_STAT_RDRF | LPUART_STAT_IDLE)) {
+
+        while((UART1.port->WATER >> 24) & 0x7) {
+            uint32_t data = UART1.port->DATA & 0xFF;                            // Read input (use only 8 bits of data)
+            if(!enqueue_realtime_command1((char)data)) {
+                uint_fast16_t next_head = BUFNEXT(rx1buffer.head, rx1buffer);   // Get next head pointer
+                if(next_head == rx1buffer.tail)                                 // If buffer full
+                    rx1buffer.overflow = true;                                  // flag overflow
+                else {
+                    rx1buffer.data[rx1buffer.head] = (char)data;                // Add data to buffer
+                    rx1buffer.head = next_head;                                 // and update pointer
+                }
+            }
+        }
+
+        if (UART1.port->STAT & LPUART_STAT_IDLE)
+            UART1.port->STAT |= LPUART_STAT_IDLE; // writing a 1 to idle should clear it.
+    }
+}
+
+#endif // UART1_PORT

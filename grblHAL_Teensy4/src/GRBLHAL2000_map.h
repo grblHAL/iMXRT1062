@@ -24,7 +24,7 @@
 #define HAS_BOARD_INIT
 
 #if MODBUS_ENABLE < 1
-#define UART_PORT 8
+#define UART_PORT 5
 #endif
 
 #ifdef NETWORK_HOSTNAME
