@@ -2495,7 +2495,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "240320";
+    hal.driver_version = "240330";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -2647,8 +2647,11 @@ bool driver_init (void)
 #endif
     hal.limits_cap = get_limits_cap();
     hal.home_cap = get_home_cap();
+#ifdef COOLANT_FLOOD_PIN
+    hal.coolant_cap.flood = On;
+#endif
 #ifdef COOLANT_MIST_PIN
-    hal.driver_cap.mist_control = On;
+    hal.coolant_cap.mist = On;
 #endif
 #if SPINDLE_ENCODER_ENABLE
     hal.driver_cap.spindle_encoder = On;
