@@ -1059,11 +1059,11 @@ void stepperOutputStep (axes_signals_t step_outbits, axes_signals_t dir_outbits)
 
 #ifdef A_AXIS
         if(pulse_output.a)
-            DIGITAL_OUT(stepA, step_outbits.a);
+            DIGITAL_OUT(dirA, dir_outbits.a);
 #endif
 #ifdef B_AXIS
         if(pulse_output.b)
-            DIGITAL_OUT(stepB, step_outbits.b);
+            DIGITAL_OUT(dirB, dir_outbits.b);
 #endif
 
         if(pulse_delay) {
@@ -2495,7 +2495,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "240330";
+    hal.driver_version = "240402";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
