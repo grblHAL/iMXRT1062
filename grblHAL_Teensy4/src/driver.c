@@ -813,7 +813,7 @@ static void stepperEnable (axes_signals_t enable)
 static void stepperWakeUp (void)
 {
     // Enable stepper drivers.
-    stepperEnable((axes_signals_t){AXES_BITMASK});
+    hal.stepper.enable((axes_signals_t){AXES_BITMASK});
 
     PIT_LDVAL0 = hal.f_step_timer / 500; // ~2ms delay to allow drivers time to wake up.
     PIT_TFLG0 |= PIT_TFLG_TIF;
@@ -2495,7 +2495,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "240402";
+    hal.driver_version = "240404";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
