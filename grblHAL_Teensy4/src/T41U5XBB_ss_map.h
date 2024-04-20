@@ -145,9 +145,6 @@
 #define MOTOR_WARNING_PIN   AUXINPUT1_PIN
 #endif
 
-// Define probe switch input pin.
-#define PROBE_PIN           (15u)
-
 #if QEI_ENABLE
 #define QEI_A_PIN           (30u) // ST1
 #define QEI_B_PIN           (34u) // ST2
