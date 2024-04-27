@@ -358,7 +358,7 @@ void serialRegisterStreams (void)
     stream_register_streams(&streams);
 }
 
-static bool setBaudRate (uart_hardware_t *uart, uint32_t baud_rate)
+static bool setBaudRate (const uart_hardware_t *uart, uint32_t baud_rate)
 {
     float base = (float)UART_CLOCK / (float)baud_rate;
     float besterr = 1e20;
@@ -386,7 +386,7 @@ static bool setBaudRate (uart_hardware_t *uart, uint32_t baud_rate)
     return true;
 }
 
-static uint32_t uartConfig (uart_hardware_t *uart, uint32_t baud_rate)
+static uint32_t uartConfig (const uart_hardware_t *uart, uint32_t baud_rate)
 {
     uint32_t tx_fifo_size;
 
