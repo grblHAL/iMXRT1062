@@ -100,23 +100,23 @@
 #endif
 
 #ifdef BOARD_CNC_BOOSTERPACK
-  #include "cnc_boosterpack_map.h"
+  #include "boards/cnc_boosterpack_map.h"
 #elif defined(BOARD_T40X101)
-  #include "T40X101_map.h"
+  #include "boards/T40X101_map.h"
 #elif defined(BOARD_T41U5XBB)
-  #include "T41U5XBB_map.h"
+  #include "boards/T41U5XBB_map.h"
 #elif defined(BOARD_T41U5XBB_SS)
-  #include "T41U5XBB_ss_map.h"
+  #include "boards/T41U5XBB_ss_map.h"
 #elif defined(BOARD_T41BB5X_PRO)
-  #include "T41BB5X_Pro_map.h"
+  #include "boards/T41BB5X_Pro_map.h"
 #elif defined(BOARD_GRBLHAL2000)
-  #include "GRBLHAL2000_map.h"
+  #include "boards/GRBLHAL2000_map.h"
 #elif defined(BOARD_E5XMCS_T41)
-  #include "E5XMCS_T41_map.h"
+  #include "boards/E5XMCS_T41_map.h"
 #elif defined(BOARD_MY_MACHINE)
-  #include "my_machine_map.h"
+  #include "boards/my_machine_map.h"
 #else // default board
-#include "generic_map.h"
+#include "boards/generic_map.h"
 #endif
 
 #if SPINDLE_PWM_PIN && !(SPINDLE_PWM_PIN == 12 || SPINDLE_PWM_PIN == 13)

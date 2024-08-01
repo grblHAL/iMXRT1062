@@ -50,7 +50,7 @@
       "name": "T41U5XBB",
       "symbol": "BOARD_T41U5XBB",
       "URL": "https://github.com/phil-barrett/grbl-teensy-4",
-      "MAP": "grblHAL_Teensy4/src/T41U5XBB_map.h",
+      "MAP": "grblHAL_Teensy4/src/boards/T41U5XBB_map.h",
       "caps": {
         "axes": 5,
         "ganged_axes": 2,
@@ -68,7 +68,7 @@
       "name": "T41U5XBB Spindle Sync",
       "symbol": "BOARD_T41U5XBB_SS",
       "URL": "https://www.grbl.org/single-post/modifying-a-t41u5xbb-for-lathe-spindle-sync",
-      "MAP": "grblHAL_Teensy4/src/T41U5XBB_ss_map.h",
+      "MAP": "grblHAL_Teensy4/src/boards/T41U5XBB_ss_map.h",
       "caps": {
         "axes": 5,
         "ganged_axes": 2,
@@ -87,7 +87,7 @@
       "name": "T41BB5X Pro",
       "symbol": "BOARD_T41BB5X_PRO",
       "URL": "https://github.com/phil-barrett/grbl-teensy-4",
-      "MAP": "grblHAL_Teensy4/src/T41BB5X_Pro_map.h",
+      "MAP": "grblHAL_Teensy4/src/boards/T41BB5X_Pro_map.h",
       "caps": {
         "axes": 5,
         "ganged_axes": 2,
@@ -106,7 +106,7 @@
       "name": "E5XMCS_T41",
       "symbol": "BOARD_E5XMCS_T41",
       "URL": "https://www.makerstore.com.au/product/elec-e5xmcst41/",
-      "MAP": "grblHAL_Teensy4/src/E5XMCS_T41_map.h",
+      "MAP": "grblHAL_Teensy4/src/boards/E5XMCS_T41_map.h",
       "caps": {
         "axes": 5,
         "ganged_axes": 2,
@@ -125,7 +125,7 @@
     { "name": "GRBLHAL2000 - PRINTNC",
       "symbol": "BOARD_GRBLHAL2000",
       "URL": "https://github.com/Expatria-Technologies/grblhal_2000_PrintNC",
-      "MAP": "grblHAL_Teensy4/src/GRBLHAL2000_map.h",
+      "MAP": "grblHAL_Teensy4/src/boards/GRBLHAL2000_map.h",
       "caps": {
         "axes": 4,
         "digital_in": 4,
@@ -143,7 +143,7 @@
       "name": "T40X101",
       "symbol": "BOARD_T40X101",
       "URL": "https://github.com/phil-barrett/grbl-teensy-4",
-      "MAP": "grblHAL_Teensy4/src/T40X101_map.h",
+      "MAP": "grblHAL_Teensy4/src/boards/T40X101_map.h",
       "pio_board": "teensy40",
       "caps": {
         "axes": 4,
