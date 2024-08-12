@@ -135,10 +135,13 @@ static spindle_data_t spindle_data;
 static spindle_encoder_t spindle_encoder = {
     .tics_per_irq = 4
 };
+static void spindle_pulse_isr (void);
+static on_spindle_programmed_ptr on_spindle_programmed = NULL;
+
+#if SPINDLE_SYNC_ENABLE
 static spindle_sync_t spindle_tracker;
 static volatile bool spindleLock = false;
-
-static void spindle_pulse_isr (void);
+#endif
 
 #endif // SPINDLE_ENCODER_ENABLE
 
@@ -1498,14 +1501,7 @@ static void spindleSetStateVariable (spindle_ptrs_t *spindle, spindle_state_t st
                               : spindle->context.pwm->off_value);
 
 #if SPINDLE_ENCODER_ENABLE
-    if(spindle->context.pwm->settings->at_speed_tolerance > 0.0f) {
-        float tolerance = rpm * spindle->context.pwm->settings->at_speed_tolerance / 100.0f;
-        spindle_data.rpm_low_limit = rpm - tolerance;
-        spindle_data.rpm_high_limit = rpm + tolerance;
-    }
-    spindle_data.state_programmed.on = state.on;
-    spindle_data.state_programmed.ccw = state.ccw;
-    spindle_data.rpm_programmed = spindle_data.rpm = rpm;
+    spindle_set_at_speed_range(spindle, &spindle_data, rpm);
 #endif
 }
 
@@ -1633,9 +1629,7 @@ static spindle_data_t *spindleGetData (spindle_data_request_t request)
             break;
 
         case SpindleData_AtSpeed:
-            if(!stopped)
-                spindle_data.rpm = spindle_encoder.rpm_factor / (float)pulse_length;
-            spindle_data.state_programmed.at_speed = settings.spindle.at_speed_tolerance <= 0.0f || (spindle_data.rpm >= spindle_data.rpm_low_limit && spindle_data.rpm <= spindle_data.rpm_high_limit);
+            spindle_validate_at_speed(spindle_data, stopped ? 0.0f : spindle_encoder.rpm_factor / (float)pulse_length);
             spindle_data.state_programmed.encoder_error = spindle_encoder.error_count > 0;
             break;
 
@@ -1685,6 +1679,18 @@ static void spindleDataReset (void)
     // Spindle pulse counter
     GPT2_OCR1 = spindle_encoder.tics_per_irq;
     GPT2_CR |= GPT_CR_EN;
+}
+
+static void onSpindleProgrammed (spindle_ptrs_t *spindle, spindle_state_t state, float rpm, spindle_rpm_mode_t mode)
+{
+    if(on_spindle_programmed)
+        on_spindle_programmed(spindle, state, rpm, mode);
+
+    if(spindle->get_data == spindleGetData) {
+        spindle_set_at_speed_range(spindle, &spindle_data, rpm);
+        spindle_data.state_programmed.on = state.on;
+        spindle_data.state_programmed.ccw = state.ccw;
+    }
 }
 
 #endif // SPINDLE_ENCODER_ENABLE
@@ -1763,6 +1769,13 @@ static void settings_changed (settings_t *settings, settings_changed_flags_t cha
 
 #if SPINDLE_ENCODER_ENABLE
 
+        static const spindle_data_ptrs_t encoder_data = {
+            .get = spindleGetData,
+            .reset = spindleDataReset
+        };
+
+        static bool event_claimed = false;
+
         if((hal.spindle_data.get = settings->spindle.ppr > 0 ? spindleGetData : NULL) &&
              (spindle_encoder.ppr != settings->spindle.ppr || pidf_config_changed(&spindle_tracker.pid, &settings->position.pid))) {
 
@@ -1774,6 +1787,12 @@ static void settings_changed (settings_t *settings, settings_changed_flags_t cha
 
             pidf_init(&spindle_tracker.pid, &settings->position.pid);
 
+            if(!event_claimed) {
+                event_claimed = true;
+                on_spindle_programmed = grbl.on_spindle_programmed;
+                grbl.on_spindle_programmed = onSpindleProgrammed;
+            }
+
             float timer_resolution = 1.0f / 1000000.0f; // 1 us resolution
 
             spindle_tracker.min_cycles_per_tick = (int32_t)ceilf(settings->steppers.pulse_microseconds * 2.0f + settings->steppers.pulse_delay_microseconds);
@@ -1783,7 +1802,12 @@ static void settings_changed (settings_t *settings, settings_changed_flags_t cha
             spindle_encoder.maximum_tt = (uint32_t)(2.0f / timer_resolution) / spindle_encoder.tics_per_irq;
             spindle_encoder.rpm_factor = 60.0f / ((timer_resolution * (float)spindle_encoder.ppr));
             spindleDataReset();
+        } else {
+            spindle_encoder.ppr = 0;
+            hal.spindle_data.reset = NULL;
         }
+
+        spindle_bind_encoder(spindle_encoder.ppr ? &encoder_data : NULL);
 
 #endif // SPINDLE_ENCODER_ENABLE
 
@@ -2495,7 +2519,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "240404";
+    hal.driver_version = "240812";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
