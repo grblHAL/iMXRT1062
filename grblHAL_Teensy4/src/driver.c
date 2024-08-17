@@ -49,10 +49,6 @@
 #include "ioports.h"
 #endif
 
-#if KEYPAD_ENABLE == 2
-#include "keypad/keypad.h"
-#endif
-
 #if SDCARD_ENABLE
 #include "uSDFS.h"
 #include "sdcard/sdcard.h"
@@ -159,7 +155,7 @@ static Probe;
 #if I2C_STROBE_ENABLE
 static gpio_t KeypadStrobe;
 #endif
-#if MPG_MODE == 1
+#if MPG_ENABLE == 1
 static gpio_t ModeSelect;
 static input_signal_t *mpg_pin = NULL;
 #endif
@@ -1263,7 +1259,7 @@ static probe_state_t probeGetState (void)
 
 #endif // PROBE_ENABLE
 
-#if MPG_MODE == 1
+#if MPG_ENABLE == 1
 
 static void mpg_select (void *data)
 {
@@ -2519,7 +2515,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "240812";
+    hal.driver_version = "240817";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -2755,22 +2751,6 @@ bool driver_init (void)
     aux_ctrl_claim_ports(aux_claim_explicit, NULL);
 #endif
 
-#if MPG_MODE == 1
-  #if KEYPAD_ENABLE == 2
-    if((hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL, NULL), false, keypad_enqueue_keycode)))
-        protocol_enqueue_foreground_task(mpg_enable, NULL);
-  #else
-    if((hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL, NULL), false, NULL)))
-        protocol_enqueue_foreground_task(mpg_enable, NULL);
-  #endif
-#elif MPG_MODE == 2
-    hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL, NULL), false, keypad_enqueue_keycode);
-#elif MPG_MODE == 3
-    hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL, NULL), false, stream_mpg_check_enable);
-#elif KEYPAD_ENABLE == 2
-    stream_open_instance(KEYPAD_STREAM, 115200, keypad_enqueue_keycode, "Keypad");
-#endif
-
 #if ETHERNET_ENABLE
     grbl_enet_init();
 #endif
@@ -2785,6 +2765,16 @@ bool driver_init (void)
 #endif
 
 #include "grbl/plugins_init.h"
+
+#if MPG_ENABLE == 1
+    if(!hal.driver_cap.mpg_mode)
+        hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL, NULL), false, NULL);
+    if(hal.driver_cap.mpg_mode)
+        protocol_enqueue_foreground_task(mpg_enable, NULL);
+#elif MPG_ENABLE == 2
+    if(!hal.driver_cap.mpg_mode)
+        hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL, NULL), false, stream_mpg_check_enable);
+#endif
 
     // No need to move version check before init.
     // Compiler will fail any signature mismatch for existing entries.
@@ -2994,7 +2984,7 @@ static void gpio_isr (void)
                         ioports_event(&inputpin[i]);
                         break;
 
-#if MPG_MODE == 1
+#if MPG_ENABLE == 1
                     case PinGroup_MPG:
                         pinEnableIRQ(&inputpin[i], IRQ_Mode_None);
                         protocol_enqueue_foreground_task(mpg_select, NULL);

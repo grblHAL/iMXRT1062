@@ -237,7 +237,7 @@
 #undef KEYPAD_TEST
 #undef MPG_TEST
 
-#if MPG_MODE == 1 && !defined(MPG_MODE_PIN)
+#if MPG_ENABLE == 1 && !defined(MPG_MODE_PIN)
 #error "MPG_MODE_PIN must be defined!"
 #endif
 

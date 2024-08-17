@@ -116,7 +116,7 @@
 #define SAFETY_DOOR_PIN     AUXINPUT6_PIN
 #endif
 
-#if MPG_MODE == 1 && defined(AUXINPUT5_PIN)
+#if MPG_ENABLE == 1 && defined(AUXINPUT5_PIN)
 #define MPG_MODE_PIN        AUXINPUT5_PIN
 #endif
 

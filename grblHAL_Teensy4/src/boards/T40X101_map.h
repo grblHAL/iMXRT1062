@@ -65,7 +65,7 @@
 #define M4_ENABLE_PIN       (37u)
 #endif
 
-#if MPG_MODE == 1 && !defined(M4_LIMIT_PIN)
+#if MPG_ENABLE == 1 && !defined(M4_LIMIT_PIN)
 #define MPG_MODE_PIN        (28u)
 #endif
 
