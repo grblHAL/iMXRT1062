@@ -86,62 +86,65 @@ void onSettingsChanged (settings_t *settings, settings_changed_flags_t changed)
         settings_changed(settings, changed);
 }
 
+static void _write (void)
+{
+	while((DMA_ERQ & (1 << dma->channel)));
+
+	rgb_color_t color;
+	uint32_t microseconds_per_led = 30, bytes_per_led = 12;
+
+	const uint8_t *p = neopixel.leds;
+	const uint8_t *end = p + neopixel.num_leds * 3;
+	uint8_t *fb = frameBuffer;
+
+	while (p < end) {
+
+		color.G = *p++;
+		color.R = *p++;
+		color.B = *p++;
+		color = rgb_set_intensity(color, neopixel.intensity);
+
+		uint32_t n = (color.G << 16) | (color.R << 8) | color.B;
+
+		const uint8_t *stop = fb + 12;
+		do {
+			uint8_t x = 0x08;
+			if (!(n & 0x00800000)) x |= 0x07;
+			if (!(n & 0x00400000)) x |= 0xE0;
+			n <<= 2;
+			*fb++ = x;
+		} while (fb < stop);
+	}
+	microseconds_per_led = 30;
+	bytes_per_led = 12;
+
+	// wait 300us WS2812 reset time
+	uint32_t m, min_elapsed = (neopixel.num_leds * microseconds_per_led) + 300;
+
+	while(true) {
+		if(((m = micros()) - prior_micros) > min_elapsed)
+			break;
+	}
+	prior_micros = m;
+
+	// start DMA transfer to update LEDs
+
+	// See if we need to muck with DMA cache...
+	if((uint32_t)frameBuffer >= 0x20200000u)
+		arm_dcache_flush(frameBuffer, neopixel.num_leds * bytes_per_led);
+
+	dma->sourceBuffer(frameBuffer, neopixel.num_leds * bytes_per_led);
+	dma->transferCount(neopixel.num_leds * bytes_per_led);
+	dma->disableOnCompletion();
+
+	uart->STAT = 0; // try clearing out the status
+	dma->enable();
+}
+
 void neopixels_write (void)
 {
-    if(neopixel.leds) {
-
-        while((DMA_ERQ & (1 << dma->channel)));
-
-        rgb_color_t color;
-        uint32_t microseconds_per_led = 30, bytes_per_led = 12;
-
-        const uint8_t *p = neopixel.leds;
-        const uint8_t *end = p + neopixel.num_leds * 3;
-        uint8_t *fb = frameBuffer;
-
-        while (p < end) {
-
-            color.G = *p++;
-            color.R = *p++;
-            color.B = *p++;
-            color = rgb_set_intensity(color, neopixel.intensity);
-
-            uint32_t n = (color.G << 16) | (color.R << 8) | color.B;
-
-            const uint8_t *stop = fb + 12;
-            do {
-                uint8_t x = 0x08;
-                if (!(n & 0x00800000)) x |= 0x07;
-                if (!(n & 0x00400000)) x |= 0xE0;
-                n <<= 2;
-                *fb++ = x;
-            } while (fb < stop);
-        }
-        microseconds_per_led = 30;
-        bytes_per_led = 12;
-
-        // wait 300us WS2812 reset time
-        uint32_t m, min_elapsed = (neopixel.num_leds * microseconds_per_led) + 300;
-
-        while(true) {
-            if(((m = micros()) - prior_micros) > min_elapsed)
-                break;
-        }
-        prior_micros = m;
-
-        // start DMA transfer to update LEDs
-
-        // See if we need to muck with DMA cache...
-        if((uint32_t)frameBuffer >= 0x20200000u)
-            arm_dcache_flush(frameBuffer, neopixel.num_leds * bytes_per_led);
-
-        dma->sourceBuffer(frameBuffer, neopixel.num_leds * bytes_per_led);
-        dma->transferCount(neopixel.num_leds * bytes_per_led);
-        dma->disableOnCompletion();
-
-        uart->STAT = 0; // try clearing out the status
-        dma->enable();
-    }
+    if(neopixel.num_leds > 1)
+		 _write();
 }
 
 static void neopixel_out_masked (uint16_t device, rgb_color_t color, rgb_color_mask_t mask)
@@ -151,7 +154,7 @@ static void neopixel_out_masked (uint16_t device, rgb_color_t color, rgb_color_m
         rgb_1bpp_assign(&neopixel.leds[device * 3], color, mask);
 
         if(neopixel.num_leds == 1)
-            neopixels_write();
+            _write();
     }
 }
 
@@ -162,7 +165,7 @@ static void neopixel_out (uint16_t device, rgb_color_t color)
     neopixel_out_masked(device, color, mask);
 }
 
-uint8_t neopixels_set_intensity (uint8_t intensity)
+static uint8_t neopixels_set_intensity (uint8_t intensity)
 {
     uint8_t prev = neopixel.intensity;
 
@@ -171,7 +174,7 @@ uint8_t neopixels_set_intensity (uint8_t intensity)
         neopixel.intensity = intensity;
 
         if(neopixel.num_leds)
-            neopixels_write();
+            _write();
     }
 
     return prev;
@@ -280,6 +283,7 @@ void neopixel_init (void)
         hal.rgb0.set_intensity = neopixels_set_intensity;
         hal.rgb0.write = neopixels_write;
         hal.rgb0.num_devices = NEOPIXELS_NUM;
+        hal.rgb1.flags = (rgb_properties_t){ .is_strip = On };
         hal.rgb0.cap.R = hal.rgb0.cap.G = hal.rgb0.cap.B = 255;
 
         settings_changed = hal.settings_changed;
