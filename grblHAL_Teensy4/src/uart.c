@@ -287,7 +287,6 @@ static io_stream_properties_t serial[] = {
       .instance = 0,
       .flags.claimable = On,
       .flags.claimed = Off,
-      .flags.connected = On,
       .flags.can_set_baud = On,
       .flags.modbus_ready = On,
       .claim = serialInit
@@ -298,7 +297,6 @@ static io_stream_properties_t serial[] = {
       .instance = 1,
       .flags.claimable = On,
       .flags.claimed = Off,
-      .flags.connected = On,
       .flags.can_set_baud = On,
       .flags.modbus_ready = On,
       .claim = serial1Init
@@ -593,7 +591,7 @@ static const io_stream_t *serialInit (uint32_t baud_rate)
 {
     PROGMEM static const io_stream_t stream = {
         .type = StreamType_Serial,
-        .state.connected = On,
+        .is_connected = stream_connected,
         .read = serialGetC,
         .write = serialWriteS,
         .write_n = serialWrite,
@@ -799,7 +797,7 @@ static const io_stream_t *serial1Init (uint32_t baud_rate)
     PROGMEM static const io_stream_t stream = {
         .type = StreamType_Serial,
         .instance = 1,
-        .state.connected = On,
+        .is_connected = stream_connected,
         .read = serial1GetC,
         .write = serial1WriteS,
         .write_n = serial1Write,
