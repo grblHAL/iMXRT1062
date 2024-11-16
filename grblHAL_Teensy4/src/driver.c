@@ -1202,6 +1202,10 @@ inline static control_signals_t systemGetState (void)
   if(settings.control_invert.mask)
       signals.value ^= settings.control_invert.mask;
 
+  #if AUX_CONTROLS_SCAN
+    signals = aux_ctrl_scan_status(signals);
+  #endif
+
 #else
 
   #ifdef SAFETY_DOOR_PIN
@@ -1212,7 +1216,7 @@ inline static control_signals_t systemGetState (void)
     if(settings.control_invert.value)
         signals.value ^= settings.control_invert.value;
 
-#endif
+#endif // AUX_CONTROLS_ENABLED
 
     return signals;
 }
