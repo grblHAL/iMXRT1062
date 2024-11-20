@@ -54,7 +54,7 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 #define USB_SERIAL_CDC         2 // 1 for Arduino class library and 2 for PJRC C library. Comment out or set to 0 to use UART communication.
 #endif
 //#define USB_SERIAL_WAIT         1 // Wait for USB connection before starting grblHAL.
-//#define BLUETOOTH_ENABLE        2 // Set to 2 for HC-05 module. Requires and claims one auxillary input pin.
+//#define BLUETOOTH_ENABLE        2 // Set to 2 for HC-05 module. Requires and claims one auxiliary input pin.
 // Spindle selection:
 // Up to four specific spindle drivers can be instantiated at a time
 // depending on N_SPINDLE and N_SYS_SPINDLE definitions in grbl/config.h.
@@ -65,8 +65,9 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 //#define SPINDLE1_ENABLE         SPINDLE_PWM0
 //#define SPINDLE2_ENABLE         SPINDLE_NONE
 //#define SPINDLE2_ENABLE         SPINDLE_NONE
+//#define SPINDLE_OFFSET          1 // Uncomment to enable settings for laser spindle XY-offset.
 // **********************
-//#define MODBUS_ENABLE           1 // Set to 1 for auto direction, 2 for direction signal on auxillary output pin.
+//#define MODBUS_ENABLE           1 // Set to 1 for auto direction, 2 for direction signal on auxiliary output pin.
 //#define WEBUI_ENABLE            3 // Enable ESP3D-WEBUI plugin along with networking and SD card plugins.
 //#define ETHERNET_ENABLE         1 // Ethernet streaming. Enables networking plugin.
 //#define SDCARD_ENABLE           1 // Run gcode programs from SD card. Set to 2 to enable YModem upload.
@@ -78,11 +79,10 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 //#define KEYPAD_ENABLE           1 // 1: uses a I2C keypad for input.
                                     // 2: uses a serial stream for input. If MPG_ENABLE is set > 0 the serial stream is shared with the MPG.
 //#define DISPLAY_ENABLE          1 // Set to 1 for I2C display protocol, 2 for I2C LED protocol.
-//#define MACROS_ENABLE           1 // Macros plugin. For macros that can be triggered by keypad plugin or auxillary inputs.
+//#define MACROS_ENABLE           1 // Macros plugin. For macros that can be triggered by keypad plugin or auxiliary inputs.
                                     // Set to 1 for aux input triggers, 2 for keypad triggers or 3 for both.
 //#define N_MACROS                1 // Number of macros to enable, max 8. If commented out default is 4 when triggered by aux inputs, 8 otherwise.
 //#define PLASMA_ENABLE           1 // Plasma/THC plugin. To be completed.
-//#define MCP3221_ENABLE          1 // Enable analog input via MCP3221 ADC.
 //#define PPI_ENABLE              1 // Laser PPI plugin. To be completed.
 //#define LASER_COOLANT_ENABLE    1 // Laser coolant plugin. To be completed.
 //#define LB_CLUSTERS_ENABLE      1 // LaserBurn cluster support.
@@ -95,6 +95,15 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
                                     // Currently only available for BOARD_T41BB5X_PRO and BOARD_T41U5XBB_SS.
 //#define ESTOP_ENABLE            0 // When enabled only real-time report requests will be executed when the reset pin is asserted.
                                     // Note: if left commented out the default setting is determined from COMPATIBILITY_LEVEL.
+//#define MCP3221_ENABLE       0x4D // Enable MCP3221 I2C ADC input with address 0x4D (0b01001101).
+//#define RGB_LED_ENABLE          2 // Set to 1 to enable strip length settings $536 and $537, set to 2 to also enable M150 LED strip control.
+//#define PWM_SERVO_ENABLE        1 // Enable M280 PWM servo support, requires at least one PWM capable auxiliary output.
+//#define BLTOUCH_ENABLE          1 // Enable M401/M402 BLTouch support. Requires and claims one auxiliary PWM servo output.
+//#define EVENTOUT_ENABLE         1 // Enable binding events (triggers) to control auxiliary outputs.
+//#define ESP_AT_ENABLE           1 // Enable support for Telnet communication via UART connected ESP32 running ESP-AT.
+//#define FEED_OVERRIDE_ENABLE    1 // Enable M200 feed override control.
+//#define HOMING_PULLOFF_ENABLE   1 // Enable per axis homing pulloff distance settings.
+
 // Optional control signals:
 // These will be assigned to aux input pins. Use the $pins command to check which pins are assigned.
 // NOTE: If not enough pins are available assignment will silently fail.
