@@ -43,3 +43,6 @@
 [submodule "grblHAL_Teensy4/src/embroidery"]
 	path = grblHAL_Teensy4/src/embroidery
 	url = https://github.com/grblHAL/Plugin_embroidery
+[submodule "grblHAL_Teensy4/src/plugins"]
+	path = grblHAL_Teensy4/src/plugins
+	url = https://github.com/grblHAL/Plugins_misc/
