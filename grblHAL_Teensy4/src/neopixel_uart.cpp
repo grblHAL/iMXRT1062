@@ -1,5 +1,5 @@
 /*
-  neopixel_uart.c - UART support for Neopixels
+  neopixel_uart.cpp - UART support for Neopixels
 
   Part of grblHAL driver for iMXRT1062
 
@@ -56,12 +56,12 @@ static settings_changed_ptr settings_changed;
 
 void onSettingsChanged (settings_t *settings, settings_changed_flags_t changed)
 {
-    if(neopixel.leds == NULL || hal.rgb0.num_devices != settings->rgb_strip0_length) {
+    if(neopixel.leds == NULL || hal.rgb0.num_devices != settings->rgb_strip.length0) {
 
-        if(settings->rgb_strip0_length == 0)
-            settings->rgb_strip0_length = hal.rgb0.num_devices;
+        if(settings->rgb_strip.length0 == 0)
+            settings->rgb_strip.length0 = hal.rgb0.num_devices;
         else
-            hal.rgb0.num_devices = settings->rgb_strip0_length;
+            hal.rgb0.num_devices = settings->rgb_strip.length0;
 
         if(neopixel.leds) {
             free(neopixel.leds);
