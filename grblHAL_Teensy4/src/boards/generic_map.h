@@ -61,36 +61,38 @@
 #define M4_LIMIT_PIN        (28u)
 #endif
 
+// Define auxiliary output pins
+#define AUXOUTPUT0_PIN      (13u) // Spindle PWM
+#define AUXOUTPUT1_PIN      (11u) // Spindle direction
+#define AUXOUTPUT2_PIN      (12u) // Spindle enable
+#define AUXOUTPUT3_PIN      (19u) // Coolant flood
+#define AUXOUTPUT4_PIN      (18u) // Coolant mist
+
 // Define driver spindle pins
-
-#if DRIVER_SPINDLE_PWM_ENABLE
-#define SPINDLE_PWM_PIN         (13u)
-#else
-#define AUXOUTPUT0_PIN          (13u)
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA
+#define SPINDLE_ENABLE_PIN      AUXOUTPUT2_PIN
 #endif
-
-#if DRIVER_SPINDLE_DIR_ENABLE
-#define SPINDLE_DIRECTION_PIN   (11u)
-#else
-#define AUXOUTPUT1_PIN          (11u)
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
+#define SPINDLE_PWM_PIN         AUXOUTPUT0_PIN
 #endif
-
-#if DRIVER_SPINDLE_ENABLE
-#define SPINDLE_ENABLE_PIN      (12u)
-#else
-#define AUXOUTPUT2_PIN          (12u)
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
+#define SPINDLE_DIRECTION_PIN   AUXOUTPUT1_PIN
 #endif
 
 // Define flood and mist coolant enable output pins.
-#define COOLANT_FLOOD_PIN   (19u)
-#define COOLANT_MIST_PIN    (18u)
+#if COOLANT_ENABLE & COOLANT_FLOOD
+#define COOLANT_FLOOD_PIN       AUXOUTPUT3_PIN
+#endif
+#if COOLANT_ENABLE & COOLANT_MIST
+#define COOLANT_MIST_PIN        AUXOUTPUT4_PIN
+#endif
 
 // Define user-control CONTROLs (cycle start, reset, feed hold, door) input pins.
 #define RESET_PIN           (14u)
 #define FEED_HOLD_PIN       (16u)
 #define CYCLE_START_PIN     (17u)
 
-// Define auxillary input pins
+// Define auxiliary input pins
 #if !QEI_ENABLE
 #define AUXINPUT0_PIN       (0u)
 #define AUXINPUT1_PIN       (3u)

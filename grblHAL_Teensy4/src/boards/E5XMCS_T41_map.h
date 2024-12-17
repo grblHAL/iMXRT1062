@@ -1,5 +1,5 @@
 /*
-   E5XMCS_T41_map.h - driver code for IMXRT1062 processor (on Teensy 4.1 board)
+  E5XMCS_T41_map.h - driver code for IMXRT1062 processor (on Teensy 4.1 board)
 
   Part of grblHAL
 
@@ -69,31 +69,36 @@
 #define MPG_MODE_PIN        (28u)
 #endif
 
+// Define auxiliary output pins
+#define AUXOUTPUT0_PIN      (31u) // AUX0
+#define AUXOUTPUT1_PIN      (32u) // AUX1
+#define AUXOUTPUT2_PIN      (33u) // AUX2
+#define AUXOUTPUT3_PIN      (12u) // Spindle enable
+#define AUXOUTPUT4_PIN      (11u) // Spindle direction
+#define AUXOUTPUT5_PIN      (13u) // Spindle PWM
+#define AUXOUTPUT6_PIN      (19u) // Coolant flood
+#define AUXOUTPUT7_PIN      (18u) // Coolant mist
+
 // Define driver spindle pins
-
-#if DRIVER_SPINDLE_PWM_ENABLE
-#define SPINDLE_PWM_PIN         (13u)
-#else
-#define AUXOUTPUT5_PIN          (13u)
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA
+#define SPINDLE_ENABLE_PIN      AUXOUTPUT3_PIN
 #endif
-
-#if DRIVER_SPINDLE_DIR_ENABLE
-#define SPINDLE_DIRECTION_PIN   (11u)
-#else
-#define AUXOUTPUT4_PIN          (11u)
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
+#define SPINDLE_PWM_PIN         AUXOUTPUT5_PIN
 #endif
-
-#if DRIVER_SPINDLE_ENABLE
-#define SPINDLE_ENABLE_PIN      (12u)
-#else
-#define AUXOUTPUT3_PIN          (12u)
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
+#define SPINDLE_DIRECTION_PIN   AUXOUTPUT4_PIN
 #endif
 
 // Define flood and mist coolant enable output pins.
-#define COOLANT_FLOOD_PIN   (19u)
-#define COOLANT_MIST_PIN    (18u)
+#if COOLANT_ENABLE & COOLANT_FLOOD
+#define COOLANT_FLOOD_PIN       AUXOUTPUT6_PIN
+#endif
+#if COOLANT_ENABLE & COOLANT_MIST
+#define COOLANT_MIST_PIN        AUXOUTPUT7_PIN
+#endif
 
-// Define auxillary input pins
+// Define auxiliary input pins
 #define AUXINPUT0_PIN       (36u) // ST0
 #if !QEI_ENABLE
 #define AUXINPUT1_PIN       (30u) // ST1
@@ -134,10 +139,6 @@
 #define QEI_B_PIN           (34u) // ST2
 #define QEI_SELECT_PIN      AUXINPUT3_PIN // ST3
 #endif
-
-#define AUXOUTPUT0_PIN      (31u) // AUX0
-#define AUXOUTPUT1_PIN      (32u) // AUX1
-#define AUXOUTPUT2_PIN      (33u) // AUX2
 
 #if I2C_ENABLE
 #define I2C_PORT            4

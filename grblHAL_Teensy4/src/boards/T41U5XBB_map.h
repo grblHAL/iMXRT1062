@@ -65,36 +65,45 @@
 #define M4_ENABLE_PIN       (37u)
 #endif
 
+// Define auxiliary output pins
+#define AUXOUTPUT0_PIN      (31U)
+#define AUXOUTPUT1_PIN      (32U)
+#if SPINDLE_ENABLE & (1<<SPINDLE_PWM2|1<<SPINDLE_PWM2_NODIR)
+#define AUXOUTPUT0_PWM_PIN  (33U)
+#else
+#define AUXOUTPUT2_PIN      (33U)
+#endif
+#define AUXOUTPUT3_PIN      (12u) // Spindle enable
+#define AUXOUTPUT4_PIN      (11u) // Spindle direction
+#define AUXOUTPUT5_PIN      (13u) // Spindle PWM
+#define AUXOUTPUT6_PIN      (19u) // Coolant flood
+#define AUXOUTPUT7_PIN      (18u) // Coolant mist
+
 // Define driver spindle pins
-
-#if DRIVER_SPINDLE_PWM_ENABLE
-#define SPINDLE_PWM_PIN         (13u)
-#else
-#define AUXOUTPUT5_PIN          (13u)
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA
+#define SPINDLE_ENABLE_PIN      AUXOUTPUT3_PIN
 #endif
-
-#if DRIVER_SPINDLE_DIR_ENABLE
-#define SPINDLE_DIRECTION_PIN   (11u)
-#else
-#define AUXOUTPUT4_PIN          (11u)
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
+#define SPINDLE_PWM_PIN         AUXOUTPUT5_PIN
 #endif
-
-#if DRIVER_SPINDLE_ENABLE
-#define SPINDLE_ENABLE_PIN      (12u)
-#else
-#define AUXOUTPUT3_PIN          (12u)
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
+#define SPINDLE_DIRECTION_PIN   AUXOUTPUT4_PIN
 #endif
 
 // Define flood and mist coolant enable output pins.
-#define COOLANT_FLOOD_PIN   (19u)
-#define COOLANT_MIST_PIN    (18u)
+#if COOLANT_ENABLE & COOLANT_FLOOD
+#define COOLANT_FLOOD_PIN       AUXOUTPUT6_PIN
+#endif
+#if COOLANT_ENABLE & COOLANT_MIST
+#define COOLANT_MIST_PIN        AUXOUTPUT7_PIN
+#endif
 
 // Define user-control CONTROLs (cycle start, reset, feed hold, door) input pins.
 #define RESET_PIN           (14u)
 #define FEED_HOLD_PIN       (16u)
 #define CYCLE_START_PIN     (17u)
 
-// Define auxillary input pins
+// Define auxiliary input pins
 #define AUXINPUT0_PIN       (36u) // ST0
 #if !QEI_ENABLE
 #define AUXINPUT1_PIN       (30u) // ST1
@@ -137,10 +146,6 @@
 #define QEI_B_PIN           (34u) // ST2
 #define QEI_SELECT_PIN      AUXINPUT3_PIN // ST3
 #endif
-
-#define AUXOUTPUT0_PIN      (31u) // AUX0
-#define AUXOUTPUT1_PIN      (32u) // AUX1
-#define AUXOUTPUT2_PIN      (33u) // AUX2
 
 #if I2C_ENABLE
 #define I2C_PORT            4

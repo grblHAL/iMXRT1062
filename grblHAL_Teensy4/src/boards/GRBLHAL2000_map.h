@@ -73,31 +73,37 @@
 #define M4_ENABLE_PIN       (10u)
 #endif
 
+// Define auxiliary output pins
+#define AUXOUTPUT0_PIN      (37u)
+#define AUXOUTPUT1_PIN      (32u)
+#define AUXOUTPUT2_PIN      (33u)
+#define AUXOUTPUT3_PIN      (38u)
+#define AUXOUTPUT4_PIN      (12u) // Spindle enable
+#define AUXOUTPUT5_PIN      (11u) // Spindle direction
+#define AUXOUTPUT6_PIN      (13u) // Spindle PWM
+#define AUXOUTPUT7_PIN      (19u) // Coolant flood
+#define AUXOUTPUT8_PIN      (18u) // Coolant mist
+
 // Define driver spindle pins
-
-#if DRIVER_SPINDLE_PWM_ENABLE
-#define SPINDLE_PWM_PIN         (13u)
-#else
-#define AUXOUTPUT6_PIN          (13u)
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA
+#define SPINDLE_ENABLE_PIN      AUXOUTPUT4_PIN
 #endif
-
-#if DRIVER_SPINDLE_DIR_ENABLE
-#define SPINDLE_DIRECTION_PIN   (11u)
-#else
-#define AUXOUTPUT5_PIN          (11u)
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
+#define SPINDLE_PWM_PIN         AUXOUTPUT6_PIN
 #endif
-
-#if DRIVER_SPINDLE_ENABLE
-#define SPINDLE_ENABLE_PIN      (12u)
-#else
-#define AUXOUTPUT4_PIN          (12u)
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
+#define SPINDLE_DIRECTION_PIN   AUXOUTPUT5_PIN
 #endif
 
 // Define flood and mist coolant enable output pins.
-#define COOLANT_FLOOD_PIN   (19u)
-#define COOLANT_MIST_PIN    (18u)
+#if COOLANT_ENABLE & COOLANT_FLOOD
+#define COOLANT_FLOOD_PIN       AUXOUTPUT7_PIN
+#endif
+#if COOLANT_ENABLE & COOLANT_MIST
+#define COOLANT_MIST_PIN        AUXOUTPUT8_PIN
+#endif
 
-// Define auxillary input pins
+// Define auxiliary input pins
 #if !QEI_ENABLE
 #define AUXINPUT0_PIN       (36u) // ST0
 #define AUXINPUT1_PIN       (30u) // ST1
@@ -141,12 +147,6 @@
 #define SPINDLE_INDEX_PIN   (31u) // ST2
 #define SPINDLE_PULSE_PIN   (14u) // ST3
 #endif
-
-// Define auxillary output pins
-#define AUXOUTPUT0_PIN      (37u)
-#define AUXOUTPUT1_PIN      (32u)
-#define AUXOUTPUT2_PIN      (33u)
-#define AUXOUTPUT3_PIN      (38u)
 
 #if I2C_ENABLE
 #define I2C_PORT            4
