@@ -2663,7 +2663,7 @@ static bool driver_setup (settings_t *settings)
 #endif
 
 #if LITTLEFS_ENABLE
-    fs_littlefs_mount("/littlefs", t4_littlefs_hal());
+    fs_littlefs_mount(LITTLEFS_MOUNT_DIR, t4_littlefs_hal());
 #endif
 
 #if ETHERNET_ENABLE
@@ -2797,7 +2797,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "241216";
+    hal.driver_version = "241219";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
