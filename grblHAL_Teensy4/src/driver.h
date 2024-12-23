@@ -45,6 +45,17 @@
 #define ETHERNET_ENABLE 1
 #endif
 
+#if WEBUI_ENABLE
+#ifdef WEBUI_INFLASH
+#undef WEBUI_INFLASH
+#endif
+#ifdef LITTLEFS_ENABLE
+#undef LITTLEFS_ENABLE
+#endif
+#define WEBUI_INFLASH   1
+#define LITTLEFS_ENABLE 1
+#endif
+
 #include "grbl/driver_opts.h"
 
 #define DIGITAL_IN(gpio) (!!(gpio.reg->DR & gpio.bit))
@@ -87,17 +98,6 @@
 // Timers used for spindle encoder if spindle sync is enabled:
 //#define RPM_TIMER         GPT1
 //#define RPM_COUNTER       GPT2
-
-#if WEBUI_ENABLE
-  #ifdef WEBUI_INFLASH
-  #undef WEBUI_INFLASH
-  #endif
-  #ifdef LITTLEFS_ENABLE
-  #undef LITTLEFS_ENABLE
-  #endif
-#define WEBUI_INFLASH   1
-#define LITTLEFS_ENABLE 1
-#endif
 
 #ifdef BOARD_CNC_BOOSTERPACK
   #include "boards/cnc_boosterpack_map.h"
