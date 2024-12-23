@@ -73,7 +73,7 @@ static void report_options (bool newopt)
         hal.stream.write(",ETH");
 #if FTP_ENABLE
         if(services.ftp)
-        	hal.stream.write(",FTP");
+            hal.stream.write(",FTP");
 #endif
 #if WEBDAV_ENABLE
         if(services.webdav)
@@ -145,18 +145,6 @@ network_info_t *networking_get_info (void)
     return &info;
 }
 
-static void link_status_callback (struct netif *netif)
-{
-    bool isLinkUp = netif_is_link_up(netif);
-
-    if(isLinkUp != linkUp) {
-        linkUp = isLinkUp;
-#if TELNET_ENABLE
-        telnetd_notify_link_status(linkUp);
-#endif
-    }
-}
-
 #if MDNS_ENABLE
 
 static void mdns_device_info (struct mdns_service *service, void *txt_userdata)
@@ -179,7 +167,7 @@ static void mdns_service_info (struct mdns_service *service, void *txt_userdata)
 
 static void netif_status_callback (struct netif *netif)
 {
-    if(netif->ip_addr.addr == 0)
+    if(netif->ip_addr.addr == 0 || !linkUp)
         return;
 
     ip4addr_ntoa_r(netif_ip_addr4(netif), IPAddress, IP4ADDR_STRLEN_MAX);
@@ -246,6 +234,19 @@ static void netif_status_callback (struct netif *netif)
 #if MODBUS_ENABLE & MODBUS_TCP_ENABLED
     modbus_tcp_client_start();
 #endif
+}
+
+static void link_status_callback (struct netif *netif)
+{
+    bool isLinkUp = netif_is_link_up(netif);
+
+    if(isLinkUp != linkUp) {
+        if((linkUp = isLinkUp) && !services.mask && network.ip_mode == IpMode_Static)
+            netif_status_callback(netif);
+#if TELNET_ENABLE
+        telnetd_notify_link_status(linkUp);
+#endif
+    }
 }
 
 static void grbl_enet_poll (sys_state_t state)

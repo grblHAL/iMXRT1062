@@ -65,10 +65,6 @@
 #define M4_ENABLE_PIN       (37u)
 #endif
 
-#if MPG_ENABLE == 1 && !defined(M4_LIMIT_PIN)
-#define MPG_MODE_PIN        (28u)
-#endif
-
 // Define auxiliary output pins
 #define AUXOUTPUT0_PIN      (31u) // AUX0
 #define AUXOUTPUT1_PIN      (32u) // AUX1
@@ -106,8 +102,11 @@
 #endif
 #define AUXINPUT3_PIN       (35u) // ST3
 #define AUXINPUT4_PIN       (41u) // I2C strobe
-#define AUXINPUT5_PIN       (29u) // Safety door
-#define AUXINPUT6_PIN       (15u) // Probe
+#if !defined(M4_LIMIT_PIN)
+#define AUXINPUT5_PIN       (28u) // MPG mode
+#endif
+#define AUXINPUT6_PIN       (29u) // Safety door
+#define AUXINPUT7_PIN       (15u) // Probe
 
 // Define user-control CONTROLs (cycle start, reset, feed hold, door) input pins.
 #define RESET_PIN           (14u)
@@ -115,11 +114,11 @@
 #define CYCLE_START_PIN     (17u)
 
 #if PROBE_ENABLE
-#define PROBE_PIN           AUXINPUT6_PIN
+#define PROBE_PIN           AUXINPUT7_PIN
 #endif
 
 #if SAFETY_DOOR_ENABLE
-#define SAFETY_DOOR_PIN     AUXINPUT5_PIN
+#define SAFETY_DOOR_PIN     AUXINPUT6_PIN
 #endif
 
 #if I2C_STROBE_ENABLE
@@ -132,6 +131,10 @@
 
 #if MOTOR_WARNING_ENABLE && defined(AUXINPUT1_PIN)
 #define MOTOR_WARNING_PIN   AUXINPUT1_PIN
+#endif
+
+#if MPG_ENABLE == 1 && defined(AUXINPUT5_PIN)
+#define MPG_MODE_PIN        AUXINPUT5_PIN
 #endif
 
 #if QEI_ENABLE

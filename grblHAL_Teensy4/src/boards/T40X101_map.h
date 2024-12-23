@@ -65,10 +65,6 @@
 #define M4_ENABLE_PIN       (37u)
 #endif
 
-#if MPG_ENABLE == 1 && !defined(M4_LIMIT_PIN)
-#define MPG_MODE_PIN        (28u)
-#endif
-
 // Define stepper driver enable/disable output pin(s).
 #define STEPPERS_ENABLE_PIN (10u)
 
@@ -99,8 +95,11 @@
 #endif
 
 // Define auxiliary input pins
-#define AUXINPUT0_PIN       (29u) // Safety door
-#define AUXINPUT1_PIN       (15u) // Probe
+#if !defined(M4_LIMIT_PIN)
+#define AUXINPUT0_PIN       (28u) // MPG mode
+#endif
+#define AUXINPUT1_PIN       (29u) // Safety door
+#define AUXINPUT2_PIN       (15u) // Probe
 
 // Define user-control CONTROLs (cycle start, reset, feed hold, door) input pins.
 #define RESET_PIN           (14u)
@@ -108,13 +107,17 @@
 #define CYCLE_START_PIN     (17u)
 
 #if PROBE_ENABLE
-#define PROBE_PIN           AUXINPUT1_PIN
+#define PROBE_PIN           AUXINPUT2_PIN
 #endif
 
 #if SAFETY_DOOR_ENABLE
-#define SAFETY_DOOR_PIN     AUXINPUT0_PIN
+#define SAFETY_DOOR_PIN     AUXINPUT1_PIN
 #elif MOTOR_FAULT_ENABLE
-#define MOTOR_FAULT_PIN     AUXINPUT0_PIN
+#define MOTOR_FAULT_PIN     AUXINPUT1_PIN
+#endif
+
+#if MPG_ENABLE == 1 && !defined(AUXINPUT0_PIN)
+#define MPG_MODE_PIN        AUXINPUT0_PIN
 #endif
 
 #if I2C_ENABLE
