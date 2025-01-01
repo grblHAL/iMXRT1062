@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2024 Terje Io
+  Copyright (c) 2020-2025 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -1810,13 +1810,13 @@ bool spindleConfig (spindle_ptrs_t *spindle)
 
 #if PPI_ENABLE
 
-static void spindlePulseOn (uint_fast16_t step_pulse.length)
+static void spindlePulseOn (uint_fast16_t pulse_length)
 {
     static uint_fast16_t plen = 0;
 
-    if(plen != step_pulse.length) {
-        plen = step_pulse.length;
-        PPI_TIMER_COMP1 = (uint16_t)((step_pulse.length * F_BUS_MHZ) / 128);
+    if(plen != pulse_length) {
+        plen = pulse_length;
+        PPI_TIMER_COMP1 = (uint16_t)((pulse_length * F_BUS_MHZ) / 128);
     }
 
     spindle_on(NULL);
@@ -2797,7 +2797,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "241219";
+    hal.driver_version = "250101";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
