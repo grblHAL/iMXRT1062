@@ -766,13 +766,12 @@ inline static __attribute__((always_inline)) void set_step_outputs (axes_signals
     if(axes.bits) {
 
         uint_fast8_t idx, mask = 1;
-        axes_signals_t step = { .bits = step_out.bits };
 
         step_out.bits ^= settings.steppers.step_invert.bits;
 
         for(idx = 0; idx < N_AXIS; idx++) {
 
-            if((step.bits & mask) && !(axes.bits & mask)) switch(idx) {
+            if(!(axes.bits & mask)) switch(idx) {
 
                 case X_AXIS:
                     DIGITAL_OUT(stepX, step_out.x);
@@ -2797,7 +2796,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "250101";
+    hal.driver_version = "250107";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
