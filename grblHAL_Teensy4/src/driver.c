@@ -2796,7 +2796,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "250107";
+    hal.driver_version = "250122";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -3031,7 +3031,9 @@ bool driver_init (void)
 
     ioports_init(&aux_digital_in, &aux_digital_out);
 
+#if !MCP3221_ENABLE
     if(aux_analog_out.n_pins)
+#endif
         ioports_init_analog(&aux_analog_in, &aux_analog_out);
 
 #if defined(SAFETY_DOOR_PIN)
