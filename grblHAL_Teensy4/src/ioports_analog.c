@@ -131,7 +131,7 @@ const struct pwm_pin_info_struct pwm_pin_infos[] = {
 #endif
 };
 
-#if MCP3221_ENABLE
+#ifdef MCP3221_ENABLE
 
 static xbar_t mcp3221;
 static enumerate_pins_ptr on_enumerate_pins;
@@ -405,15 +405,6 @@ static xbar_t *get_pin_info (io_port_type_t type, io_port_direction_t dir, uint8
 
         switch(dir) {
 
-#ifdef MCP3221_ENABLE
-            case Port_Input:
-                if(port < analog.in.n_ports) {
-                    pin.id = ioports_map(analog.in, port);
-                    if(pin.id == mcp3221.id)
-                        info = &mcp3221;
-                }
-                break;
-#endif
             case Port_Output:
                 if(port < analog.out.n_ports) {
                     pin.id = ioports_map(analog.out, port);
@@ -431,6 +422,20 @@ static xbar_t *get_pin_info (io_port_type_t type, io_port_direction_t dir, uint8
                     }
                     info = &pin;
                 }
+                break;
+
+#ifdef MCP3221_ENABLE
+            case Port_Input:
+                if(port < analog.in.n_ports) {
+                    pin.id = ioports_map(analog.in, port);
+                    if(pin.id == mcp3221.id)
+                        info = &mcp3221;
+                }
+                break;
+
+#else
+            default: break;
+#endif
         }
     }
 
@@ -530,7 +535,7 @@ void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_ou
     set_pin_description_digital = hal.port.set_pin_description;
     hal.port.set_pin_description = set_pin_description;
 
-#if MCP3221_ENABLE
+#ifdef MCP3221_ENABLE
 
     pin_group_pins_t aux_in = {
         .n_pins = 1
