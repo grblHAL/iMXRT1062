@@ -562,16 +562,14 @@ void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_ou
 
     if(ioports_add(&analog, Port_Analog, aux_inputs->n_pins, aux_outputs->n_pins))  {
 
-        uint_fast8_t i, n_pwm = 0;
+        claim_digital = hal.port.claim;
+        hal.port.claim = claim;
 
-        if(analog.in.n_ports) {
+        get_pin_info_digital = hal.port.get_pin_info;
+        hal.port.get_pin_info = get_pin_info;
 
-            wait_on_input_digital = hal.port.wait_on_input;
-            hal.port.wait_on_input = wait_on_input;
-
-            for(i = 0; i < analog.in.n_ports; i++)
-                aux_in_analog[i].description = iports_get_pnum(analog, i);
-        }
+//        swap_pins = hal.port.swap_pins;
+//        hal.port.swap_pins = swap_pins;
 
         if(analog.out.n_ports) {
 
@@ -584,6 +582,8 @@ void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_ou
                 .max_value = 100.0f,
                 .invert = Off
             };
+
+            uint_fast8_t i, n_pwm = 0;
 
             hal.port.analog_out = analog_out;
 
@@ -606,22 +606,11 @@ void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_ou
             }
         }
 
-        claim_digital = hal.port.claim;
-        swap_pins_digital = hal.port.swap_pins;
-        get_pin_info_digital = hal.port.get_pin_info;
-        set_pin_description_digital = hal.port.set_pin_description;
-
         if(analog.in.n_ports) {
             if((wait_on_input_digital = hal.port.wait_on_input) == NULL)
                 wait_on_input_digital = wait_on_input_dummy;
             hal.port.wait_on_input = wait_on_input;
         }
-
-        hal.port.claim = claim;
-//        hal.port.swap_pins = swap_pins;
-        hal.port.get_pin_info = get_pin_info;
-        hal.port.set_pin_description = set_pin_description;
-
     } else
          hal.port.set_pin_description = set_pin_description_digital;
 }

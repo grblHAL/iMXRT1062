@@ -230,12 +230,6 @@ static void set_pin_description (io_port_type_t type, io_port_direction_t dir, u
         if(dir == Port_Output && port < digital.out.n_ports)
             aux_out[ioports_map(digital.out, port)].description = s;
     }
-#if AUX_ANALOG
-    else {
-        if(dir == Port_Output && port < analog.out.n_ports)
-            aux_out[ioports_map(analog.out, port)].description = s;
-    }
-#endif
 }
 
 static bool claim (io_port_type_t type, io_port_direction_t dir, uint8_t *port, const char *description)
