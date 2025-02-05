@@ -710,7 +710,7 @@ inline static __attribute__((always_inline)) void set_step_outputs (axes_signals
 #ifdef B_AXIS
                 case B_AXIS:
                     DIGITAL_OUT(stepB, step_out1.b);
-                    break
+                    break;
 #endif
             }
             mask <<= 1;
@@ -803,7 +803,7 @@ inline static __attribute__((always_inline)) void set_step_outputs (axes_signals
 #ifdef B_AXIS
                 case B_AXIS:
                     DIGITAL_OUT(stepB, step_out.b);
-                    break
+                    break;
 #endif
             }
             mask <<= 1;
@@ -1248,7 +1248,7 @@ static inline __attribute__((always_inline)) void inject_step (axes_signals_t st
 #ifdef B_AXIS
                 case B_AXIS:
                     DIGITAL_OUT(stepB, step_out.b);
-                    break
+                    break;
 #endif
             }
         }
@@ -2797,7 +2797,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "250201";
+    hal.driver_version = "250205";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;

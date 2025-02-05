@@ -28,7 +28,7 @@ monitor_flags =
 
 [eth_networking]
 build_flags =
-lib_deps = /home/terjeio/grblHAL/teensy41_ethernet-master
+lib_deps = /home/webbuilder/grblHAL/teensy41_ethernet
 
 [env:%env_name%]
 board = %board%
@@ -37,4 +37,4 @@ build_flags = ${common.build_flags}
 %build_flags%
 lib_deps = ${common.lib_deps}
 %lib_deps%
-  /home/terjeio/grblHAL/uSDFS-master
+  /home/webbuilder/grblHAL/uSDFS
