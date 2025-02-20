@@ -35,7 +35,7 @@ static float *pwm_values;
 static set_pin_description_ptr set_pin_description_digital;
 static get_pin_info_ptr get_pin_info_digital;
 static claim_port_ptr claim_digital;
-static swap_pins_ptr swap_pins_digital; 
+//static swap_pins_ptr swap_pins_digital;
 static wait_on_input_ptr wait_on_input_digital;
 
 // Code lifted from PJRC, pwm.c
