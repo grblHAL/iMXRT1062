@@ -607,6 +607,8 @@ bool grbl_enet_init (network_settings_t *settings)
 {
     if((nvs_address = nvs_alloc(sizeof(network_settings_t)))) {
 
+        networking_init();
+
         on_report_options = grbl.on_report_options;
         grbl.on_report_options = report_options;
 
