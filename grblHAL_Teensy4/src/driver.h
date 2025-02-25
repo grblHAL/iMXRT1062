@@ -47,11 +47,11 @@
 #ifdef WEBUI_INFLASH
 #undef WEBUI_INFLASH
 #endif
-#ifdef LITTLEFS_ENABLE
+#if defined(LITTLEFS_ENABLE) && LITTLEFS_ENABLE == 0
 #undef LITTLEFS_ENABLE
+#define LITTLEFS_ENABLE 1
 #endif
 #define WEBUI_INFLASH   1
-#define LITTLEFS_ENABLE 1
 #endif
 
 #include "grbl/driver_opts.h"
