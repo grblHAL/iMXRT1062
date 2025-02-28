@@ -2797,7 +2797,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "250205";
+    hal.driver_version = "250228";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -2870,10 +2870,6 @@ bool driver_init (void)
 #else
     if(!stream_connect_instance(SERIAL_STREAM, BAUD_RATE))
         while(true); // Cannot boot if no communication channel is available!
-#endif
-
-#ifdef I2C_PORT
-    i2c_init();
 #endif
 
 #if EEPROM_ENABLE

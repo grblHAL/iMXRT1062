@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Some parts of this code is Copyright (c) 2020-2023 Terje Io
+  Some parts of this code is Copyright (c) 2020-2025 Terje Io
 
   Some parts are derived/pulled from WireIMXRT.cpp in the Teensyduino Core Library (no copyright header)
 
@@ -206,13 +206,11 @@ static IMXRT_LPI2C_t *port = NULL;
 
 static void I2C_interrupt_handler (void);
 
-void i2c_init (void)
+i2c_cap_t i2c_start (void)
 {
-    static bool init_ok = false;
+    static i2c_cap_t cap = {};
 
-    if(!init_ok) {
-
-        init_ok = true;
+    if(!cap.started) {
 
 #ifndef I2C_PORT
 #error "I2C port is undefined!"
@@ -268,7 +266,11 @@ void i2c_init (void)
 
         hal.periph_port.register_pin(&scl);
         hal.periph_port.register_pin(&sda);
+
+        cap.started = cap.tx_non_blocking = On;
     }
+
+    return cap;
 }
 
 // wait until ready for transfer, try peripheral reset if bus hangs
@@ -287,7 +289,7 @@ inline static bool wait_ready (void)
     return true;
 }
 
-bool i2c_probe (uint_fast16_t i2cAddr)
+bool i2c_probe (i2c_address_t i2cAddr)
 {
     bool ok = false;
     uint32_t ms, retries = 3;
@@ -319,7 +321,7 @@ bool i2c_probe (uint_fast16_t i2cAddr)
 }
 
 // get bytes (max 8 if local buffer, else max 255), waits for result
-uint8_t *i2c_receive (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block)
+bool i2c_receive (i2c_address_t i2cAddr, uint8_t *buf, size_t bytes, bool block)
 {
     i2c.data  = buf ? buf : i2c.buffer;
     i2c.count = bytes;
@@ -334,10 +336,10 @@ uint8_t *i2c_receive (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block
     if(block)
         while(i2cIsBusy);
 
-    return i2c.buffer;
+    return true;
 }
 
-bool i2c_send (uint_fast16_t i2cAddr, uint8_t *buf, size_t bytes, bool block)
+bool i2c_send (i2c_address_t i2cAddr, uint8_t *buf, size_t bytes, bool block)
 {
     i2c.count = bytes;
     i2c.data  = buf ? buf : i2c.buffer;
@@ -369,7 +371,7 @@ bool i2c_send (uint_fast16_t i2cAddr, uint8_t *buf, size_t bytes, bool block)
     return !block || i2c.state != I2CState_Error;
 }
 
-uint8_t *I2C_ReadRegister (uint32_t i2cAddr, uint8_t *buf, uint8_t abytes, uint16_t bytes, bool block)
+static uint8_t *I2C_ReadRegister (i2c_address_t i2cAddr, uint8_t *buf, uint8_t abytes, uint16_t bytes, bool block)
 {
     while(i2cIsBusy);
 
@@ -390,15 +392,15 @@ uint8_t *I2C_ReadRegister (uint32_t i2cAddr, uint8_t *buf, uint8_t abytes, uint1
     return i2c.buffer;
 }
 
-#if EEPROM_ENABLE
-
-nvs_transfer_result_t i2c_nvs_transfer (nvs_transfer_t *transfer, bool read)
+bool i2c_transfer (i2c_transfer_t *transfer, bool read)
 {
     static uint8_t txbuf[NVS_SIZE + 2];
 
+    bool ok;
+
     while(i2cIsBusy);
 
-    if(read) {
+    if((ok = read)) {
         if(transfer->word_addr_bytes == 1)
             i2c.regaddr[0] = transfer->word_addr;
         else {
@@ -406,7 +408,7 @@ nvs_transfer_result_t i2c_nvs_transfer (nvs_transfer_t *transfer, bool read)
             i2c.regaddr[1] = transfer->word_addr >> 8;
         }
         I2C_ReadRegister(transfer->address, transfer->data, transfer->word_addr_bytes, transfer->count, true);
-    } else {
+    } else if((ok = transfer->count <= NVS_SIZE)) {
         memcpy(&txbuf[transfer->word_addr_bytes], transfer->data, transfer->count);
         if(transfer->word_addr_bytes == 1)
             txbuf[0] = transfer->word_addr;
@@ -414,23 +416,22 @@ nvs_transfer_result_t i2c_nvs_transfer (nvs_transfer_t *transfer, bool read)
             txbuf[0] = transfer->word_addr >> 8;
             txbuf[1] = transfer->word_addr & 0xFF;
         }
-        i2c_send(transfer->address, txbuf, transfer->count + transfer->word_addr_bytes, true);
-#if !EEPROM_IS_FRAM
-        hal.delay_ms(7, NULL);
-#endif
+        i2c_send(transfer->address, txbuf, transfer->count + transfer->word_addr_bytes, !transfer->no_block);
     }
 
-    return NVS_TransferResult_OK;
+    return ok;
 }
 
-#endif
-
-void i2c_get_keycode (uint_fast16_t i2cAddr, keycode_callback_ptr callback)
+bool i2c_get_keycode (i2c_address_t i2cAddr, keycode_callback_ptr callback)
 {
-    if(wait_ready()) {
+    bool ok;
+
+    if((ok = wait_ready())) {
         i2c.keycode_callback = callback;
         i2c_receive(i2cAddr, NULL, 1, false);
     }
+
+    return ok;
 }
 
 #if TRINAMIC_ENABLE && TRINAMIC_I2C

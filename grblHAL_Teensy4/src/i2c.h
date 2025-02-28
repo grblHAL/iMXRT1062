@@ -27,14 +27,6 @@
 #include "driver.h"
 #include "grbl/plugins.h"
 
-void i2c_init (void);
-bool i2c_probe (uint_fast16_t i2cAddr);
-bool i2c_send (uint_fast16_t i2cAddr, uint8_t *buf, size_t size, bool block);
-void i2c_get_keycode (uint_fast16_t i2cAddr, keycode_callback_ptr callback);
-
-uint8_t *i2c_receive (uint32_t i2cAddr, uint8_t *buf, uint16_t bytes, bool block);
-uint8_t *I2C_ReadRegister (uint32_t i2cAddr, uint8_t *buf, uint8_t abytes, uint16_t bytes, bool block);
-
 #if TRINAMIC_ENABLE && TRINAMIC_I2C
 
 #include "trinamic/trinamic2130.h"
