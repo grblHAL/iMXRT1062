@@ -40,7 +40,10 @@
 #define SECTOR_SIZE 65536
 #endif
 
-#define FS_SIZE (512 * 1024)
+#ifndef LFS_SIZE_KB
+#define LFS_SIZE_KB 512
+#endif
+#define FS_SIZE (LFS_SIZE_KB * 1024)
 
 #if (FS_SIZE & (SECTOR_SIZE - 1)) || FS_SIZE > (FLASH_SIZE - (512 * 1024))
 #error "Illegal littlefs file system size!"
