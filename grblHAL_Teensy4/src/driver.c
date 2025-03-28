@@ -577,8 +577,9 @@ static probe_state_t probe = {
     .connected = On
 };
 static struct {
-    uint16_t length;
-    uint16_t delay;
+    uint32_t length;
+    uint32_t delay;
+    uint32_t t_min_period; // timer ticks
     axes_signals_t out;
 #if STEP_INJECT_ENABLE
     struct {
@@ -587,7 +588,7 @@ static struct {
         volatile axes_signals_t out;
     } inject;
 #endif
-} step_pulse = {0};
+} step_pulse = {};
 
 #ifdef SQUARING_ENABLED
 static axes_signals_t motors_1 = {AXES_BITMASK}, motors_2 = {AXES_BITMASK};
@@ -1042,7 +1043,7 @@ static void stepperGoIdle (bool clear_signals)
 static void stepperCyclesPerTick (uint32_t cycles_per_tick)
 {
     PIT_TCTRL0 &= ~PIT_TCTRL_TEN;
-    PIT_LDVAL0 = cycles_per_tick < (1UL << 20) ? cycles_per_tick : 0x000FFFFFUL;
+    PIT_LDVAL0 = cycles_per_tick < (1UL << 20) ? max(cycles_per_tick, step_pulse.t_min_period) : 0x000FFFFFUL;
     PIT_TFLG0 |= PIT_TFLG_TIF;
     PIT_TCTRL0 |= PIT_TCTRL_TEN;
 }
@@ -1060,11 +1061,13 @@ static void stepperPulseStart (stepper_t *stepper)
     }
 #endif
 
-    if(stepper->dir_change)
-        set_dir_outputs(stepper->dir_outbits);
+    if(stepper->dir_changed.bits) {
+        stepper->dir_changed.bits = 0;
+        set_dir_outputs(stepper->dir_out);
+    }
 
-    if(stepper->step_outbits.value) {
-        set_step_outputs(stepper->step_outbits);
+    if(stepper->step_out.bits) {
+        set_step_outputs(stepper->step_out);
         PULSE_TIMER_CTRL |= TMR_CTRL_CM(0b001);
     }
 }
@@ -1085,25 +1088,33 @@ static void stepperPulseStartDelayed (stepper_t *stepper)
     }
 #endif
 
-    if(stepper->dir_change) {
+    if(stepper->dir_changed.bits) {
 
-        set_dir_outputs(stepper->dir_outbits);
+        set_dir_outputs(stepper->dir_out);
 
-        if(stepper->step_outbits.value) {
+        if(stepper->step_out.bits) {
 
-            step_pulse.out = stepper->step_outbits; // Store out_bits
+            if(stepper->step_out.bits & stepper->dir_changed.bits) {
 
-            attachInterruptVector(PULSE_TIMER_IRQ, stepper_pulse_isr_delayed);
+                step_pulse.out = stepper->step_out; // Store out_bits
 
-            PULSE_TIMER_COMP1 = step_pulse.delay;
-            PULSE_TIMER_CTRL |= TMR_CTRL_CM(0b001);
+                attachInterruptVector(PULSE_TIMER_IRQ, stepper_pulse_isr_delayed);
+
+                PULSE_TIMER_COMP1 = step_pulse.delay;
+                PULSE_TIMER_CTRL |= TMR_CTRL_CM(0b001);
+            } else {
+                set_step_outputs(stepper->step_out);
+                PULSE_TIMER_CTRL |= TMR_CTRL_CM(0b001);
+            }
         }
+
+        stepper->dir_changed.bits = 0;
 
         return;
     }
 
-    if(stepper->step_outbits.value) {
-        set_step_outputs(stepper->step_outbits);
+    if(stepper->step_out.bits) {
+        set_step_outputs(stepper->step_out);
         PULSE_TIMER_CTRL |= TMR_CTRL_CM(0b001);
     }
 }
@@ -1125,7 +1136,7 @@ static void stepperPulseStartSynchronized (stepper_t *stepper)
             return;
         }
         sync = true;
-        set_dir_outputs(stepper->dir_outbits);
+        set_dir_outputs(stepper->dir_out);
         spindle_tracker.programmed_rate = stepper->exec_block->programmed_rate;
         spindle_tracker.steps_per_mm = stepper->exec_block->steps_per_mm;
         spindle_tracker.segment_id = 0;
@@ -1138,8 +1149,8 @@ static void stepperPulseStartSynchronized (stepper_t *stepper)
 #endif
     }
 
-    if(stepper->step_outbits.value) {
-        set_step_outputs(stepper->step_outbits);
+    if(stepper->step_out.bits) {
+        set_step_outputs(stepper->step_out);
         PULSE_TIMER_CTRL |= TMR_CTRL_CM(0b001);
     }
 
@@ -2094,13 +2105,15 @@ static void settings_changed (settings_t *settings, settings_changed_flags_t cha
         // Stepper pulse timeout setup.
         PULSE_TIMER_CSCTRL &= ~(TMR_CSCTRL_TCF1|TMR_CSCTRL_TCF2);
 
-        step_pulse.length = (uint16_t)((float)F_BUS_MHZ * (settings->steppers.pulse_microseconds - STEP_PULSE_LATENCY));
+        float ts = hal.f_step_timer / 1000000.0f;
+        step_pulse.t_min_period = (uint32_t)((hal.step_us_min + STEP_PULSE_TOFF_MIN) * ts);
+        step_pulse.length = (uint32_t)(ts * (settings->steppers.pulse_microseconds - STEP_PULSE_LATENCY));
 
         if(hal.driver_cap.step_pulse_delay && settings->steppers.pulse_delay_microseconds > 0.0f) {
             float delay = settings->steppers.pulse_delay_microseconds - STEP_PULSE_LATENCY;
             if(delay <= STEP_PULSE_LATENCY)
                 delay = STEP_PULSE_LATENCY + 0.2f;
-            step_pulse.delay = (uint16_t)((float)F_BUS_MHZ * delay);
+            step_pulse.delay = (uint32_t)(ts * delay);
             hal.stepper.pulse_start = stepperPulseStartDelayed;
         } else
             hal.stepper.pulse_start = stepperPulseStart;
@@ -2797,7 +2810,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "250228";
+    hal.driver_version = "250328";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -2810,6 +2823,8 @@ bool driver_init (void)
     hal.driver_setup = driver_setup;
     hal.f_mcu = F_CPU_ACTUAL / 1000000UL;
     hal.f_step_timer = 24000000;
+    hal.step_us_min = 1.0f;
+
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.get_free_mem = get_free_mem;
     hal.delay_ms = driver_delay_ms;
@@ -3094,7 +3109,7 @@ static void stepper_driver_isr (void)
    cause issues at high step rates if another high frequency asynchronous interrupt is
    added to Grbl.
 */
-// This interrupt is enabled when Grbl sets the motor port bits to execute
+// This interrupt is enabled when grblHAL sets the motor port bits to execute
 // a step. This ISR resets the motor port after a short period (settings.pulse_microseconds)
 // completing one step cycle.
 static void stepper_pulse_isr (void)

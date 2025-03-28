@@ -176,8 +176,15 @@
 #define SPINDLE_PWM_TIMER_LOAD      timerLOAD(SPINDLE_PWM_TIMER_N, SPINDLE_PWM_TIMER_C)
 
 // Adjust STEP_PULSE_LATENCY to get accurate step pulse length when required, e.g if using high step rates.
-// The default value is calibrated for 10 microseconds length.
+// The default value is calibrated for 5 microseconds length.
 // NOTE: step output mode, number of axes and compiler optimization settings may all affect this value.
+
+// Minimum pulse off time.
+#ifndef STEP_PULSE_TOFF_MIN
+#define STEP_PULSE_TOFF_MIN 2.0f
+#endif
+// Time from step out to step reset.
+// Adjust for correct step pulse time.
 #ifndef STEP_PULSE_LATENCY
 #define STEP_PULSE_LATENCY 0.2f // microseconds
 #endif
