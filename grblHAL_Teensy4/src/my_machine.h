@@ -78,13 +78,14 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
                                     // 2: Mode switching is by the CMD_MPG_MODE_TOGGLE (0x8B) command character.
 //#define KEYPAD_ENABLE           1 // 1: uses a I2C keypad for input.
                                     // 2: uses a serial stream for input. If MPG_ENABLE is set > 0 the serial stream is shared with the MPG.
-//#define DISPLAY_ENABLE          1 // Set to 1 for I2C display protocol, 2 for I2C LED protocol.
+//#define DISPLAY_ENABLE          9 // Set to 9 for I2C display protocol, 17 for I2C LED protocol.
 //#define MACROS_ENABLE           1 // Macros plugin. For macros that can be triggered by keypad plugin or auxiliary inputs.
                                     // Set to 1 for aux input triggers, 2 for keypad triggers or 3 for both.
 //#define N_MACROS                1 // Number of macros to enable, max 8. If commented out default is 4 when triggered by aux inputs, 8 otherwise.
 //#define PLASMA_ENABLE           1 // Plasma/THC plugin. To be completed.
 //#define PPI_ENABLE              1 // Laser PPI plugin. To be completed.
 //#define LASER_COOLANT_ENABLE    1 // Laser coolant plugin. To be completed.
+//#define LASER_OVD_ENABLE        1 // Enable M-code for overdrive PWM output during spindle off in RPM controlled mode.
 //#define LB_CLUSTERS_ENABLE      1 // LaserBurn cluster support.
 //#define ODOMETER_ENABLE         1 // Odometer plugin.
 //#define OPENPNP_ENABLE          1 // OpenPNP plugin. To be completed.
