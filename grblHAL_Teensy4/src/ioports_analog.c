@@ -42,7 +42,7 @@ struct pwm_pin_info_struct {
 
 #define M(a, b) ((((a) - 1) << 4) | (b))
 
-const struct pwm_pin_info_struct pwm_pin_infos[] = {
+PROGMEM const struct pwm_pin_info_struct pwm_pin_infos[] = {
     {1, M(1, 1), 0, 4},  // FlexPWM1_1_X   0  // AD_B0_03
     {1, M(1, 0), 0, 4},  // FlexPWM1_0_X   1  // AD_B0_02
     {1, M(4, 2), 1, 1},  // FlexPWM4_2_A   2  // EMC_04
@@ -149,7 +149,7 @@ static uint_fast16_t set_pwm_values (pwm_config_t *config, ioports_pwm_t *pwm_da
     return ok ? divider : 0;
 }
 
-static bool init_pwm (xbar_t *output, pwm_config_t *config, bool persistent)
+FLASHMEM static bool init_pwm (xbar_t *output, pwm_config_t *config, bool persistent)
 {
     const struct pwm_pin_info_struct *hw = pwm_pin_infos + output->pin;
 
@@ -392,7 +392,7 @@ static void set_pin_description (io_port_direction_t dir, uint8_t port, const ch
         aux_out_analog[port].description = description;
 }
 
-void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs)
+FLASHMEM void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs)
 {
     io_analog_t ports = {
         .ports = &analog,

@@ -33,8 +33,8 @@
 
 #define BLOCK_RX_BUFFER_SIZE 20
 
-static stream_block_tx_buffer_t txbuf = {0};
-static stream_rx_buffer_t rxbuf;
+DMAMEM static stream_block_tx_buffer_t txbuf;
+DMAMEM static stream_rx_buffer_t rxbuf;
 static on_execute_realtime_ptr on_execute_realtime;
 static enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_realtime_command;
 
@@ -290,6 +290,9 @@ const io_stream_t *usb_serialInit (void)
         .suspend_read = usb_serialSuspendInput,
         .set_enqueue_rt_handler = usb_serialSetRtHandler
     };
+
+    memset(&rxbuf, 0, sizeof(stream_rx_buffer_t));
+    memset(&txbuf, 0, sizeof(stream_block_tx_buffer_t));
 
 //    usb_serial_configure(); // Done somewhere already - do not call again
     txbuf.s = txbuf.data;

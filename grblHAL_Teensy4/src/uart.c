@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Some parts of this code is Copyright (c) 2020-2024 Terje Io
+  Some parts of this code is Copyright (c) 2020-2025 Terje Io
   Some parts are derived from HardwareSerial.cpp in the Teensyduino Core Library
 
 */
@@ -66,8 +66,8 @@ typedef struct {
 } uart_hardware_t;
 
 static uint16_t tx_fifo_size;
-static stream_tx_buffer_t txbuffer = {0};
-static stream_rx_buffer_t rxbuffer = {0};
+DMAMEM static stream_tx_buffer_t txbuffer;
+DMAMEM static stream_rx_buffer_t rxbuffer;
 static enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_realtime_command;
 
 static const io_stream_t *serialInit (uint32_t baud_rate);
@@ -164,8 +164,8 @@ static const uart_hardware_t uart_hardware =
 #endif
 
 static uint16_t tx1_fifo_size;
-static stream_tx_buffer_t tx1buffer = {0};
-static stream_rx_buffer_t rx1buffer = {0};
+DMAMEM static stream_tx_buffer_t tx1buffer;
+DMAMEM static stream_rx_buffer_t rx1buffer;
 static enqueue_realtime_command_ptr enqueue_realtime_command1 = protocol_enqueue_realtime_command;
 
 static const io_stream_t *serial1Init (uint32_t baud_rate);
@@ -614,6 +614,9 @@ static const io_stream_t *serialInit (uint32_t baud_rate)
 
     serial[0].flags.claimed = On;
 
+    memset(&rxbuffer, 0, sizeof(stream_rx_buffer_t));
+    memset(&txbuffer, 0, sizeof(stream_tx_buffer_t));
+
     tx_fifo_size = uartConfig(&UART, baud_rate);
 
     return &stream;
@@ -819,6 +822,9 @@ static const io_stream_t *serial1Init (uint32_t baud_rate)
         return NULL;
 
     serial[1].flags.claimed = On;
+
+    memset(&rx1buffer, 0, sizeof(stream_rx_buffer_t));
+    memset(&tx1buffer, 0, sizeof(stream_tx_buffer_t));
 
     tx1_fifo_size = uartConfig(&UART1, baud_rate);
 

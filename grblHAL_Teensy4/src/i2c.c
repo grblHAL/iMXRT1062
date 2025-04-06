@@ -111,7 +111,7 @@ static const i2c_hardware_t i2c4_hardware = {
 
 #endif
 
-static bool force_clock (const i2c_hardware_t *hardware)
+FLASHMEM static bool force_clock (const i2c_hardware_t *hardware)
 {
     bool ret = false;
     uint32_t sda_pin = hardware->sda_pin.pin;
@@ -144,7 +144,7 @@ static bool force_clock (const i2c_hardware_t *hardware)
     return ret;
 }
 
-static void set_clock (IMXRT_LPI2C_t *port, uint32_t frequency)
+FLASHMEM static void set_clock (IMXRT_LPI2C_t *port, uint32_t frequency)
 {
     port->MCR = 0;
 
@@ -206,7 +206,7 @@ static IMXRT_LPI2C_t *port = NULL;
 
 static void I2C_interrupt_handler (void);
 
-i2c_cap_t i2c_start (void)
+FLASHMEM i2c_cap_t i2c_start (void)
 {
     static i2c_cap_t cap = {};
 

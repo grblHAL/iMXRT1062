@@ -324,7 +324,7 @@ static void grbl_enet_poll (sys_state_t state)
     on_execute_realtime(state);
 }
 
-bool grbl_enet_start (void)
+FLASHMEM bool grbl_enet_start (void)
 {
     if(nvs_address != 0) {
 
@@ -421,7 +421,7 @@ PROGMEM static const setting_detail_t ethernet_settings[] = {
 
 #ifndef NO_SETTINGS_DESCRIPTIONS
 
-static const setting_descr_t ethernet_settings_descr[] = {
+PROGMEM static const setting_descr_t ethernet_settings_descr[] = {
     { Setting_NetworkServices, "Network services to enable. Consult driver documentation for availability." },
     { Setting_Hostname, "Network hostname." },
     { Setting_IpMode, "IP Mode." },
@@ -467,7 +467,7 @@ static setting_details_t setting_details = {
     .restore = ethernet_settings_restore
 };
 
-static status_code_t ethernet_set_ip (setting_id_t setting, char *value)
+FLASHMEM static status_code_t ethernet_set_ip (setting_id_t setting, char *value)
 {
     ip_addr_t addr;
 
@@ -505,7 +505,7 @@ static status_code_t ethernet_set_ip (setting_id_t setting, char *value)
     return status;
 }
 
-static char *ethernet_get_ip (setting_id_t setting)
+FLASHMEM static char *ethernet_get_ip (setting_id_t setting)
 {
     static char ip[IPADDR_STRLEN_MAX];
 
@@ -549,7 +549,7 @@ static uint32_t ethernet_get_services (setting_id_t id)
     return (uint32_t)ethernet.services.mask;
 }
 
-void ethernet_settings_restore (void)
+FLASHMEM void ethernet_settings_restore (void)
 {
     memset(&ethernet, 0, sizeof(network_settings_t));
 
@@ -617,7 +617,7 @@ static void stream_changed (stream_type_t type)
         on_stream_changed(type);
 }
 
-bool grbl_enet_init (network_settings_t *settings)
+FLASHMEM bool grbl_enet_init (network_settings_t *settings)
 {
     if((nvs_address = nvs_alloc(sizeof(network_settings_t)))) {
 

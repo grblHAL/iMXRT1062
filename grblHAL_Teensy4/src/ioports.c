@@ -219,7 +219,7 @@ static void set_pin_description (io_port_direction_t dir, uint8_t port, const ch
         aux_out[port].description = s;
 }
 
-void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs)
+FLASHMEM void ioports_init (pin_group_pins_t *aux_inputs, pin_group_pins_t *aux_outputs)
 {
     aux_in = aux_inputs->pins.inputs;
     aux_out = aux_outputs->pins.outputs;

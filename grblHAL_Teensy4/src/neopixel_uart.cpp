@@ -3,7 +3,7 @@
 
   Part of grblHAL driver for iMXRT1062
 
-  Some parts Copyright (c) 2024 Terje Io
+  Some parts Copyright (c) 2024-2025 Terje Io
   Some parts parts derived from WS2812Serial - Non-blocking WS2812 LED Display Library:
     https://github.com/PaulStoffregen/WS2812Serial
     Copyright (c) 2017 Paul Stoffregen, PJRC.COM, LLC
@@ -180,7 +180,7 @@ static uint8_t neopixels_set_intensity (uint8_t intensity)
     return prev;
 }
 
-void neopixel_init (void)
+FLASHMEM void neopixel_init (void)
 {
     static bool init = false;
 

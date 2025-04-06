@@ -1808,7 +1808,7 @@ static void spindleSetStateVariable (spindle_ptrs_t *spindle, spindle_state_t st
 #endif
 }
 
-bool spindleConfig (spindle_ptrs_t *spindle)
+FLASHMEM bool spindleConfig (spindle_ptrs_t *spindle)
 {
     uint_fast16_t prescaler = 2, divider = 0b1001;
 
@@ -2065,7 +2065,7 @@ static void disable_irq (void)
 }
 
 // Configures perhipherals when settings are initialized or changed
-static void settings_changed (settings_t *settings, settings_changed_flags_t changed)
+FLASHMEM static void settings_changed (settings_t *settings, settings_changed_flags_t changed)
 {
     if(IOInitDone) {
 
@@ -2128,7 +2128,7 @@ static void settings_changed (settings_t *settings, settings_changed_flags_t cha
         // Stepper pulse timeout setup.
         PULSE_TIMER_CSCTRL &= ~(TMR_CSCTRL_TCF1|TMR_CSCTRL_TCF2);
 
-        float ts = hal.f_step_timer / 1000000.0f;
+        float ts = (float)F_BUS_MHZ;
         step_pulse.t_min_period = (uint32_t)((hal.step_us_min + STEP_PULSE_TOFF_MIN) * ts);
         step_pulse.length = (uint32_t)(ts * (settings->steppers.pulse_microseconds - STEP_PULSE_LATENCY));
 
@@ -2324,7 +2324,7 @@ static void settings_changed (settings_t *settings, settings_changed_flags_t cha
     }
 }
 
-static void enumeratePins (bool low_level, pin_info_ptr pin_info, void *data)
+FLASHMEM static void enumeratePins (bool low_level, pin_info_ptr pin_info, void *data)
 {
     static xbar_t pin = {0};
 
@@ -2371,7 +2371,7 @@ static void enumeratePins (bool low_level, pin_info_ptr pin_info, void *data)
     } while((ppin = ppin->next));
 }
 
-void registerPeriphPin (const periph_pin_t *pin)
+FLASHMEM void registerPeriphPin (const periph_pin_t *pin)
 {
     periph_signal_t *add_pin = malloc(sizeof(periph_signal_t));
 
@@ -2391,7 +2391,7 @@ void registerPeriphPin (const periph_pin_t *pin)
     }
 }
 
-void setPeriphPinDescription (const pin_function_t function, const pin_group_t group, const char *description)
+FLASHMEM void setPeriphPinDescription (const pin_function_t function, const pin_group_t group, const char *description)
 {
     periph_signal_t *ppin = periph_pins;
 
@@ -2528,7 +2528,7 @@ static bool sdcard_unmount (FATFS **fs)
 #endif
 
 // Initializes MCU peripherals for Grbl use
-static bool driver_setup (settings_t *settings)
+FLASHMEM static bool driver_setup (settings_t *settings)
 {
 #if TRINAMIC_ENABLE && defined(BOARD_CNC_BOOSTERPACK) // Trinamic BoosterPack does not support mixed drivers
     driver_settings.trinamic.driver_enable.mask = AXES_BITMASK;
@@ -2791,7 +2791,7 @@ inline static uint64_t get_micros (void)
 
 // Initialize HAL pointers, setup serial comms and enable EEPROM.
 // NOTE: Grbl is not yet configured (from EEPROM data), driver_setup() will be called when done.
-bool driver_init (void)
+FLASHMEM bool driver_init (void)
 {
     static char options[30];
 
@@ -2833,7 +2833,7 @@ bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "250403";
+    hal.driver_version = "250406";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
