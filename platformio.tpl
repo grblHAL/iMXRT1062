@@ -8,6 +8,7 @@ include_dir = src
 
 [common]
 build_flags   =
+  -I bluetooth # workaround for relative 3rd party plugin includes starting with ../
   -g3 
   -fmax-errors=5
   -fno-strict-aliasing
