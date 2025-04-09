@@ -50,11 +50,6 @@
 #define WEBUI_INFLASH   1
 #endif
 
-#if defined(MCP3221_ENABLE)
-#define I2C_ENABLE 1
-#define MCP3221_ENABLE_NEW MCP3221_ENABLE
-#endif
-
 #include "grbl/driver_opts.h"
 
 #define DIGITAL_IN(gpio) (!!(gpio.reg->DR & gpio.bit))

@@ -1845,7 +1845,9 @@ FLASHMEM bool spindleConfig (spindle_ptrs_t *spindle)
 
 #if PPI_ENABLE
 
-static void spindlePulseOn (uint_fast16_t pulse_length)
+spindle_ptrs_t *ppi_spindle;
+
+static void spindlePulseOn (spindle_ptrs_t *spindle, uint_fast16_t pulse_length)
 {
     static uint_fast16_t plen = 0;
 
@@ -1854,7 +1856,7 @@ static void spindlePulseOn (uint_fast16_t pulse_length)
         PPI_TIMER_COMP1 = (uint16_t)((pulse_length * F_BUS_MHZ) / 128);
     }
 
-    spindle_on(NULL);
+    spindle_on((ppi_spindle = spindle));
     PPI_TIMER_CTRL |= TMR_CTRL_CM(0b001);
 }
 
@@ -2833,7 +2835,7 @@ FLASHMEM bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "250406";
+    hal.driver_version = "250408";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -3075,6 +3077,8 @@ FLASHMEM bool driver_init (void)
 //    hal.signals_cap.safety_door = On;
 #endif
 
+    io_expanders_init();
+
 #if AUX_CONTROLS_ENABLED
     aux_ctrl_claim_ports(aux_claim_explicit, NULL);
 #endif
@@ -3094,11 +3098,6 @@ FLASHMEM bool driver_init (void)
 #ifdef NEOPIXEL_UART_PIN
     extern void neopixel_init (void);
     neopixel_init();
-#endif
-
-#if MCP3221_ENABLE_NEW
-    extern void mcp3221_init (void);
-    mcp3221_init();
 #endif
 
 #include "grbl/plugins_init.h"
@@ -3212,7 +3211,7 @@ static void spindle_pulse_isr (void)
 static void ppi_timeout_isr (void)
 {
     PPI_TIMER_CSCTRL &= ~TMR_CSCTRL_TCF1;
-    spindle_off();
+    spindle_off(ppi_spindle);
 }
 #endif
 

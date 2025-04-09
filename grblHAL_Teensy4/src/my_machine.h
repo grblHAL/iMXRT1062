@@ -96,7 +96,6 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
                                     // Currently only available for BOARD_T41BB5X_PRO and BOARD_T41U5XBB_SS.
 //#define ESTOP_ENABLE            0 // When enabled only real-time report requests will be executed when the reset pin is asserted.
                                     // Note: if left commented out the default setting is determined from COMPATIBILITY_LEVEL.
-//#define MCP3221_ENABLE       0x4D // Enable MCP3221 I2C ADC input with address 0x4D (0b01001101).
 //#define RGB_LED_ENABLE          2 // Set to 1 to enable strip length settings $536 and $537, set to 2 to also enable M150 LED strip control.
 //#define PWM_SERVO_ENABLE        1 // Enable M280 PWM servo support, requires at least one PWM capable auxiliary output.
 //#define BLTOUCH_ENABLE          1 // Enable M401/M402 BLTouch support. Requires and claims one auxiliary PWM servo output.
@@ -104,6 +103,11 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 //#define ESP_AT_ENABLE           1 // Enable support for Telnet communication via UART connected ESP32 running ESP-AT.
 //#define FEED_OVERRIDE_ENABLE    1 // Enable M200 feed override control.
 //#define HOMING_PULLOFF_ENABLE   1 // Enable per axis homing pulloff distance settings.
+
+// IO expanders:
+//
+//#define MCP3221_ENABLE          1 // MCP3221 I2C ADC input, default address is 0x9A (MCP3221_ADDRESS).
+//#define PCA9654E_ENABLE         1 // PCA9654E I2C digital I/O, default address is 0x40 (PCA9654E_ADDRESS).
 
 // Optional control signals:
 // These will be assigned to aux input pins. Use the $pins command to check which pins are assigned.
