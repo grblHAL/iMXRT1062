@@ -1701,7 +1701,6 @@ inline static void spindle_off (spindle_ptrs_t *spindle)
 
 inline static void spindle_on (spindle_ptrs_t *spindle)
 {
-    spindle->context.pwm->flags.enable_out = On;
 #ifdef SPINDLE_DIRECTION_PIN
     if(spindle->context.pwm->flags.cloned) {
         DIGITAL_OUT(spindleDir, !settings.pwm_spindle.invert.ccw);
@@ -1712,9 +1711,10 @@ inline static void spindle_on (spindle_ptrs_t *spindle)
     DIGITAL_OUT(spindleEnable, !settings.pwm_spindle.invert.on);
 #endif
 #if SPINDLE_ENCODER_ENABLE
-    if(spindle && spindle->reset_data)
+    if(!spindle->context.pwm->flags.enable_out && spindle->reset_data)
         spindle->reset_data();
 #endif
+    spindle->context.pwm->flags.enable_out = On;
 }
 
 inline static void spindle_dir (bool ccw)
@@ -2835,7 +2835,7 @@ FLASHMEM bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "250408";
+    hal.driver_version = "250411";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
