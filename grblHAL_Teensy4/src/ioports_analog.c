@@ -349,6 +349,14 @@ static int32_t wait_on_input (uint8_t port, wait_mode_t wait_mode, float timeout
     return value;
 }
 
+static bool set_function (xbar_t *port, pin_function_t function)
+{
+    if(port->mode.input)
+        aux_out_analog[port->id].id = function;
+
+    return port->mode.input;
+}
+
 static xbar_t *get_pin_info (io_port_direction_t dir, uint8_t port)
 {
     static xbar_t pin;
@@ -369,6 +377,7 @@ static xbar_t *get_pin_info (io_port_direction_t dir, uint8_t port)
                 pin.group = aux_out_analog[pin.id].group;
                 pin.pin = aux_out_analog[pin.id].pin;
                 pin.description = aux_out_analog[pin.id].description;
+                pin.set_function = set_function;
                 if(pin.mode.pwm || pin.mode.servo_pwm) {
                     pin.port = &pwm_data[aux_out_analog[pin.id].pwm_idx];
                     pin.config = init_pwm;
@@ -436,12 +445,11 @@ FLASHMEM void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_
 
             n_pwm = 0;
             for(i = 0; i < analog.out.n_ports; i++) {
-                aux_out_analog[i].description = iports_get_pnum(analog, i);
                 if(aux_out_analog[i].mode.pwm && !!pwm_data) {
                     aux_out_analog[i].pwm_idx = n_pwm++;
                     init_pwm(get_pin_info(Port_Output, i), &config, false);
                 }
-                analog_out(i, 0);
+                analog_out(i, 0.0f);
             }
         }
     }

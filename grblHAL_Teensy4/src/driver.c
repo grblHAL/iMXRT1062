@@ -1617,13 +1617,12 @@ static void aux_irq_handler (uint8_t port, bool state)
 
 static bool aux_claim_explicit (aux_ctrl_t *aux_ctrl)
 {
-    if(ioport_claim(Port_Digital, Port_Input, &aux_ctrl->aux_port, NULL)) {
-        ioport_assign_function(aux_ctrl, &((input_signal_t *)aux_ctrl->input)->id);
+    xbar_t *pin;
+
+    if((pin = ioport_claim(Port_Digital, Port_Input, &aux_ctrl->aux_port, NULL))) {
+        ioport_set_function(pin, aux_ctrl->function, &aux_ctrl->cap);
 #ifdef PROBE_PIN
         if(aux_ctrl->function == Input_Probe) {
-
-            xbar_t *pin = hal.port.get_pin_info(Port_Digital, Port_Input, aux_ctrl->aux_port);
-
             probe_port = aux_ctrl->aux_port;
             probe_pin = (input_signal_t *)aux_ctrl->input;
             hal.probe.get_state = probeGetState;
@@ -1671,9 +1670,11 @@ static bool aux_claim_explicit (aux_ctrl_t *aux_ctrl)
 
 bool aux_out_claim_explicit (aux_ctrl_out_t *aux_ctrl)
 {
-    if(ioport_claim(Port_Digital, Port_Output, &aux_ctrl->aux_port, NULL)) {
-        ioport_assign_out_function(aux_ctrl, &((output_signal_t *)aux_ctrl->output)->id);
-    } else
+    xbar_t *pin;
+
+    if((pin = ioport_claim(Port_Digital, Port_Output, &aux_ctrl->aux_port, NULL)))
+        ioport_set_function(pin, aux_ctrl->function, NULL);
+    else
         aux_ctrl->aux_port = 0xFF;
 
     return aux_ctrl->aux_port != 0xFF;
