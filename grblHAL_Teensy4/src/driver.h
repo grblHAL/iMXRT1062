@@ -242,10 +242,6 @@
 #error "MPG_MODE_PIN must be defined!"
 #endif
 
-#if ODOMETER_ENABLE
-#include "odometer/odometer.h"
-#endif
-
 #if KEYPAD_ENABLE == 1 && !defined(I2C_STROBE_PIN)
 #error Keypad plugin not supported!
 #elif I2C_STROBE_ENABLE && !defined(I2C_STROBE_PIN)
