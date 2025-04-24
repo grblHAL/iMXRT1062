@@ -37,6 +37,7 @@
 #include "grbl/machine_limits.h"
 #include "grbl/state_machine.h"
 #include "grbl/pin_bits_masks.h"
+#include "grbl/task.h"
 
 #ifdef I2C_PORT
 #include "i2c.h"
@@ -1597,7 +1598,7 @@ static void aux_irq_handler (uint8_t port, bool state)
 #endif
 #ifdef MPG_MODE_PIN
             case Input_MPGSelect:
-                protocol_enqueue_foreground_task(mpg_select, NULL);
+                task_add_immediate(mpg_select, NULL);
                 break;
 #endif
             default:
@@ -2480,13 +2481,13 @@ static void qei_update (void)
             qei.count--;
             if(qei.vel_timeout == 0) {
                 qei.encoder.event.position_changed = hal.encoder.on_event != NULL;
-                protocol_enqueue_foreground_task(qei_raise_event, NULL);
+                task_add_immediate(qei_raise_event, NULL);
             }
         } else if(qei.state == 0x81 || qei.state == 0x17 || qei.state == 0xE8 || qei.state == 0x7E) {
             qei.count++;
             if(qei.vel_timeout == 0) {
                 qei.encoder.event.position_changed = hal.encoder.on_event != NULL;
-                protocol_enqueue_foreground_task(qei_raise_event, NULL);
+                task_add_immediate(qei_raise_event, NULL);
             }
         }
     }
@@ -3107,7 +3108,7 @@ FLASHMEM bool driver_init (void)
     if(!hal.driver_cap.mpg_mode)
         hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL, NULL), false, NULL);
     if(hal.driver_cap.mpg_mode)
-        protocol_enqueue_foreground_task(mpg_enable, NULL);
+        task_run_on_startup(mpg_enable, NULL);
 #elif MPG_ENABLE == 2
     if(!hal.driver_cap.mpg_mode)
         hal.driver_cap.mpg_mode = stream_mpg_register(stream_open_instance(MPG_STREAM, 115200, NULL, NULL), false, stream_mpg_check_enable);
@@ -3326,7 +3327,7 @@ static void gpio_isr (void)
 #if MPG_ENABLE == 1
                     case PinGroup_MPG:
                         pinEnableIRQ(&inputpin[i], IRQ_Mode_None);
-                        protocol_enqueue_foreground_task(mpg_select, NULL);
+                        task_add_immediate(mpg_select, NULL);
                         break;
 #endif
                     default:
@@ -3363,13 +3364,13 @@ static void systick_isr (void)
           qei.vel_timestamp = millis();
           qei.vel_timeout = QEI_VELOCITY_TIMEOUT;
           if((qei.encoder.event.position_changed = !qei.dbl_click_timeout || qei.encoder.velocity == 0))
-              protocol_enqueue_foreground_task(qei_raise_event, NULL);
+              task_add_immediate(qei_raise_event, NULL);
           qei.vel_count = qei.count;
       }
 
       if(qei.dbl_click_timeout && !(--qei.dbl_click_timeout)) {
           qei.encoder.event.click = On;
-          protocol_enqueue_foreground_task(qei_raise_event, NULL);
+          task_add_immediate(qei_raise_event, NULL);
       }
 #endif
 
