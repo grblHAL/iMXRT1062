@@ -195,8 +195,11 @@ static bool set_function (xbar_t *port, pin_function_t function)
 {
     if(port->mode.input)
         aux_in[port->id].id = function;
-    else
+    else {
         aux_out[port->id].id = function;
+        if(function == Output_SpindlePWM || function == Output_Spindle1PWM)
+            aux_out[port->id].mode.pwm = On;
+    }
 
     return true;
 }

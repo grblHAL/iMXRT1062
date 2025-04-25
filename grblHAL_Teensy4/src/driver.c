@@ -139,17 +139,9 @@ static spindle_encoder_t spindle_encoder = {
 };
 static void spindle_pulse_isr (void);
 static on_spindle_programmed_ptr on_spindle_programmed = NULL;
-
-#if SPINDLE_SYNC_ENABLE
-static spindle_sync_t spindle_tracker;
 static volatile bool spindleLock = false;
-#endif
 
 #endif // SPINDLE_ENCODER_ENABLE
-
-#if SPINDLE_SYNC_ENABLE
-static void stepperPulseStartSynchronized (stepper_t *stepper);
-#endif
 
 // Optional I/O
 
@@ -1052,15 +1044,6 @@ static void stepperCyclesPerTick (uint32_t cycles_per_tick)
 // stepper_t struct is defined in grbl/stepper.h
 static void stepperPulseStart (stepper_t *stepper)
 {
-#if SPINDLE_SYNC_ENABLE
-    if(stepper->new_block && stepper->exec_segment->spindle_sync) {
-        spindle_tracker.stepper_pulse_start_normal = hal.stepper.pulse_start;
-        hal.stepper.pulse_start = stepperPulseStartSynchronized;
-        hal.stepper.pulse_start(stepper);
-        return;
-    }
-#endif
-
     if(stepper->dir_changed.bits) {
         stepper->dir_changed.bits = 0;
         set_dir_outputs(stepper->dir_out);
@@ -1079,15 +1062,6 @@ static void stepperPulseStart (stepper_t *stepper)
 // stepper_t struct is defined in grbl/stepper.h
 static void stepperPulseStartDelayed (stepper_t *stepper)
 {
-#if SPINDLE_SYNC_ENABLE
-    if(stepper->new_block && stepper->exec_segment->spindle_sync) {
-        spindle_tracker.stepper_pulse_start_normal = hal.stepper.pulse_start;
-        hal.stepper.pulse_start = stepperPulseStartSynchronized;
-        hal.stepper.pulse_start(stepper);
-        return;
-    }
-#endif
-
     if(stepper->dir_changed.bits) {
 
         set_dir_outputs(stepper->dir_out);
@@ -1118,97 +1092,6 @@ static void stepperPulseStartDelayed (stepper_t *stepper)
         PULSE_TIMER_CTRL |= TMR_CTRL_CM(0b001);
     }
 }
-
-#if SPINDLE_SYNC_ENABLE
-
-// Spindle sync version: sets stepper direction and pulse pins and starts a step pulse.
-// Switches back to "normal" version if spindle synchronized motion is finished.
-// TODO: add delayed pulse handling...
-static void stepperPulseStartSynchronized (stepper_t *stepper)
-{
-    static bool sync = false;
-    static float block_start;
-
-    if(stepper->new_block) {
-        if(!stepper->exec_segment->spindle_sync) {
-            hal.stepper.pulse_start = spindle_tracker.stepper_pulse_start_normal;
-            hal.stepper.pulse_start(stepper);
-            return;
-        }
-        sync = true;
-        set_dir_outputs(stepper->dir_out);
-        spindle_tracker.programmed_rate = stepper->exec_block->programmed_rate;
-        spindle_tracker.steps_per_mm = stepper->exec_block->steps_per_mm;
-        spindle_tracker.segment_id = 0;
-        spindle_tracker.prev_pos = 0.0f;
-        block_start = stepper->exec_block->spindle->get_data(SpindleData_AngularPosition)->angular_position * spindle_tracker.programmed_rate;
-        pidf_reset(&spindle_tracker.pid);
-#ifdef PID_LOG
-        sys.pid_log.idx = 0;
-        sys.pid_log.setpoint = 100.0f;
-#endif
-    }
-
-    if(stepper->step_out.bits) {
-        set_step_outputs(stepper->step_out);
-        PULSE_TIMER_CTRL |= TMR_CTRL_CM(0b001);
-    }
-
-    if(spindle_tracker.segment_id != stepper->exec_segment->id) {
-
-        spindle_tracker.segment_id = stepper->exec_segment->id;
-
-        if(!stepper->new_block) {  // adjust this segments total time for any positional error since last segment
-
-            float actual_pos;
-
-            if(stepper->exec_segment->cruising) {
-
-                float dt = (float)hal.f_step_timer / (float)(stepper->exec_segment->cycles_per_tick * stepper->exec_segment->n_step);
-                actual_pos = stepper->exec_block->spindle->get_data(SpindleData_AngularPosition)->angular_position * spindle_tracker.programmed_rate;
-
-                if(sync) {
-                    spindle_tracker.pid.sample_rate_prev = dt;
-//                    block_start += (actual_pos - spindle_tracker.block_start) - spindle_tracker.prev_pos;
-//                    block_start += spindle_tracker.prev_pos;
-                    sync = false;
-                }
-
-                actual_pos -= block_start;
-                int32_t step_delta = (int32_t)(pidf(&spindle_tracker.pid, spindle_tracker.prev_pos, actual_pos, dt) * spindle_tracker.steps_per_mm);
-
-
-                int32_t ticks = (((int32_t)stepper->step_count + step_delta) * (int32_t)stepper->exec_segment->cycles_per_tick) / (int32_t)stepper->step_count;
-
-                stepper->exec_segment->cycles_per_tick = (uint32_t)max(ticks, spindle_tracker.min_cycles_per_tick);
-
-                stepperCyclesPerTick(stepper->exec_segment->cycles_per_tick);
-           } else
-               actual_pos = spindle_tracker.prev_pos;
-
-#ifdef PID_LOG
-            if(sys.pid_log.idx < PID_LOG) {
-
-                sys.pid_log.target[sys.pid_log.idx] = spindle_tracker.prev_pos;
-                sys.pid_log.actual[sys.pid_log.idx] = actual_pos; // - spindle_tracker.prev_pos;
-
-            //    spindle_tracker.log[sys.pid_log.idx] = STEPPER_TIMER->BGLOAD << stepper->amass_level;
-            //    spindle_tracker.pos[sys.pid_log.idx] = stepper->exec_segment->cycles_per_tick  stepper->amass_level;
-            //    spindle_tracker.pos[sys.pid_log.idx] = stepper->exec_segment->cycles_per_tick * stepper->step_count;
-            //    STEPPER_TIMER->BGLOAD = STEPPER_TIMER->LOAD;
-
-             //   spindle_tracker.pos[sys.pid_log.idx] = spindle_tracker.prev_pos;
-
-                sys.pid_log.idx++;
-            }
-#endif
-        }
-
-        spindle_tracker.prev_pos = stepper->exec_segment->target_position;
-    }
-}
-
-#endif
 
 #if STEP_INJECT_ENABLE
 
@@ -2086,32 +1969,30 @@ FLASHMEM static void settings_changed (settings_t *settings, settings_changed_fl
 
         static bool event_claimed = false;
 
-        if((hal.spindle_data.get = settings->spindle.ppr > 0 ? spindleGetData : NULL) &&
-             (spindle_encoder.ppr != settings->spindle.ppr || pidf_config_changed(&spindle_tracker.pid, &settings->position.pid))) {
+        if((hal.spindle_data.get = settings->spindle.ppr > 0 ? spindleGetData : NULL)) {
+            if(spindle_encoder.ppr != settings->spindle.ppr) {
 
-            spindle_ptrs_t *spindle;
+                spindle_ptrs_t *spindle;
 
-            hal.spindle_data.reset = spindleDataReset;
-            if((spindle = spindle_get(0)))
-                spindle->set_state(spindle, (spindle_state_t){0}, 0.0f);
+                hal.spindle_data.reset = spindleDataReset;
+                if((spindle = spindle_get(0)))
+                    spindle->set_state(spindle, (spindle_state_t){0}, 0.0f);
 
-            pidf_init(&spindle_tracker.pid, &settings->position.pid);
+                if(!event_claimed) {
+                    event_claimed = true;
+                    on_spindle_programmed = grbl.on_spindle_programmed;
+                    grbl.on_spindle_programmed = onSpindleProgrammed;
+                }
 
-            if(!event_claimed) {
-                event_claimed = true;
-                on_spindle_programmed = grbl.on_spindle_programmed;
-                grbl.on_spindle_programmed = onSpindleProgrammed;
+                float timer_resolution = 1.0f / 1000000.0f; // 1 us resolution
+
+                spindle_encoder.ppr = settings->spindle.ppr;
+                spindle_encoder.tics_per_irq = max(1, spindle_encoder.ppr / 32);
+                spindle_encoder.pulse_distance = 1.0f / spindle_encoder.ppr;
+                spindle_encoder.maximum_tt = (uint32_t)(2.0f / timer_resolution) / spindle_encoder.tics_per_irq;
+                spindle_encoder.rpm_factor = 60.0f / ((timer_resolution * (float)spindle_encoder.ppr));
+                spindleDataReset();
             }
-
-            float timer_resolution = 1.0f / 1000000.0f; // 1 us resolution
-
-            spindle_tracker.min_cycles_per_tick = (int32_t)ceilf(settings->steppers.pulse_microseconds * 2.0f + settings->steppers.pulse_delay_microseconds);
-            spindle_encoder.ppr = settings->spindle.ppr;
-            spindle_encoder.tics_per_irq = max(1, spindle_encoder.ppr / 32);
-            spindle_encoder.pulse_distance = 1.0f / spindle_encoder.ppr;
-            spindle_encoder.maximum_tt = (uint32_t)(2.0f / timer_resolution) / spindle_encoder.tics_per_irq;
-            spindle_encoder.rpm_factor = 60.0f / ((timer_resolution * (float)spindle_encoder.ppr));
-            spindleDataReset();
         } else {
             spindle_encoder.ppr = 0;
             hal.spindle_data.reset = NULL;
@@ -2837,7 +2718,7 @@ FLASHMEM bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "250411";
+    hal.driver_version = "250423";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -3001,9 +2882,6 @@ FLASHMEM bool driver_init (void)
     hal.coolant_cap.bits = COOLANT_ENABLE;
 #if SPINDLE_ENCODER_ENABLE
     hal.driver_cap.spindle_encoder = On;
-#endif
-#if SPINDLE_SYNC_ENABLE
-    hal.driver_cap.spindle_sync = On;
 #endif
     hal.driver_cap.software_debounce = On;
     hal.driver_cap.step_pulse_delay = On;
