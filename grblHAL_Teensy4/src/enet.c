@@ -31,7 +31,8 @@
 #include <lwip_k6x.h>
 #include <lwip_t41.h>
 #include <lwip/netif.h>
-#include "lwip/dhcp.h"
+#include <lwip/dhcp.h>
+#include <lwip/timeouts.h>
 
 #include "grbl/report.h"
 #include "grbl/task.h"
@@ -47,7 +48,6 @@ static network_services_t services = {0}, allowed_services;
 static nvs_address_t nvs_address;
 static network_settings_t ethernet, network;
 static on_report_options_ptr on_report_options;
-static on_execute_realtime_ptr on_execute_realtime;
 static on_stream_changed_ptr on_stream_changed;
 static char netservices[NETWORK_SERVICES_LEN] = "";
 static network_flags_t network_status = {};
@@ -224,6 +224,12 @@ static void netif_status_callback (struct netif *netif)
         services.websocket = websocketd_init(network.websocket_port);
 #endif
 
+    if(services.websocket)
+        report_message(uitoa(network.websocket_port), 0);
+
+    if(services.telnet)
+        report_message(uitoa(network.telnet_port), 0);
+
 #if MDNS_ENABLE
     if(*network.hostname && network.services.mdns && !services.mdns) {
 
@@ -266,62 +272,66 @@ static void netif_status_callback (struct netif *netif)
 
 static void link_status_callback (struct netif *netif)
 {
+    static bool dhcp_running = false;
+
     bool isLinkUp = netif_is_link_up(netif);
 
     if(isLinkUp != network_status.link_up) {
 
-        if(!(network_status.link_up = isLinkUp))
-            network_status.ip_aquired = Off;
+        network_flags_t changed = { .link_up = On };
 
-        status_event_publish((network_flags_t){ .link_up = On, .ip_aquired = !isLinkUp });
+        if((network_status.link_up = isLinkUp)) {
+            if(network.ip_mode == IpMode_DHCP && !dhcp_running)
+                dhcp_running = dhcp_start(netif_default) == ERR_OK;
+        } else if(network.ip_mode == IpMode_DHCP && network_status.ip_aquired) {
+            changed.ip_aquired = On;
+            network_status.ip_aquired = Off;
+        }
+
+        status_event_publish(changed);
 
         if(network_status.link_up && network.ip_mode == IpMode_Static)
             netif_status_callback(netif);
+    }
+}
 
+static void grbl_enet_poll (void *data)
+{
+    static uint32_t ms = 0;
+
+    enet_proc_input();
+    sys_check_timeouts();
+
+    if(network_status.link_up) switch(++ms) {
 #if TELNET_ENABLE
-        telnetd_notify_link_status(network_status.link_up);
+        case 1:
+            if(services.telnet)
+                telnetd_poll();
+            break;
+#endif
+#if WEBSOCKET_ENABLE
+        case 2:
+            if(services.websocket)
+                websocketd_poll();
+            break;
+#endif
+        case 3:
+            ms = 0;
+#if FTP_ENABLE
+            if(services.ftp)
+                ftpd_poll();
+#endif
+#if MODBUS_ENABLE & MODBUS_TCP_ENABLED
+            modbus_tcp_client_poll();
 #endif
     }
 }
 
-static void grbl_enet_poll (sys_state_t state)
+static void link_check (void *data)
 {
-    static uint32_t last_ms0, last_ms1;
+    enet_poll();
 
-    uint32_t ms = millis();
-
-    enet_proc_input();
-
-    if(ms - last_ms0 > 3) {
-
-        last_ms0 = ms;
-#if TELNET_ENABLE
-        if(services.telnet)
-            telnetd_poll();
-#endif
-
-#if FTP_ENABLE
-        if(services.ftp)
-            ftpd_poll();
-#endif
-
-#if WEBSOCKET_ENABLE
-        if(services.websocket)
-            websocketd_poll();
-#endif
-
-#if MODBUS_ENABLE & MODBUS_TCP_ENABLED
-        modbus_tcp_client_poll();
-#endif
-    }
-
-    if (ms - last_ms1 > 25)
-    {
-        last_ms1 = ms;
-        enet_poll();
-    }
-
-    on_execute_realtime(state);
+    task_add_delayed(link_check, NULL, LINK_CHECK_INTERVAL);
 }
 
 FLASHMEM bool grbl_enet_start (void)
@@ -329,8 +339,6 @@ FLASHMEM bool grbl_enet_start (void)
     if(nvs_address != 0) {
 
         *IPAddress = '\0';
-        on_execute_realtime = grbl.on_execute_realtime;
-        grbl.on_execute_realtime = grbl_enet_poll;
 
         memcpy(&network, &ethernet, sizeof(network_settings_t));
 
@@ -364,9 +372,6 @@ FLASHMEM bool grbl_enet_start (void)
         network_status.interface_up = On;
         status_event_publish((network_flags_t){ .interface_up = On });
 
-        if(network.ip_mode == IpMode_DHCP)
-            dhcp_start(netif_default);
-
 #if MDNS_ENABLE || SSDP_ENABLE || LWIP_IGMP
 
         if(network.services.mdns || network.services.ssdp) {
@@ -375,6 +380,9 @@ FLASHMEM bool grbl_enet_start (void)
         }
 
 #endif
+
+        task_add_systick(grbl_enet_poll, NULL);
+        task_add_delayed(link_check, NULL, LINK_CHECK_INTERVAL);
     }
 
     return nvs_address != 0;
