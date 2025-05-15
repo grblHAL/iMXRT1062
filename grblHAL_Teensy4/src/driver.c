@@ -1572,34 +1572,42 @@ bool aux_out_claim_explicit (aux_ctrl_out_t *aux_ctrl)
 
 inline static void spindle_off (spindle_ptrs_t *spindle)
 {
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
     spindle->context.pwm->flags.enable_out = Off;
-#ifdef SPINDLE_DIRECTION_PIN
+  #ifdef SPINDLE_DIRECTION_PIN
     if(spindle->context.pwm->flags.cloned) {
         DIGITAL_OUT(spindleDir, settings.pwm_spindle.invert.ccw);
     } else {
         DIGITAL_OUT(spindleEnable, settings.pwm_spindle.invert.on);
     }
-#elif defined(SPINDLE_ENABLE_PIN)
+  #elif defined(SPINDLE_ENABLE_PIN)
+    DIGITAL_OUT(spindleEnable, settings.pwm_spindle.invert.on);
+  #endif
+#else
     DIGITAL_OUT(spindleEnable, settings.pwm_spindle.invert.on);
 #endif
 }
 
 inline static void spindle_on (spindle_ptrs_t *spindle)
 {
-#ifdef SPINDLE_DIRECTION_PIN
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
+  #ifdef SPINDLE_DIRECTION_PIN
     if(spindle->context.pwm->flags.cloned) {
         DIGITAL_OUT(spindleDir, !settings.pwm_spindle.invert.ccw);
     } else {
         DIGITAL_OUT(spindleEnable, !settings.pwm_spindle.invert.on);
     }
-#elif defined(SPINDLE_ENABLE_PIN)
+  #elif defined(SPINDLE_ENABLE_PIN)
     DIGITAL_OUT(spindleEnable, !settings.pwm_spindle.invert.on);
-#endif
-#if SPINDLE_ENCODER_ENABLE
+  #endif
+  #if SPINDLE_ENCODER_ENABLE
     if(!spindle->context.pwm->flags.enable_out && spindle->reset_data)
         spindle->reset_data();
-#endif
+  #endif
     spindle->context.pwm->flags.enable_out = On;
+#else
+    DIGITAL_OUT(spindleEnable, !settings.pwm_spindle.invert.on);
+#endif
 }
 
 inline static void spindle_dir (bool ccw)
@@ -1700,6 +1708,9 @@ FLASHMEM bool spindleConfig (spindle_ptrs_t *spindle)
     if(spindle == NULL)
         return false;
 
+    if(settings.pwm_spindle.invert.pwm)
+        spindle_pwm.offset = -1;
+
     if(spindle_precompute_pwm_values(spindle, &spindle_pwm, &settings.pwm_spindle, F_BUS_ACTUAL / prescaler)) {
 
         while(spindle_pwm.period > 65534 && divider < 15) {
@@ -1711,9 +1722,10 @@ FLASHMEM bool spindleConfig (spindle_ptrs_t *spindle)
         SPINDLE_PWM_TIMER_CTRL = TMR_CTRL_PCS(divider) | TMR_CTRL_OUTMODE(0b100) | TMR_CTRL_LENGTH;
         SPINDLE_PWM_TIMER_COMP1 = spindle_pwm.period;
         SPINDLE_PWM_TIMER_CMPLD1 = spindle_pwm.period;
-        if(settings.pwm_spindle.invert.pwm)
+        if(spindle_pwm.flags.invert_pwm) {
+            spindle_pwm.flags.invert_pwm = Off;
             SPINDLE_PWM_TIMER_SCTRL |= TMR_SCTRL_OPS;
-        else
+        } else
             SPINDLE_PWM_TIMER_SCTRL &= ~TMR_SCTRL_OPS;
 
         spindle->set_state = spindleSetStateVariable;
@@ -2674,6 +2686,17 @@ inline static uint64_t get_micros (void)
     return (uint64_t)micros();
 }
 
+static status_code_t enter_bootloader (sys_state_t state, char *args)
+{
+    report_message("Entering bootloader", Message_Warning);
+    hal.delay_ms(100, NULL);
+
+    _reboot_Teensyduino_();
+
+    return Status_OK;
+}
+
+
 // Initialize HAL pointers, setup serial comms and enable EEPROM.
 // NOTE: Grbl is not yet configured (from EEPROM data), driver_setup() will be called when done.
 FLASHMEM bool driver_init (void)
@@ -2718,7 +2741,7 @@ FLASHMEM bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "250423";
+    hal.driver_version = "250514";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -2808,6 +2831,17 @@ FLASHMEM bool driver_init (void)
     hal.encoder.reset = qei_reset;
     hal.encoder.on_event = encoder_event;
 #endif
+
+    static const sys_command_t boot_command_list[] = {
+        {"BL", enter_bootloader, { .allow_blocking = On, .noargs = On }, { .str = "enter bootloader" } },
+    };
+
+    static sys_commands_t boot_commands = {
+        .n_commands = sizeof(boot_command_list) / sizeof(sys_command_t),
+        .commands = boot_command_list
+    };
+
+    system_register_commands(&boot_commands);
 
 #if DRIVER_SPINDLE_ENABLE
 
