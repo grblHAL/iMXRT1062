@@ -93,6 +93,10 @@
 //#define RPM_TIMER         GPT1
 //#define RPM_COUNTER       GPT2
 
+#ifndef CONTROL_ENABLE
+#define CONTROL_ENABLE (CONTROL_HALT|CONTROL_FEED_HOLD|CONTROL_CYCLE_START)
+#endif
+
 #ifdef BOARD_CNC_BOOSTERPACK
   #include "boards/cnc_boosterpack_map.h"
 #elif defined(BOARD_T40X101)
@@ -120,6 +124,8 @@
 #if STEP_INJECT_ENABLE && PPI_ENABLE
 #error "Plasma and PPI mode cannot be enabled at the same time!"
 #endif
+
+#include "grbl/driver_opts2.h"
 
 #if STEP_INJECT_ENABLE
 
@@ -193,10 +199,6 @@
 #define EEPROM_IS_FRAM  0
 #endif
 
-#if TRINAMIC_ENABLE
-#include "tmc2130/trinamic.h"
-#endif
-
 #if QEI_ENABLE
 #include "encoder/encoder.h"
 #endif
@@ -205,47 +207,6 @@
 #define SP0 1
 #else
 #define SP0 0
-#endif
-
-#if MODBUS_ENABLE & MODBUS_RTU_ENABLED
-#define MODBUS_TEST 1
-#else
-#define MODBUS_TEST 0
-#endif
-
-#if MPG_ENABLE
-#define MPG_TEST 1
-#else
-#define MPG_TEST 0
-#endif
-
-#if KEYPAD_ENABLE == 2 && MPG_ENABLE == 0
-#define KEYPAD_TEST 1
-#else
-#define KEYPAD_TEST 0
-#endif
-
-#if USB_SERIAL_CDC == 0
-#if (MODBUS_TEST + KEYPAD_TEST + MPG_TEST + BLUETOOTH_ENABLE)
-#error "Options that uses the UART serial port can only be enabled with USB serial CDC!"
-#endif
-#elif (MODBUS_TEST + KEYPAD_TEST + MPG_TEST + (BLUETOOTH_ENABLE ? 1 : 0)) > SP0
-#error "Only one option that uses the UART serial port can be enabled!"
-#endif
-
-#undef SP0
-#undef MODBUS_TEST
-#undef KEYPAD_TEST
-#undef MPG_TEST
-
-#if MPG_ENABLE == 1 && !defined(MPG_MODE_PIN)
-#error "MPG_MODE_PIN must be defined!"
-#endif
-
-#if KEYPAD_ENABLE == 1 && !defined(I2C_STROBE_PIN)
-#error Keypad plugin not supported!
-#elif I2C_STROBE_ENABLE && !defined(I2C_STROBE_PIN)
-#error I2C strobe not supported!
 #endif
 
 #ifndef I2C_PORT

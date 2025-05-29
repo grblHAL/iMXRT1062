@@ -102,11 +102,6 @@
 #define COOLANT_MIST_PIN        AUXOUTPUT7_PIN
 #endif
 
-// Define user-control CONTROLs (cycle start, reset, feed hold, door) input pins.
-#define RESET_PIN           (35u)
-#define FEED_HOLD_PIN       (16u)
-#define CYCLE_START_PIN     (17u)
-
 // Define auxiliary input pins
 #define AUXINPUT0_PIN       (36u) // ST0
 #if !QEI_ENABLE
@@ -124,6 +119,20 @@
 #endif
 #define AUXINPUT6_PIN       (29u) // Safety door
 #define AUXINPUT7_PIN       (15u) // Probe
+#define AUXINPUT8_PIN       (35u) // Reset/EStop
+#define AUXINPUT9_PIN       (16u) // Feed hold
+#define AUXINPUT10_PIN      (17u) // Cycle start
+
+// Define user-control controls (cycle start, reset, feed hold) input pins.
+#if CONTROL_ENABLE & CONTROL_HALT
+#define RESET_PIN           AUXINPUT8_PIN
+#endif
+#if CONTROL_ENABLE & CONTROL_FEED_HOLD
+#define FEED_HOLD_PIN       AUXINPUT9_PIN
+#endif
+#if CONTROL_ENABLE & CONTROL_CYCLE_START
+#define CYCLE_START_PIN     AUXINPUT10_PIN
+#endif
 
 #if PROBE_ENABLE
 #define PROBE_PIN           AUXINPUT7_PIN
