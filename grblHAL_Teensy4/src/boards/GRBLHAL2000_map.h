@@ -23,8 +23,8 @@
 #define BOARD_URL "https://github.com/Expatria-Technologies/grblhal_2000_PrintNC"
 #define HAS_BOARD_INIT
 
-#if MODBUS_ENABLE < 1
-#define UART_PORT 5
+#if !(MODBUS_ENABLE & MODBUS_RTU_ENABLED)
+#define SERIAL_PORT 5
 #endif
 
 #ifdef NETWORK_HOSTNAME

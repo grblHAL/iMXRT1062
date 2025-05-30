@@ -73,11 +73,11 @@ static enqueue_realtime_command_ptr enqueue_realtime_command = protocol_enqueue_
 static const io_stream_t *serialInit (uint32_t baud_rate);
 static void uart_interrupt_handler (void);
 
-#ifndef UART_PORT
+#if SERIAL_PORT == 6
 
-#define RX_PIN    0
-#define TX_PIN    1
-#define UART_PORT 6
+#define RX_PIN      0
+#define TX_PIN      1
+#define SERIAL_PORT 6
 
 static const uart_hardware_t uart_hardware =
 {
@@ -100,7 +100,7 @@ static const uart_hardware_t uart_hardware =
     }
 };
 
-#elif UART_PORT == 5
+#elif SERIAL_PORT == 5
 
 #define RX_PIN 34
 #define TX_PIN 35
@@ -126,7 +126,7 @@ static const uart_hardware_t uart_hardware =
     }
 };
 
-#elif UART_PORT == 8
+#elif SERIAL_PORT == 8
 
 #define RX_PIN 21
 #define TX_PIN 20
@@ -152,14 +152,13 @@ static const uart_hardware_t uart_hardware =
     }
 };
 
-
 #else
 #error "UART port not available!"
 #endif
 
-#ifdef UART1_PORT
+#ifdef SERIAL1_PORT
 
-#if UART1_PORT == UART_PORT
+#if SERIAL1_PORT == SERIAL_PORT
 #error Conflicting use of UART peripherals!
 #endif
 
@@ -173,7 +172,7 @@ static void uart1_interrupt_handler (void);
 
 #define UART1 uart1_hardware
 
-#if UART1_PORT == 1
+#if SERIAL1_PORT == 1
 
 #define RX1_PIN 25
 #define TX1_PIN 24
@@ -199,7 +198,7 @@ static const uart_hardware_t uart1_hardware =
     }
 };
 
-#elif UART1_PORT == 5
+#elif SERIAL1_PORT == 5
 
 #define RX1_PIN 34
 #define TX1_PIN 35
@@ -225,7 +224,7 @@ static const uart_hardware_t uart1_hardware =
     }
 };
 
-#elif UART1_PORT == 6
+#elif SERIAL1_PORT == 6
 
 #define RX1_PIN 0
 #define TX1_PIN 1
@@ -251,7 +250,7 @@ static const uart_hardware_t uart1_hardware =
     }
 };
 
-#elif UART1_PORT == 8
+#elif SERIAL1_PORT == 8
 
 #define RX1_PIN 21
 #define TX1_PIN 20
@@ -279,7 +278,7 @@ static const uart_hardware_t uart1_hardware =
 
 #endif
 
-#endif // UART1_PORT
+#endif // SERIAL1_PORT
 
 static io_stream_properties_t serial[] = {
     {
@@ -291,7 +290,7 @@ static io_stream_properties_t serial[] = {
       .flags.modbus_ready = On,
       .claim = serialInit
     }
-#ifdef UART1_PORT
+#ifdef SERIAL1_PORT
   , {
       .type = StreamType_Serial,
       .instance = 1,
@@ -330,7 +329,7 @@ void serialRegisterStreams (void)
     hal.periph_port.register_pin(&rx);
     hal.periph_port.register_pin(&tx);
 
-#ifdef UART1_PORT
+#ifdef SERIAL1_PORT
 
     static const periph_pin_t tx1 = {
         .function = Output_TX,
@@ -665,7 +664,7 @@ static void uart_interrupt_handler (void)
     }
 }
 
-#ifdef UART1_PORT
+#ifdef SERIAL1_PORT
 
 //
 // serial1GetC - returns -1 if no data available
@@ -874,4 +873,4 @@ static void uart1_interrupt_handler (void)
     }
 }
 
-#endif // UART1_PORT
+#endif // SERIAL1_PORT

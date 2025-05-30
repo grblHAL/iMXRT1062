@@ -125,6 +125,10 @@
 #error "Plasma and PPI mode cannot be enabled at the same time!"
 #endif
 
+#ifndef SERIAL_PORT
+#define SERIAL_PORT                 6
+#endif
+
 #include "grbl/driver_opts2.h"
 
 #if STEP_INJECT_ENABLE

@@ -41,7 +41,7 @@
 #define I2C_SDA0            (18u) // Not referenced, for info only
 #endif
 
-#define UART_PORT           8
+#define SERIAL_PORT         8
 #define UART_RX5            (21u) // Not referenced, for info only
 #define UART_TX5            (20u) // Not referenced, for info only
 
