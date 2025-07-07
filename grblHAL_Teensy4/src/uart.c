@@ -383,6 +383,14 @@ static bool setBaudRate (const uart_hardware_t *uart, uint32_t baud_rate)
     return true;
 }
 
+static void setFormat (const uart_hardware_t *uart, serial_format_t format)
+{
+    uart->port->CTRL &= ~(LPUART_CTRL_M|LPUART_CTRL_PT|LPUART_CTRL_PE);
+
+    if(format.parity != Serial_ParityNone)
+        uart->port->CTRL |= (format.parity == Serial_ParityEven ? (LPUART_CTRL_M|LPUART_CTRL_PE) : (LPUART_CTRL_M|LPUART_CTRL_PT|LPUART_CTRL_PE));
+}
+
 static uint32_t uartConfig (const uart_hardware_t *uart, uint32_t baud_rate)
 {
     uint32_t tx_fifo_size;
@@ -561,6 +569,13 @@ static bool serialSetBaudRate (uint32_t baud_rate)
     return setBaudRate(&UART, baud_rate);
 }
 
+static bool serialSetFormat (serial_format_t format)
+{
+    setFormat(&UART, format);
+
+    return true;
+}
+
 static bool serialDisable (bool disable)
 {
     if(disable)
@@ -605,6 +620,7 @@ static const io_stream_t *serialInit (uint32_t baud_rate)
         .suspend_read = serialSuspendInput,
         .disable_rx = serialDisable,
         .set_baud_rate = serialSetBaudRate,
+        .set_format = serialSetFormat,
         .set_enqueue_rt_handler = serialSetRtHandler
     };
 
@@ -721,13 +737,13 @@ static bool serial1PutC (const char c)
 
     uint_fast16_t next_head = BUFNEXT(tx1buffer.head, tx1buffer);   // Get next head pointer
 
-    while(tx1buffer.tail == next_head) {             // Buffer full, block until space is available...
+    while(tx1buffer.tail == next_head) {                            // Buffer full, block until space is available...
         if(!hal.stream_blocking_callback())
             return false;
     }
 
-    tx1buffer.data[tx1buffer.head] = c;               // Add data to buffer
-    tx1buffer.head = next_head;                      // and update head pointer
+    tx1buffer.data[tx1buffer.head] = c;                             // Add data to buffer
+    tx1buffer.head = next_head;                                     // and update head pointer
 
     __disable_irq();
     UART1.port->CTRL |= LPUART_CTRL_TIE; // (may need to handle this issue)BITBAND_SET_BIT(LPUART0_CTRL, TIE_BIT); // Enable TX interrupts
@@ -767,6 +783,13 @@ static uint16_t serial1TxCount(void)
 static bool serial1SetBaudRate (uint32_t baud_rate)
 {
     return setBaudRate(&UART1, baud_rate);
+}
+
+static bool serial1SetFormat (serial_format_t format)
+{
+    setFormat(&UART1, format);
+
+    return true;
 }
 
 static bool serial1Disable (bool disable)
@@ -814,6 +837,7 @@ static const io_stream_t *serial1Init (uint32_t baud_rate)
         .suspend_read = serial1SuspendInput,
         .disable_rx = serial1Disable,
         .set_baud_rate = serial1SetBaudRate,
+        .set_format = serial1SetFormat,
         .set_enqueue_rt_handler = serial1SetRtHandler
     };
 
