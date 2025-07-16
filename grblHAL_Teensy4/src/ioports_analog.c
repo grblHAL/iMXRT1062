@@ -405,9 +405,7 @@ FLASHMEM void ioports_init_analog (pin_group_pins_t *aux_inputs, pin_group_pins_
 {
     io_analog_t ports = {
         .ports = &analog,
-#if AUX_ANALOG_OUT
         .analog_out = analog_out,
-#endif
         .get_pin_info = get_pin_info,
         .wait_on_input = wait_on_input,
         .set_pin_description = set_pin_description
