@@ -60,6 +60,7 @@
         "digital_out": 3,
         "i2c_strobe": 1,
         "serial_ports": 1,
+		"spindle_pwm": 2,
         "sdcard": 1,
         "ethernet": 1,
         "eeprom": 1
@@ -97,6 +98,7 @@
         "digital_out": 3,
         "i2c_strobe": 1,
         "serial_ports": 1,
+        "spindle_pwm": 2,
         "sdcard": 1,
         "ethernet": 1,
         "eeprom": 1,
