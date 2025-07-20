@@ -2072,7 +2072,6 @@ FLASHMEM static bool spindle1Config (spindle_ptrs_t *spindle)
 #endif
 
     } else {
-        debug_writeln("s1_fail");
        if(spindle->context.pwm->flags.enable_out)
             spindle->set_state(spindle, (spindle_state_t){0}, 0.0f);
         spindle->pulse_on = NULL;

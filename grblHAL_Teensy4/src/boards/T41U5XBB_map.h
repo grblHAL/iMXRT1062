@@ -69,7 +69,7 @@
 #define AUXOUTPUT0_PIN      (31U)
 #define AUXOUTPUT1_PIN      (32U)
 #if SPINDLE_ENABLE & (1<<SPINDLE_PWM2|1<<SPINDLE_PWM2_NODIR)
-#define AUXOUTPUT2_PWM_PIN  (33U)
+#define AUXOUTPUT0_PWM_PIN  (33U)
 #else
 #define AUXOUTPUT2_PIN      (33U)
 #endif
