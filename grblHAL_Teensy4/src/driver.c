@@ -1640,7 +1640,7 @@ FLASHMEM bool aux_out_claim_explicit (aux_ctrl_out_t *aux_ctrl)
                 return false;
             break;
 #endif
-#if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
+#if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA
         case SPINDLE_ENABLE_PIN:
             gpio = &spindleEnable;
             break;
@@ -1657,7 +1657,7 @@ FLASHMEM bool aux_out_claim_explicit (aux_ctrl_out_t *aux_ctrl)
                 return false;
             break;
 #endif
-#if DRIVER_SPINDLE1_ENABLE & SPINDLE_PWM
+#if DRIVER_SPINDLE1_ENABLE & SPINDLE_ENA
         case SPINDLE1_ENABLE_PIN:
             gpio = &spindle1Enable;
             break;
@@ -3046,7 +3046,7 @@ FLASHMEM bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "250718";
+    hal.driver_version = "250910";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
