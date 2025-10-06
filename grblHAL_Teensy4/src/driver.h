@@ -43,7 +43,7 @@
 #ifdef WEBUI_INFLASH
 #undef WEBUI_INFLASH
 #endif
-#if defined(LITTLEFS_ENABLE) && LITTLEFS_ENABLE == 0
+#if !defined(LITTLEFS_ENABLE) || LITTLEFS_ENABLE == 0
 #undef LITTLEFS_ENABLE
 #define LITTLEFS_ENABLE 1
 #endif

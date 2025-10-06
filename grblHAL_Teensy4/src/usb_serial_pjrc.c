@@ -89,16 +89,6 @@ static void usb_serialRxCancel (void)
 }
 
 //
-// Writes a character to the serial output stream
-//
-static bool usb_serialPutC (const char c)
-{
-    usb_serial_putchar(c);
-
-    return true;
-}
-
-//
 // Writes current buffer to the USB output stream, swaps buffers
 //
 static inline bool _usb_write (void)
@@ -184,6 +174,23 @@ static void usb_serialWriteS (const char *s)
         }
     } else
         usb_serialWrite(s, (uint16_t)length);
+}
+
+//
+// Writes a character to the serial output stream
+//
+static bool usb_serialPutC (const char c)
+{
+    if(txbuf.length) {
+        char s[2];
+        s[0] = c;
+        s[1] = '\0';
+        usb_serialWriteS(s);
+    }
+    else
+        usb_serial_putchar(c);
+
+    return true;
 }
 
 //

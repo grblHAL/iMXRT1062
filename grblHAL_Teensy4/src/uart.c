@@ -280,6 +280,29 @@ static const uart_hardware_t uart1_hardware =
 
 #endif // SERIAL1_PORT
 
+static const io_stream_status_t *get_uart_status (uint8_t instance);
+
+static io_stream_status_t stream_status[] = {
+    {
+        .baud_rate = 115200,
+        .format = {
+            .width = Serial_8bit,
+            .stopbits = Serial_StopBits1,
+            .parity = Serial_ParityNone,
+        }
+    },
+#ifdef SERIAL1_PORT
+    {
+        .baud_rate = 115200,
+        .format = {
+            .width = Serial_8bit,
+            .stopbits = Serial_StopBits1,
+            .parity = Serial_ParityNone,
+        }
+    }
+#endif
+};
+
 static io_stream_properties_t serial[] = {
     {
       .type = StreamType_Serial,
@@ -288,7 +311,8 @@ static io_stream_properties_t serial[] = {
       .flags.claimed = Off,
       .flags.can_set_baud = On,
       .flags.modbus_ready = On,
-      .claim = serialInit
+      .claim = serialInit,
+      .get_status = get_uart_status
     }
 #ifdef SERIAL1_PORT
   , {
@@ -298,7 +322,8 @@ static io_stream_properties_t serial[] = {
       .flags.claimed = Off,
       .flags.can_set_baud = On,
       .flags.modbus_ready = On,
-      .claim = serial1Init
+      .claim = serial1Init,
+      .get_status = get_uart_status
     }
 #endif
 };
@@ -314,16 +339,14 @@ void serialRegisterStreams (void)
         .function = Output_TX,
         .group = PinGroup_UART,
         .pin = TX_PIN,
-        .mode = { .mask = PINMODE_OUTPUT },
-        .description = "UART1"
+        .mode = { .mask = PINMODE_OUTPUT }
     };
 
     static const periph_pin_t rx = {
         .function = Input_RX,
         .group = PinGroup_UART,
         .pin = RX_PIN,
-        .mode = { .mask = PINMODE_NONE },
-        .description = "UART1"
+        .mode = { .mask = PINMODE_NONE }
     };
 
     hal.periph_port.register_pin(&rx);
@@ -335,16 +358,14 @@ void serialRegisterStreams (void)
         .function = Output_TX,
         .group = PinGroup_UART2,
         .pin = TX1_PIN,
-        .mode = { .mask = PINMODE_OUTPUT },
-        .description = "UART2"
+        .mode = { .mask = PINMODE_OUTPUT }
     };
 
     static const periph_pin_t rx1 = {
         .function = Input_RX,
         .group = PinGroup_UART2,
         .pin = RX1_PIN,
-        .mode = { .mask = PINMODE_NONE },
-        .description = "UART2"
+        .mode = { .mask = PINMODE_NONE }
     };
 
     hal.periph_port.register_pin(&rx1);
@@ -353,6 +374,13 @@ void serialRegisterStreams (void)
 #endif
 
     stream_register_streams(&streams);
+}
+
+static const io_stream_status_t *get_uart_status (uint8_t instance)
+{
+    stream_status[instance].flags = serial[instance].flags;
+
+    return &stream_status[instance];
 }
 
 static bool setBaudRate (const uart_hardware_t *uart, uint32_t baud_rate)
@@ -566,11 +594,15 @@ static uint16_t serialTxCount(void) {
 
 static bool serialSetBaudRate (uint32_t baud_rate)
 {
+    stream_status[0].baud_rate = baud_rate;
+
     return setBaudRate(&UART, baud_rate);
 }
 
 static bool serialSetFormat (serial_format_t format)
 {
+    stream_status[0].format = format;
+
     setFormat(&UART, format);
 
     return true;
@@ -628,6 +660,7 @@ static const io_stream_t *serialInit (uint32_t baud_rate)
         return NULL;
 
     serial[0].flags.claimed = On;
+    stream_status[0].baud_rate = baud_rate;
 
     memset(&rxbuffer, 0, sizeof(stream_rx_buffer_t));
     memset(&txbuffer, 0, sizeof(stream_tx_buffer_t));
@@ -782,11 +815,15 @@ static uint16_t serial1TxCount(void)
 
 static bool serial1SetBaudRate (uint32_t baud_rate)
 {
+    stream_status[1].baud_rate = baud_rate;
+
     return setBaudRate(&UART1, baud_rate);
 }
 
 static bool serial1SetFormat (serial_format_t format)
 {
+    stream_status[1].format = format;
+
     setFormat(&UART1, format);
 
     return true;
@@ -845,6 +882,7 @@ static const io_stream_t *serial1Init (uint32_t baud_rate)
         return NULL;
 
     serial[1].flags.claimed = On;
+    stream_status[1].baud_rate = baud_rate;
 
     memset(&rx1buffer, 0, sizeof(stream_rx_buffer_t));
     memset(&tx1buffer, 0, sizeof(stream_tx_buffer_t));
