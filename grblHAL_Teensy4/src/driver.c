@@ -318,6 +318,28 @@ static gpio_t QEI_A, QEI_B;
   static gpio_t AuxOut8;
 #endif
 
+#ifdef MOTOR_CS_PIN
+  static gpio_t mCs;
+#endif
+#ifdef MOTOR_CSX_PIN
+  static gpio_t mCsX;
+#endif
+#ifdef MOTOR_CSY_PIN
+  static gpio_t mCsY;
+#endif
+#ifdef MOTOR_CSZ_PIN
+  static gpio_t mCsZ;
+#endif
+#ifdef MOTOR_CSM3_PIN
+  static gpio_t mCsM3;
+#endif
+#ifdef MOTOR_CSM4_PIN
+  static gpio_t mCsM4;
+#endif
+#ifdef MOTOR_CSM5_PIN
+  static gpio_t mCsM5;
+#endif
+
 static periph_signal_t *periph_pins = NULL;
 
 input_signal_t inputpin[] = {
@@ -448,7 +470,6 @@ static output_signal_t outputpin[] = {
 #ifdef Z2_DIRECTION_PIN
     { .id = Output_DirZ_2,          .port = &dirZ2,         .pin = Z2_DIRECTION_PIN,        .group = PinGroup_StepperDir },
 #endif
-#if !TRINAMIC_ENABLE
 #ifdef STEPPERS_ENABLE_PIN
     { .id = Output_StepperEnable,   .port = &steppersEnable, .pin = STEPPERS_ENABLE_PIN,    .group = PinGroup_StepperEnable },
 #endif
@@ -479,6 +500,26 @@ static output_signal_t outputpin[] = {
 #ifdef Z2_ENABLE_PIN
     { .id = Output_StepperEnableZ,  .port = &enableZ2,      .pin = Z2_ENABLE_PIN,           .group = PinGroup_StepperEnable },
 #endif
+#ifdef MOTOR_CS_PIN
+    { .id = Output_MotorChipSelect,     .port = &mCs,       .pin = MOTOR_CS_PIN,            .group = PinGroup_MotorChipSelect },
+#endif
+#ifdef MOTOR_CSX_PIN
+    { .id = Output_MotorChipSelectX,    .port = &mCsX,      .pin = MOTOR_CSX_PIN,           .group = PinGroup_MotorChipSelect },
+#endif
+#ifdef MOTOR_CSY_PIN
+    { .id = Output_MotorChipSelectY,    .port = &mCsY,      .pin = MOTOR_CSY_PIN,           .group = PinGroup_MotorChipSelect },
+#endif
+#ifdef MOTOR_CSZ_PIN
+    { .id = Output_MotorChipSelectZ,    .port = &mCsZ,      .pin = MOTOR_CSZ_PIN,           .group = PinGroup_MotorChipSelect },
+#endif
+#ifdef MOTOR_CSM3_PIN
+    { .id = Output_MotorChipSelectM3,   .port = &mCsM3,     .pin = MOTOR_CSM3_PIN,          .group = PinGroup_MotorChipSelect },
+#endif
+#ifdef MOTOR_CSM4_PIN
+    { .id = Output_MotorChipSelectM4,   .port = &mCsM4,     .pin = MOTOR_CSM4_PIN,          .group = PinGroup_MotorChipSelect },
+#endif
+#ifdef MOTOR_CSM5_PIN
+    { .id = Output_MotorChipSelectM5,   .port = &mCsM5,     .pin = MOTOR_CSM5_PIN,          .group = PinGroup_MotorChipSelect },
 #endif
 #ifdef AUXOUTPUT0_PIN
     { .id = Output_Aux0,            .port = &AuxOut0,       .pin = AUXOUTPUT0_PIN,          .group = PinGroup_AuxOutput },
@@ -2550,6 +2591,7 @@ FLASHMEM static void enumeratePins (bool low_level, pin_info_ptr pin_info, void 
     for(i = 0; i < sizeof(inputpin) / sizeof(input_signal_t); i++) {
         pin.id = id++;
         pin.pin = inputpin[i].pin;
+        pin.port = &inputpin[i].gpio;
         pin.function = inputpin[i].id;
         pin.group = inputpin[i].group;
         pin.mode.pwm = pin.group == PinGroup_SpindlePWM;
@@ -2565,6 +2607,7 @@ FLASHMEM static void enumeratePins (bool low_level, pin_info_ptr pin_info, void 
         if(!(outputpin[i].group == PinGroup_SpindleControl ||outputpin[i].group == PinGroup_Coolant)) {
             pin.id = id++;
             pin.pin = outputpin[i].pin;
+            pin.port = outputpin[i].port;
             pin.function = outputpin[i].id;
             pin.group = outputpin[i].group;
             pin.description = outputpin[i].description;
@@ -2755,8 +2798,14 @@ FLASHMEM static bool driver_setup (settings_t *settings)
 
     uint32_t i;
     for(i = 0 ; i < sizeof(outputpin) / sizeof(output_signal_t); i++) {
-        if(outputpin[i].group != PinGroup_AuxOutputAnalog)
+        if(outputpin[i].group != PinGroup_AuxOutputAnalog) {
             pinModeOutput(outputpin[i].port, outputpin[i].pin);
+            if(outputpin[i].group == PinGroup_MotorChipSelect) {
+                gpio_t port;
+                memcpy(&port, outputpin[i].port, sizeof(gpio_t));
+                DIGITAL_OUT(port, 0);
+            }
+        }
     }
 
     /******************
@@ -3046,7 +3095,7 @@ FLASHMEM bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "251005";
+    hal.driver_version = "251008";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -3193,6 +3242,8 @@ FLASHMEM bool driver_init (void)
     for(i = 0; i < sizeof(outputpin) / sizeof(output_signal_t); i++) {
         output = &outputpin[i];
         output->mode.output = On;
+        output->port->reg = (gpio_reg_t *)digital_pin_to_info_PGM[output->pin].reg;
+        output->port->bit = digital_pin_to_info_PGM[output->pin].mask;
         if(output->group == PinGroup_AuxOutput) {
             if(aux_digital_out.pins.outputs == NULL)
                 aux_digital_out.pins.outputs = output;
@@ -3346,6 +3397,14 @@ FLASHMEM bool driver_init (void)
  #endif
 
 #endif // DRIVER_SPINDLE1_ENABLE
+
+#if TRINAMIC_SPI_ENABLE
+    extern void tmc_spi_init (void);
+    tmc_spi_init();
+#elif TRINAMIC_UART_ENABLE
+//    extern void tmc_uart_init (void);
+//    tmc_uart_init();
+#endif
 
 #if ETHERNET_ENABLE
     grbl_enet_init();
