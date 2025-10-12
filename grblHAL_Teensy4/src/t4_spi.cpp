@@ -3,7 +3,7 @@
 
   Part of grblHAL driver for iMXRT1062
 
-  Copyright (c) 2020-2025 Terje Io
+  Copyright (c) 2025 Terje Io
 
   Grbl is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -23,7 +23,7 @@
 
 #if SPI_ENABLE
 
-#include <spi.h>
+#include <SPI.h>
 #include "Arduino.h"
 
 #ifndef SPI_FREQ
