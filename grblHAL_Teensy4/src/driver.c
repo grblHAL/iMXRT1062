@@ -1882,7 +1882,7 @@ FLASHMEM bool spindleConfig (spindle_ptrs_t *spindle)
         spindle_pwm.flags.invert_pwm = Off;
         spindle->set_state = spindleSetStateVariable;
     } else {
-        if(spindle->param->state.on)
+        if(spindle->context.pwm->flags.enable_out)
             spindle->set_state(spindle, (spindle_state_t){0}, 0.0f);
         spindle->set_state = spindleSetState;
     }
@@ -3095,7 +3095,7 @@ FLASHMEM bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "251008";
+    hal.driver_version = "251013";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
