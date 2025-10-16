@@ -50,6 +50,8 @@
 #define WEBUI_INFLASH   1
 #endif
 
+#define SDCARD_SDIO 1
+
 #include "grbl/driver_opts.h"
 
 #define DIGITAL_IN(gpio) (!!(gpio.reg->DR & gpio.bit))
