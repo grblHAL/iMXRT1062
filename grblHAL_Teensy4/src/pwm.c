@@ -129,7 +129,7 @@ typedef struct {
 uint_fast8_t n_claimed = 0;
 pwm_claimed_t pwm_claimed[5] = {0};
 
-bool pwm_is_available (void *port, uint8_t pin)
+FLASHMEM bool pwm_is_available (void *port, uint8_t pin)
 {
     const struct pwm_pin_info_struct *pwm = NULL;
 
@@ -149,7 +149,7 @@ bool pwm_is_available (void *port, uint8_t pin)
     return pwm != NULL;
 }
 
-const pwm_signal_t *pwm_claim (void *port, uint8_t pin)
+FLASHMEM const pwm_signal_t *pwm_claim (void *port, uint8_t pin)
 {
     const struct pwm_pin_info_struct *pwm = NULL;
 
@@ -164,7 +164,7 @@ bool pwm_enable (const pwm_signal_t *pwm)
     return true;
 }
 
-bool pwm_config (const pwm_signal_t *pwm, uint32_t prescaler, uint32_t period, bool inverted)
+FLASHMEM bool pwm_config (const pwm_signal_t *pwm, uint32_t prescaler, uint32_t period, bool inverted)
 {
     uint32_t submodule = pwm->module & 0b11,
              pin = sizeof(pwm_pin_infos) / sizeof(struct pwm_pin_info_struct);

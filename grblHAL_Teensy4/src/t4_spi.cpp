@@ -44,7 +44,7 @@ void t4_spi_init (void)
 
         init = true;
 
-        static const periph_pin_t sck = {
+        PROGMEM static const periph_pin_t sck = {
             .function = Output_SPICLK,
             .group = PinGroup_SPI,
             .port = NULL,
@@ -52,7 +52,7 @@ void t4_spi_init (void)
             .mode = { .mask = PINMODE_OUTPUT }
         };
 
-        static const periph_pin_t sdo = {
+        PROGMEM static const periph_pin_t sdo = {
             .function = Input_MISO,
             .group = PinGroup_SPI,
             .port = NULL,
@@ -60,7 +60,7 @@ void t4_spi_init (void)
             .mode = { .mask = PINMODE_NONE }
         };
 
-        static const periph_pin_t sdi = {
+        PROGMEM static const periph_pin_t sdi = {
             .function = Output_MOSI,
             .group = PinGroup_SPI,
             .port = NULL,

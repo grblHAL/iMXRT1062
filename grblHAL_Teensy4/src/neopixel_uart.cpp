@@ -267,7 +267,7 @@ FLASHMEM void neopixel_init (void)
         dma->destination((volatile uint8_t &)uart->DATA);
         dma->triggerAtHardwareEvent(hwtrigger);
 
-        static const periph_pin_t neopix = {
+        PROGMEM static const periph_pin_t neopix = {
             .function = Output_LED_Adressable,
             .group = PinGroup_UART,
             .port = NULL,

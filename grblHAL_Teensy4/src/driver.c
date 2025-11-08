@@ -60,9 +60,14 @@
 #endif
 
 #if PPI_ENABLE
+
 #include "laser/ppi.h"
+
+static laser_ppi_t laser_ppi = {0};
+
 static void ppi_timeout_isr (void);
-#endif
+
+#endif // PPI_ENABLE
 
 #if ETHERNET_ENABLE
   #include "enet.h"
@@ -1598,6 +1603,23 @@ FLASHMEM bool aux_out_claim_explicit (aux_ctrl_out_t *aux_ctrl)
     return aux_ctrl->port != IOPORT_UNASSIGNED;
 }
 
+#if PPI_ENABLE && (DRIVER_SPINDLE_ENABLE || DRIVER_SPINDLE1_ENABLE)
+
+static void spindlePulseOn (spindle_ptrs_t *spindle, uint_fast16_t pulse_length)
+{
+    static uint_fast16_t plen = 0;
+
+    if(plen != pulse_length) {
+        plen = pulse_length;
+        PPI_TIMER_COMP1 = (uint16_t)((pulse_length * F_BUS_MHZ) / 128);
+    }
+
+    laser_ppi.spindle_on(spindle);
+    PPI_TIMER_CTRL |= TMR_CTRL_CM(0b001);
+}
+
+#endif // PPI_ENABLE
+
 #if DRIVER_SPINDLE_ENABLE
 
 // Static spindle (off, on cw & on ccw)
@@ -1755,9 +1777,23 @@ FLASHMEM bool spindleConfig (spindle_ptrs_t *spindle)
 
         spindle_pwm.flags.invert_pwm = Off;
         spindle->set_state = spindleSetStateVariable;
+
+#if PPI_ENABLE
+        if(spindle_pwm.flags.laser_mode_disable) {
+            if(laser_ppi.spindle == spindle)
+                laser_ppi.spindle = NULL;
+            spindle->pulse_on = NULL;
+        } else {
+            laser_ppi.spindle = spindle;
+            laser_ppi.spindle_on = spindle_on;
+            laser_ppi.spindle_off = spindle_off;
+            spindle->pulse_on = spindlePulseOn;
+        }
+#endif
     } else {
         if(spindle->context.pwm->flags.enable_out)
             spindle->set_state(spindle, (spindle_state_t){0}, 0.0f);
+        spindle->pulse_on = NULL;
         spindle->set_state = spindleSetState;
     }
 
@@ -1765,25 +1801,6 @@ FLASHMEM bool spindleConfig (spindle_ptrs_t *spindle)
 
     return true;
 }
-
-#if PPI_ENABLE
-
-spindle_ptrs_t *ppi_spindle;
-
-static void spindlePulseOn (spindle_ptrs_t *spindle, uint_fast16_t pulse_length)
-{
-    static uint_fast16_t plen = 0;
-
-    if(plen != pulse_length) {
-        plen = pulse_length;
-        PPI_TIMER_COMP1 = (uint16_t)((pulse_length * F_BUS_MHZ) / 128);
-    }
-
-    spindle_on((ppi_spindle = spindle));
-    PPI_TIMER_CTRL |= TMR_CTRL_CM(0b001);
-}
-
-#endif
 
 #endif // DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
 
@@ -1976,14 +1993,17 @@ FLASHMEM static bool spindle1Config (spindle_ptrs_t *spindle)
 
         spindle->set_state(spindle, (spindle_state_t){0}, 0.0f);
 
-#if xPPI_ENABLE
-        if(ppi_spindle == NULL && ppi_timer) {
-            spindle->pulse_on = spindlePulseOn;
-            ppi_spindle = spindle;
-            ppi_spindle_on = spindle1_on;
-            ppi_spindle_off = spindle1_off;
-        } else if(ppi_spindle != spindle)
+#if PPI_ENABLE
+        if(spindle_pwm.flags.laser_mode_disable) {
+            if(laser_ppi.spindle == spindle)
+                laser_ppi.spindle = NULL;
             spindle->pulse_on = NULL;
+        } else if(laser_ppi.spindle == NULL) {
+            laser_ppi.spindle = spindle;
+            laser_ppi.spindle_on = spindle1_on;
+            laser_ppi.spindle_off = spindle1_off;
+            spindle->pulse_on = spindlePulseOn;
+        }
 #endif
 
     } else {
@@ -2658,7 +2678,7 @@ static bool sdcard_unmount (FATFS **fs)
 
 #endif
 
-// Initializes MCU peripherals for Grbl use
+// Initializes MCU peripherals for grblHAL use
 FLASHMEM static bool driver_setup (settings_t *settings)
 {
 #if TRINAMIC_ENABLE && defined(BOARD_CNC_BOOSTERPACK) // Trinamic BoosterPack does not support mixed drivers
@@ -2736,7 +2756,10 @@ FLASHMEM static bool driver_setup (settings_t *settings)
 
     *(portConfigRegister(SPINDLE_PWM_PIN)) = 1;
 
-  #if PPI_ENABLE
+
+#endif // DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
+
+#if PPI_ENABLE && (DRIVER_SPINDLE_ENABLE || DRIVER_SPINDLE1_ENABLE)
 
     PPI_TIMER_ENABLE = 0;
     PPI_TIMER_LOAD = 0;
@@ -2752,9 +2775,7 @@ FLASHMEM static bool driver_setup (settings_t *settings)
 
     ppi_init();
 
-  #endif // PPI_ENABLE
-
-#endif // DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
+#endif // PPI_ENABLE
 
 #if SPINDLE_ENCODER_ENABLE
 
@@ -2968,7 +2989,7 @@ FLASHMEM bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "251015";
+    hal.driver_version = "251025";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -3144,7 +3165,7 @@ FLASHMEM bool driver_init (void)
     aux_ctrl_claim_ports(aux_claim_explicit, NULL);
     aux_ctrl_claim_out_ports(aux_out_claim_explicit, NULL);
 
-    static const sys_command_t boot_command_list[] = {
+    PROGMEM static const sys_command_t boot_command_list[] = {
         {"BL", enter_bootloader, { .allow_blocking = On, .noargs = On }, { .str = "enter bootloader" } },
     };
 
@@ -3159,7 +3180,7 @@ FLASHMEM bool driver_init (void)
 
  #if DRIVER_SPINDLE_ENABLE & SPINDLE_PWM
 
-    static const spindle_ptrs_t spindle = {
+    PROGMEM static const spindle_ptrs_t spindle = {
         .type = SpindleType_PWM,
 #if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
         .ref_id = SPINDLE_PWM0,
@@ -3171,9 +3192,6 @@ FLASHMEM bool driver_init (void)
         .get_state = spindleGetState,
         .get_pwm = spindleGetPWM,
         .update_pwm = spindleSetSpeed,
-  #if PPI_ENABLE
-        .pulse_on = spindlePulseOn,
-  #endif
         .cap = {
             .gpio_controlled = On,
             .variable = On,
@@ -3187,7 +3205,7 @@ FLASHMEM bool driver_init (void)
 
  #else
 
-    static const spindle_ptrs_t spindle = {
+    PROGMEM static const spindle_ptrs_t spindle = {
         .type = SpindleType_Basic,
 #if DRIVER_SPINDLE_ENABLE & SPINDLE_DIR
         .ref_id = SPINDLE_ONOFF0_DIR,
@@ -3214,7 +3232,7 @@ FLASHMEM bool driver_init (void)
 
  #if DRIVER_SPINDLE1_ENABLE & SPINDLE_PWM
 
-    static const spindle_ptrs_t spindle1 = {
+    PROGMEM static const spindle_ptrs_t spindle1 = {
         .type = SpindleType_PWM,
   #if DRIVER_SPINDLE1_ENABLE & SPINDLE_DIR
         .ref_id = SPINDLE_PWM1,
@@ -3247,7 +3265,7 @@ FLASHMEM bool driver_init (void)
 
  #else
 
-   static const spindle_ptrs_t spindle1 = {
+    PROGMEM static const spindle_ptrs_t spindle1 = {
        .type = SpindleType_Basic,
   #if DRIVER_SPINDLE1_ENABLE & SPINDLE_DIR
        .ref_id = SPINDLE_ONOFF1_DIR,
@@ -3398,13 +3416,16 @@ static void spindle_pulse_isr (void)
 #endif // SPINDLE_ENCODER_ENABLE && SPINDLE_PULSE_PIN == 14
 
 
-#if PPI_ENABLE
+#if PPI_ENABLE && (DRIVER_SPINDLE_ENABLE || DRIVER_SPINDLE1_ENABLE)
+
 // Switches off the spindle (laser) after laser.pulse_length time has elapsed
 static void ppi_timeout_isr (void)
 {
     PPI_TIMER_CSCTRL &= ~TMR_CSCTRL_TCF1;
-    spindle_off(ppi_spindle);
+
+    laser_ppi.spindle_off(laser_ppi.spindle);
 }
+
 #endif
 
 void pin_debounce (void *pin)

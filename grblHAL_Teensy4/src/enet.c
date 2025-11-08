@@ -400,7 +400,7 @@ static char *ethernet_get_ip (setting_id_t setting);
 static status_code_t ethernet_set_services (setting_id_t setting, uint_fast16_t int_value);
 static uint32_t ethernet_get_services (setting_id_t id);
 
-static const setting_group_detail_t ethernet_groups [] = {
+PROGMEM static const setting_group_detail_t ethernet_groups [] = {
     { Group_Root, Group_Networking, "Networking" }
 };
 
@@ -427,8 +427,6 @@ PROGMEM static const setting_detail_t ethernet_settings[] = {
 #endif
 };
 
-#ifndef NO_SETTINGS_DESCRIPTIONS
-
 PROGMEM static const setting_descr_t ethernet_settings_descr[] = {
     { Setting_NetworkServices, "Network services to enable. Consult driver documentation for availability." },
     { Setting_Hostname, "Network hostname." },
@@ -454,26 +452,10 @@ PROGMEM static const setting_descr_t ethernet_settings_descr[] = {
 #endif
 };
 
-#endif
-
 static void ethernet_settings_save (void)
 {
     hal.nvs.memcpy_to_nvs(nvs_address, (uint8_t *)&ethernet, sizeof(network_settings_t), true);
 }
-
-static setting_details_t setting_details = {
-    .groups = ethernet_groups,
-    .n_groups = sizeof(ethernet_groups) / sizeof(setting_group_detail_t),
-    .settings = ethernet_settings,
-    .n_settings = sizeof(ethernet_settings) / sizeof(setting_detail_t),
-#ifndef NO_SETTINGS_DESCRIPTIONS
-    .descriptions = ethernet_settings_descr,
-    .n_descriptions = sizeof(ethernet_settings_descr) / sizeof(setting_descr_t),
-#endif
-    .save = ethernet_settings_save,
-    .load = ethernet_settings_load,
-    .restore = ethernet_settings_restore
-};
 
 FLASHMEM static status_code_t ethernet_set_ip (setting_id_t setting, char *value)
 {
@@ -627,6 +609,18 @@ static void stream_changed (stream_type_t type)
 
 FLASHMEM bool grbl_enet_init (network_settings_t *settings)
 {
+    static setting_details_t setting_details = {
+        .groups = ethernet_groups,
+        .n_groups = sizeof(ethernet_groups) / sizeof(setting_group_detail_t),
+        .settings = ethernet_settings,
+        .n_settings = sizeof(ethernet_settings) / sizeof(setting_detail_t),
+        .descriptions = ethernet_settings_descr,
+        .n_descriptions = sizeof(ethernet_settings_descr) / sizeof(setting_descr_t),
+        .save = ethernet_settings_save,
+        .load = ethernet_settings_load,
+        .restore = ethernet_settings_restore
+    };
+
     if((nvs_address = nvs_alloc(sizeof(network_settings_t)))) {
 
         networking_init();

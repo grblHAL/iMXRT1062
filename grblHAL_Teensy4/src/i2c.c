@@ -41,7 +41,7 @@ typedef struct {
 #define SCL_PIN 19
 #define SDA_PIN 18
 
-static const i2c_hardware_t i2c1_hardware = {
+PROGMEM static const i2c_hardware_t i2c1_hardware = {
     .clock_gate_register = &CCM_CCGR2,
     .clock_gate_mask = CCM_CCGR2_LPI2C1(CCM_CCGR_ON),
     .port = &IMXRT_LPI2C1,
@@ -66,7 +66,7 @@ static const i2c_hardware_t i2c1_hardware = {
 #define SDA_PIN 16
 
 // NOTE: port 3 has alternative mapping to pin 36 and 37
-static const i2c_hardware_t i2c3_hardware = {
+PROGMEM static const i2c_hardware_t i2c3_hardware = {
     .clock_gate_register = &CCM_CCGR2,
     .clock_gate_mask = CCM_CCGR2_LPI2C3(CCM_CCGR_ON),
     .port = &IMXRT_LPI2C3,
@@ -90,7 +90,7 @@ static const i2c_hardware_t i2c3_hardware = {
 #define SCL_PIN 24
 #define SDA_PIN 25
 
-static const i2c_hardware_t i2c4_hardware = {
+PROGMEM static const i2c_hardware_t i2c4_hardware = {
     .clock_gate_register = &CCM_CCGR6,
     .clock_gate_mask = CCM_CCGR6_LPI2C4_SERIAL(CCM_CCGR_ON),
     .port = &IMXRT_LPI2C4,

@@ -124,7 +124,7 @@ static inline bool _usb_write (void)
 //
 // Writes a number of characters from string to the USB output stream, blocks if buffer full
 //
-static void usb_serialWrite (const char *s, uint16_t length)
+static void usb_serialWrite (const uint8_t *s, uint16_t length)
 {
     if(length == 0)
         return;
@@ -173,21 +173,20 @@ static void usb_serialWriteS (const char *s)
                 return;
         }
     } else
-        usb_serialWrite(s, (uint16_t)length);
+        usb_serialWrite((uint8_t *)s, (uint16_t)length);
 }
 
 //
 // Writes a character to the serial output stream
 //
-static bool usb_serialPutC (const char c)
+static bool usb_serialPutC (const uint8_t c)
 {
+	static char s[2] = "";
+
     if(txbuf.length) {
-        char s[2];
-        s[0] = c;
-        s[1] = '\0';
+        *s = c;
         usb_serialWriteS(s);
-    }
-    else
+    } else
         usb_serial_putchar(c);
 
     return true;
@@ -196,15 +195,15 @@ static bool usb_serialPutC (const char c)
 //
 // serialGetC - returns -1 if no data available
 //
-static int16_t usb_serialGetC (void)
+static int32_t usb_serialGetC (void)
 {
     if(rxbuf.tail == rxbuf.head)
         return -1; // no data available
 
-    char data = rxbuf.data[rxbuf.tail];         // Get next character, increment tmp pointer
-    rxbuf.tail = BUFNEXT(rxbuf.tail, rxbuf);    // and update pointer
+    int32_t data = (int32_t)rxbuf.data[rxbuf.tail];     // Get next character, increment tmp pointer
+    rxbuf.tail = BUFNEXT(rxbuf.tail, rxbuf);            // and update pointer
 
-    return (int16_t)data;
+    return data;
 }
 
 static bool usb_serialSuspendInput (bool suspend)
@@ -212,7 +211,7 @@ static bool usb_serialSuspendInput (bool suspend)
     return stream_rx_suspend(&rxbuf, suspend);
 }
 
-static bool usb_serialEnqueueRtCommand (char c)
+static bool usb_serialEnqueueRtCommand (uint8_t c)
 {
     return enqueue_realtime_command(c);
 }
@@ -279,7 +278,7 @@ void usb_execute_realtime (sys_state_t state)
     lock = false;
 }
 
-const io_stream_t *usb_serialInit (void)
+FLASHMEM const io_stream_t *usb_serialInit (void)
 {
     PROGMEM static const io_stream_t stream = {
         .type = StreamType_Serial,
