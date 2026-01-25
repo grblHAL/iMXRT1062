@@ -188,11 +188,13 @@
 
 
 #if I2C_ENABLE
-#define I2C_PORT    	4
-#define I2C_SCL4    	(24u) // Not used, for info only
-#define I2C_SDA4    	(25u) // Not used, for info only
+#define I2C_PORT    		4
+#define I2C_SCL4    		(24u) // Not used, for info only
+#define I2C_SDA4    		(25u) // Not used, for info only
+#elif RGB_LED_ENABLE
+#define NEOPIXEL_UART_PIN	(24u)
 #else
-#define SERIAL1_PORT	1
-#define UART1_RX    	(25u) // Not used, for info only
-#define UART1_TX    	(24u) // Not used, for info only
+#define SERIAL1_PORT		1
+#define UART1_RX    		(25u) // Not used, for info only
+#define UART1_TX    		(24u) // Not used, for info only
 #endif

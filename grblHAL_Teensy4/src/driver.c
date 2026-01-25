@@ -169,12 +169,14 @@ static gpio_t stepA, dirA, LimitA;
 static gpio_t enableA;
 #endif
 #endif
+
 #ifdef B_AXIS
 static gpio_t stepB, dirB, LimitB;
 #ifdef B_ENABLE_PIN
 static gpio_t enableB;
 #endif
 #endif
+
 #ifdef C_AXIS
 static gpio_t stepC, dirC;
 #ifdef C_ENABLE_PIN
@@ -184,6 +186,37 @@ static gpio_t enableC;
 static gpio_t LimitC;
 #endif
 #endif
+
+#ifdef U_AXIS
+static gpio_t stepU, dirU;
+#ifdef U_ENABLE_PIN
+static gpio_t enableU;
+#endif
+#ifdef U_LIMIT_PIN
+static gpio_t LimitU;
+#endif
+#endif
+
+#ifdef V_AXIS
+static gpio_t stepV, dirV;
+#ifdef V_ENABLE_PIN
+static gpio_t enableV;
+#endif
+#ifdef V_LIMIT_PIN
+static gpio_t LimitV;
+#endif
+#endif
+
+#ifdef W_AXIS
+static gpio_t stepW, dirW;
+#ifdef W_ENABLE_PIN
+static gpio_t enableW;
+#endif
+#ifdef W_LIMIT_PIN
+static gpio_t LimitW;
+#endif
+#endif
+
 #ifdef STEPPERS_ENABLE_PIN
 static gpio_t steppersEnable;
 #endif
@@ -379,6 +412,15 @@ input_signal_t inputpin[] = {
 #ifdef C_LIMIT_PIN
   , { .id = Input_LimitC,         .port = &LimitC,         .pin = C_LIMIT_PIN,         .group = PinGroup_Limit }
 #endif
+#ifdef U_LIMIT_PIN
+  , { .id = Input_LimitU,         .port = &LimitU,         .pin = U_LIMIT_PIN,         .group = PinGroup_Limit }
+#endif
+#ifdef V_LIMIT_PIN
+  , { .id = Input_LimitV,         .port = &LimitV,         .pin = V_LIMIT_PIN,         .group = PinGroup_Limit }
+#endif
+#ifdef W_LIMIT_PIN
+  , { .id = Input_LimitW,         .port = &LimitW,         .pin = W_LIMIT_PIN,         .group = PinGroup_Limit }
+#endif
 // End limit pin definitions
 #ifdef SPINDLE_INDEX_PIN
   , { .id = Input_SpindleIndex,   .port = &SpindleIndex,   .pin = SPINDLE_INDEX_PIN,   .group = PinGroup_SpindleIndex }
@@ -445,6 +487,15 @@ static output_signal_t outputpin[] = {
 #ifdef C_AXIS
     { .id = Output_StepC,           .port = &stepC,         .pin = C_STEP_PIN,              .group = PinGroup_StepperStep },
 #endif
+#ifdef U_AXIS
+    { .id = Output_StepU,           .port = &stepU,         .pin = U_STEP_PIN,              .group = PinGroup_StepperStep },
+#endif
+#ifdef V_AXIS
+    { .id = Output_StepV,           .port = &stepV,         .pin = V_STEP_PIN,              .group = PinGroup_StepperStep },
+#endif
+#ifdef W_AXIS
+    { .id = Output_StepW,           .port = &stepW,         .pin = W_STEP_PIN,              .group = PinGroup_StepperStep },
+#endif
 #ifdef X2_STEP_PIN
     { .id = Output_StepX_2,         .port = &stepX2,        .pin = X2_STEP_PIN,             .group = PinGroup_StepperStep },
 #endif
@@ -465,6 +516,15 @@ static output_signal_t outputpin[] = {
 #endif
 #ifdef C_AXIS
     { .id = Output_DirC,            .port = &dirC,          .pin = C_DIRECTION_PIN,         .group = PinGroup_StepperDir },
+#endif
+#ifdef U_AXIS
+    { .id = Output_DirU,            .port = &dirU,          .pin = U_DIRECTION_PIN,         .group = PinGroup_StepperDir },
+#endif
+#ifdef V_AXIS
+    { .id = Output_DirV,            .port = &dirV,          .pin = V_DIRECTION_PIN,         .group = PinGroup_StepperDir },
+#endif
+#ifdef W_AXIS
+    { .id = Output_DirW,            .port = &dirW,          .pin = W_DIRECTION_PIN,         .group = PinGroup_StepperDir },
 #endif
 #ifdef X2_DIRECTION_PIN
     { .id = Output_DirX_2,          .port = &dirX2,         .pin = X2_DIRECTION_PIN,        .group = PinGroup_StepperDir },
@@ -495,6 +555,15 @@ static output_signal_t outputpin[] = {
 #endif
 #ifdef C_ENABLE_PIN
     { .id = Output_StepperEnableC,  .port = &enableC,       .pin = C_ENABLE_PIN,            .group = PinGroup_StepperEnable },
+#endif
+#ifdef U_ENABLE_PIN
+    { .id = Output_StepperEnableU,  .port = &enableU,       .pin = U_ENABLE_PIN,            .group = PinGroup_StepperEnable },
+#endif
+#ifdef V_ENABLE_PIN
+    { .id = Output_StepperEnableV,  .port = &enableV,       .pin = V_ENABLE_PIN,            .group = PinGroup_StepperEnable },
+#endif
+#ifdef W_ENABLE_PIN
+    { .id = Output_StepperEnableW,  .port = &enableW,       .pin = W_ENABLE_PIN,            .group = PinGroup_StepperEnable },
 #endif
 #ifdef X2_ENABLE_PIN
     { .id = Output_StepperEnableX,  .port = &enableX2,      .pin = X2_ENABLE_PIN,           .group = PinGroup_StepperEnable },
@@ -728,6 +797,26 @@ inline static __attribute__((always_inline)) void set_step_outputs (axes_signals
                     DIGITAL_OUT(stepB, step_out1.b);
                     break;
 #endif
+#ifdef C_AXIS
+                case C_AXIS:
+                    DIGITAL_OUT(stepC, step_out1.c);
+                    break;
+#endif
+#ifdef U_AXIS
+                case U_AXIS:
+                    DIGITAL_OUT(stepU, step_out1.u);
+                    break;
+#endif
+#ifdef V_AXIS
+                case V_AXIS:
+                    DIGITAL_OUT(stepV, step_out1.v);
+                    break;
+#endif
+#ifdef W_AXIS
+                case W_AXIS:
+                    DIGITAL_OUT(stepW, step_out1.w);
+                    break;
+#endif
             }
             mask <<= 1;
         }
@@ -758,6 +847,18 @@ inline static __attribute__((always_inline)) void set_step_outputs (axes_signals
 #endif
 #ifdef B_AXIS
     DIGITAL_OUT(stepB, step_out1.b);
+#endif
+#ifdef C_AXIS
+    DIGITAL_OUT(stepC, step_out1.c);
+#endif
+#ifdef U_AXIS
+    DIGITAL_OUT(stepU, step_out1.u);
+#endif
+#ifdef V_AXIS
+    DIGITAL_OUT(stepV, step_out1.v);
+#endif
+#ifdef W_AXIS
+    DIGITAL_OUT(stepW, step_out1.w);
 #endif
 #if STEP_INJECT_ENABLE
     }
@@ -814,11 +915,30 @@ inline static __attribute__((always_inline)) void set_step_outputs (axes_signals
                 case A_AXIS:
                     DIGITAL_OUT(stepA, step_out.a);
                     break;
-
 #endif
 #ifdef B_AXIS
                 case B_AXIS:
                     DIGITAL_OUT(stepB, step_out.b);
+                    break;
+#endif
+#ifdef C_AXIS
+                case C_AXIS:
+                    DIGITAL_OUT(stepC, step_out.c);
+                    break;
+#endif
+#ifdef U_AXIS
+                case U_AXIS:
+                    DIGITAL_OUT(stepU, step_out.u);
+                    break;
+#endif
+#ifdef V_AXIS
+                case V_AXIS:
+                    DIGITAL_OUT(stepV, step_out.v);
+                    break;
+#endif
+#ifdef W_AXIS
+                case W_AXIS:
+                    DIGITAL_OUT(stepW, step_out.w);
                     break;
 #endif
             }
@@ -853,6 +973,15 @@ inline static __attribute__((always_inline)) void set_step_outputs (axes_signals
 #endif
 #ifdef C_AXIS
     DIGITAL_OUT(stepC, step_out.c);
+#endif
+#ifdef U_AXIS
+    DIGITAL_OUT(stepU, step_out.u);
+#endif
+#ifdef V_AXIS
+    DIGITAL_OUT(stepV, step_out.v);
+#endif
+#ifdef W_AXIS
+    DIGITAL_OUT(stepW, step_out.w);
 #endif
 #if STEP_INJECT_ENABLE
     }
@@ -943,6 +1072,26 @@ inline static __attribute__((always_inline)) void set_dir_outputs (axes_signals_
                     DIGITAL_OUT(dirB, dir_out.b);
                     break;
 #endif
+#ifdef C_AXIS
+                case C_AXIS:
+                    DIGITAL_OUT(dirC, dir_out.c);
+                    break;
+#endif
+#ifdef U_AXIS
+                case U_AXIS:
+                    DIGITAL_OUT(dirU, dir_out.u);
+                    break;
+#endif
+#ifdef V_AXIS
+                case V_AXIS:
+                    DIGITAL_OUT(dirV, dir_out.v);
+                    break;
+#endif
+#ifdef W_AXIS
+                case W_AXIS:
+                    DIGITAL_OUT(dirW, dir_out.w);
+                    break;
+#endif
             }
             mask <<= 1;
         }
@@ -977,6 +1126,15 @@ inline static __attribute__((always_inline)) void set_dir_outputs (axes_signals_
 #endif
 #ifdef C_AXIS
     DIGITAL_OUT(dirC, dir_out.c);
+#endif
+#ifdef U_AXIS
+    DIGITAL_OUT(dirU, dir_out.u);
+#endif
+#ifdef V_AXIS
+    DIGITAL_OUT(dirV, dir_out.v);
+#endif
+#ifdef W_AXIS
+    DIGITAL_OUT(dirW, dir_out.w);
 #endif
 #if STEP_INJECT_ENABLE
     }
@@ -1024,6 +1182,15 @@ static void stepperEnable (axes_signals_t enable, bool hold)
 #endif
 #ifdef C_ENABLE_PIN
     DIGITAL_OUT(enableC, enable.c)
+#endif
+#ifdef U__ENABLE_PIN
+    DIGITAL_OUT(enableU, enable.u);
+#endif
+#ifdef V__ENABLE_PIN
+    DIGITAL_OUT(enableV, enable.v);
+#endif
+#ifdef W__ENABLE_PIN
+    DIGITAL_OUT(enableW, enable.w);
 #endif
 }
 
@@ -1167,6 +1334,26 @@ static inline __attribute__((always_inline)) void inject_step (axes_signals_t st
                     DIGITAL_OUT(stepB, step_out.b);
                     break;
 #endif
+#ifdef C_AXIS
+                case C_AXIS:
+                    DIGITAL_OUT(stepC, step_out.c);
+                    break;
+#endif
+#ifdef U_AXIS
+                case U_AXIS:
+                    DIGITAL_OUT(stepU, step_out.u);
+                    break;
+#endif
+#ifdef V_AXIS
+                case V_AXIS:
+                    DIGITAL_OUT(stepV, step_out.v);
+                    break;
+#endif
+#ifdef W_AXIS
+                case W_AXIS:
+                    DIGITAL_OUT(stepW, step_out.w);
+                    break;
+#endif
             }
         }
         idx--;
@@ -1229,6 +1416,26 @@ void stepperOutputStep (axes_signals_t step_out, axes_signals_t dir_out)
 #ifdef B_AXIS
                     case B_AXIS:
                         DIGITAL_OUT(dirB, dir_out.b);
+                        break;
+#endif
+#ifdef C_AXIS
+                    case C_AXIS:
+                        DIGITAL_OUT(dirC, dir_out.c);
+                        break;
+#endif
+#ifdef U_AXIS
+                    case U_AXIS:
+                        DIGITAL_OUT(dirU, dir_out.u);
+                        break;
+#endif
+#ifdef V_AXIS
+                    case V_AXIS:
+                        DIGITAL_OUT(dirV, dir_out.v);
+                        break;
+#endif
+#ifdef W_AXIS
+                    case W_AXIS:
+                        DIGITAL_OUT(dirW, dir_out.w);
                         break;
 #endif
                 }
@@ -1297,6 +1504,15 @@ inline static limit_signals_t limitsGetState()
 #endif
 #ifdef C_LIMIT_PIN
     signals.min.c = DIGITAL_IN(LimitC);
+#endif
+#ifdef U_LIMIT_PIN
+    signals.min.a = DIGITAL_IN(LimitU);
+#endif
+#ifdef V_LIMIT_PIN
+    signals.min.b = DIGITAL_IN(LimitV);
+#endif
+#ifdef W_LIMIT_PIN
+    signals.min.c = DIGITAL_IN(LimitW);
 #endif
 
     if(settings.limits.invert.mask) {
@@ -2292,7 +2508,7 @@ FLASHMEM static void settings_changed (settings_t *settings, settings_changed_fl
         PULSE_TIMER_CSCTRL &= ~(TMR_CSCTRL_TCF1|TMR_CSCTRL_TCF2);
 
         float ts = (float)F_BUS_MHZ;
-        step_pulse.t_min_period = (uint32_t)((settings->steppers.pulse_microseconds - STEP_PULSE_LATENCY + STEP_PULSE_TOFF_MIN) * (float)(hal.f_step_timer / 1000000));
+        step_pulse.t_min_period = (uint32_t)((settings->steppers.pulse_microseconds - STEP_PULSE_LATENCY + STEP_PULSE_TOFF_MIN + .1f) * (float)(hal.f_step_timer / 1000000));
         step_pulse.length = (uint32_t)(ts * (settings->steppers.pulse_microseconds - STEP_PULSE_LATENCY));
 
         if(hal.driver_cap.step_pulse_delay && settings->steppers.pulse_delay_microseconds > 0.0f) {
@@ -2372,25 +2588,46 @@ FLASHMEM static void settings_changed (settings_t *settings, settings_changed_fl
                     signal->mode.pull_mode = settings->limits.disable_pullup.z ? PullMode_Down : PullMode_Up;
                     signal->mode.irq_mode = limit_fei.z ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                     break;
-#ifdef A_LIMIT_PIN
+#ifdef A_AXIS
                 case Input_LimitA:
                 case Input_LimitA_Max:
                     signal->mode.pull_mode = settings->limits.disable_pullup.a ? PullMode_Down : PullMode_Up;
                     signal->mode.irq_mode = limit_fei.a ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                     break;
 #endif
-#ifdef B_LIMIT_PIN
+#ifdef B_AXIS
                 case Input_LimitB:
                 case Input_LimitB_Max:
                     signal->mode.pull_mode = settings->limits.disable_pullup.b ? PullMode_Down : PullMode_Up;
                     signal->mode.irq_mode = limit_fei.b ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                     break;
 #endif
-#ifdef C_LIMIT_PIN
+#ifdef C_AXIS
                 case Input_LimitC:
                 case Input_LimitC_Max:
                     signal->mode.pull_mode = settings->limits.disable_pullup.b ? PullMode_Down : PullMode_Up;
                     signal->mode.irq_mode = limit_fei.b ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                    break;
+#endif
+#ifdef U_AXIS
+                case Input_LimitU:
+                case Input_LimitU_Max:
+                    input->mode.pull_mode = settings->limits.disable_pullup.u ? PullMode_None : PullMode_Up;
+                    input->mode.irq_mode = limit_fei.u ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                    break;
+#endif
+#ifdef V_AXIS
+                case Input_LimitV:
+                case Input_LimitV_Max:
+                    input->mode.pull_mode = settings->limits.disable_pullup.v ? PullMode_None : PullMode_Up;
+                    input->mode.irq_mode = limit_fei.v ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                    break;
+#endif
+#ifdef W_AXIS
+                case Input_LimitW:
+                case Input_LimitW_Max:
+                    input->mode.pull_mode = settings->limits.disable_pullup.w ? PullMode_None : PullMode_Up;
+                    input->mode.irq_mode = limit_fei.w ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                     break;
 #endif
 #ifdef MPG_MODE_PIN
@@ -2989,7 +3226,7 @@ FLASHMEM bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "251207";
+    hal.driver_version = "260122";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -3066,7 +3303,8 @@ FLASHMEM bool driver_init (void)
 #endif
 
 #if EEPROM_ENABLE
-    i2c_eeprom_init();
+    if(!i2c_eeprom_init())
+        task_run_on_startup(task_raise_alarm, (void *)Alarm_NVS_Failed);
 #else // use Arduino emulated EEPROM in flash
     eeprom_initialize();
     hal.nvs.type = NVS_Flash;

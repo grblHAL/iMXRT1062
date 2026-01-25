@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2025 Terje Io
+  Copyright (c) 2020-2026 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -42,6 +42,7 @@
 
 #define MDNS_TTL 32
 
+static bool dhcp = false;
 static char IPAddress[IP4ADDR_STRLEN_MAX], if_name[NETIF_NAMESIZE] = "";
 static stream_type_t active_stream = StreamType_Null;
 static network_services_t services = {0}, allowed_services;
@@ -85,6 +86,7 @@ static network_info_t *get_info (const char *interface)
         info.interface = (const char *)if_name;
         info.is_ethernet = true;
         info.link_up = network_status.link_up;
+        info.dhcp = dhcp;
         info.mbps = 100;
         info.status.services = services;
 
@@ -195,7 +197,14 @@ static void netif_status_callback (struct netif *netif)
 
     ip4addr_ntoa_r(netif_ip_addr4(netif), IPAddress, IP4ADDR_STRLEN_MAX);
 
-#if TELNET_ENABLE
+    if(network.ip_mode == IpMode_Static && !dhcp) {
+
+        static dhcp_server_t dhcp_data;
+
+        dhcp = dhcp_server_init(&dhcp_data, (ip_addr_t *)&network.ip, (ip_addr_t *)&network.mask);
+    }
+
+    #if TELNET_ENABLE
     if(network.services.telnet && !services.telnet)
         services.telnet =  telnetd_init(network.telnet_port);
 #endif
