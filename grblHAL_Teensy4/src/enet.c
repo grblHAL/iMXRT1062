@@ -58,7 +58,7 @@ static network_flags_t network_status = {};
 static bool mqtt_connected = false;
 static on_mqtt_client_connected_ptr on_client_connected;
 
-static void mqtt_connection_changed (bool connected)
+FLASHMEM static void mqtt_connection_changed (bool connected)
 {
     mqtt_connected = connected;
 
@@ -68,7 +68,7 @@ static void mqtt_connection_changed (bool connected)
 
 #endif
 
-static network_info_t *get_info (const char *interface)
+FLASHMEM static network_info_t *get_info (const char *interface)
 {
     static network_info_t info = {};
 
@@ -111,7 +111,7 @@ static network_info_t *get_info (const char *interface)
     return NULL;
 }
 
-static void report_options (bool newopt)
+FLASHMEM static void report_options (bool newopt)
 {
     on_report_options(newopt);
 
@@ -162,7 +162,7 @@ static void report_options (bool newopt)
 
 #if MDNS_ENABLE
 
-static void mdns_device_info (struct mdns_service *service, void *txt_userdata)
+FLASHMEM static void mdns_device_info (struct mdns_service *service, void *txt_userdata)
 {
     char build[20] = "build=";
 
@@ -461,7 +461,7 @@ PROGMEM static const setting_descr_t ethernet_settings_descr[] = {
 #endif
 };
 
-static void ethernet_settings_save (void)
+FLASHMEM static void ethernet_settings_save (void)
 {
     hal.nvs.memcpy_to_nvs(nvs_address, (uint8_t *)&ethernet, sizeof(network_settings_t), true);
 }
@@ -536,14 +536,14 @@ FLASHMEM static char *ethernet_get_ip (setting_id_t setting)
     return ip;
 }
 
-static status_code_t ethernet_set_services (setting_id_t setting, uint_fast16_t int_value)
+FLASHMEM static status_code_t ethernet_set_services (setting_id_t setting, uint_fast16_t int_value)
 {
     ethernet.services.mask = int_value & allowed_services.mask;
 
     return Status_OK;
 }
 
-static uint32_t ethernet_get_services (setting_id_t id)
+FLASHMEM static uint32_t ethernet_get_services (setting_id_t id)
 {
     return (uint32_t)ethernet.services.mask;
 }
@@ -599,7 +599,7 @@ FLASHMEM void ethernet_settings_restore (void)
     hal.nvs.memcpy_to_nvs(nvs_address, (uint8_t *)&ethernet, sizeof(network_settings_t), true);
 }
 
-static void ethernet_settings_load (void)
+FLASHMEM static void ethernet_settings_load (void)
 {
     if(hal.nvs.memcpy_from_nvs((uint8_t *)&ethernet, nvs_address, sizeof(network_settings_t), true) != NVS_TransferResult_OK)
         ethernet_settings_restore();
@@ -607,7 +607,7 @@ static void ethernet_settings_load (void)
     ethernet.services.mask &= allowed_services.mask;
 }
 
-static void stream_changed (stream_type_t type)
+FLASHMEM static void stream_changed (stream_type_t type)
 {
     if(type != StreamType_SDCard)
         active_stream = type;

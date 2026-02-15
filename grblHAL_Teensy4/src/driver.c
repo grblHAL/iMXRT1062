@@ -1531,7 +1531,7 @@ inline static limit_signals_t limitsGetState()
 // Enable/disable limit pins interrupt.
 // NOTE: the homing parameter is indended for configuring advanced
 //        stepper drivers for sensorless homing.
-static void limitsEnable (bool on, axes_signals_t homing_cycle)
+FLASHMEM static void limitsEnable (bool on, axes_signals_t homing_cycle)
 {
     bool disable = !on;
     uint32_t i = limit_inputs.n_pins;
@@ -2612,22 +2612,22 @@ FLASHMEM static void settings_changed (settings_t *settings, settings_changed_fl
 #ifdef U_AXIS
                 case Input_LimitU:
                 case Input_LimitU_Max:
-                    input->mode.pull_mode = settings->limits.disable_pullup.u ? PullMode_None : PullMode_Up;
-                    input->mode.irq_mode = limit_fei.u ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                    signal->mode.pull_mode = settings->limits.disable_pullup.u ? PullMode_None : PullMode_Up;
+                    signal->mode.irq_mode = limit_fei.u ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                     break;
 #endif
 #ifdef V_AXIS
                 case Input_LimitV:
                 case Input_LimitV_Max:
-                    input->mode.pull_mode = settings->limits.disable_pullup.v ? PullMode_None : PullMode_Up;
-                    input->mode.irq_mode = limit_fei.v ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                    signal->mode.pull_mode = settings->limits.disable_pullup.v ? PullMode_None : PullMode_Up;
+                    signal->mode.irq_mode = limit_fei.v ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                     break;
 #endif
 #ifdef W_AXIS
                 case Input_LimitW:
                 case Input_LimitW_Max:
-                    input->mode.pull_mode = settings->limits.disable_pullup.w ? PullMode_None : PullMode_Up;
-                    input->mode.irq_mode = limit_fei.w ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                    signal->mode.pull_mode = settings->limits.disable_pullup.w ? PullMode_None : PullMode_Up;
+                    signal->mode.irq_mode = limit_fei.w ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                     break;
 #endif
 #ifdef MPG_MODE_PIN
@@ -2793,14 +2793,14 @@ FLASHMEM void setPeriphPinDescription (const pin_function_t function, const pin_
     } while(ppin);
 }
 
-void pinModeOutput (gpio_t *gpio, uint8_t pin)
+FLASHMEM void pinModeOutput (gpio_t *gpio, uint8_t pin)
 {
     pinMode(pin, OUTPUT);
     gpio->reg = (gpio_reg_t *)digital_pin_to_info_PGM[pin].reg;
     gpio->bit = digital_pin_to_info_PGM[pin].mask;
 }
 
-void pinEnableIRQ (const input_signal_t *signal, pin_irq_mode_t irq_mode)
+FLASHMEM void pinEnableIRQ (const input_signal_t *signal, pin_irq_mode_t irq_mode)
 {
     if(irq_mode == IRQ_Mode_None)
         signal->gpio.reg->IMR &= ~signal->gpio.bit; // Disable interrupt
@@ -2897,7 +2897,7 @@ static void encoder_event (encoder_t *encoder, int32_t position)
 
 #if SDCARD_ENABLE
 
-static char *sdcard_mount (FATFS **fs)
+FLASHMEM static char *sdcard_mount (FATFS **fs)
 {
     static FATFS fatfs;
     static const char *dev = "1:/";
@@ -2908,7 +2908,7 @@ static char *sdcard_mount (FATFS **fs)
     return (char *)dev;
 }
 
-static bool sdcard_unmount (FATFS **fs)
+FLASHMEM static bool sdcard_unmount (FATFS **fs)
 {
     return false; // for now
 }
@@ -3130,12 +3130,12 @@ void debugOut (bool on)
 #endif
 
 // Cold restart (T4.x has no reset button)
-static void reboot (void)
+FLASHMEM static void reboot (void)
 {
     SCB_AIRCR = 0x05FA0004;
 }
 
-static bool set_rtc_time (struct tm *time)
+FLASHMEM static bool set_rtc_time (struct tm *time)
 {
     rtc_started = true;
 
@@ -3146,7 +3146,7 @@ static bool set_rtc_time (struct tm *time)
     return true;
 }
 
-static bool get_rtc_time (struct tm *time)
+FLASHMEM static bool get_rtc_time (struct tm *time)
 {
     if(rtc_started) {
         time_t t = rtc_get();
@@ -3161,7 +3161,7 @@ static bool get_rtc_time (struct tm *time)
 extern char _heap_end[], *__brkval;
 
 // This should ideall return sum of all free blocks on the heap...
-uint32_t get_free_mem (void)
+FLASHMEM uint32_t get_free_mem (void)
 {
     return _heap_end - __brkval;
 }
@@ -3171,7 +3171,7 @@ inline static uint64_t get_micros (void)
     return (uint64_t)micros();
 }
 
-static status_code_t enter_bootloader (sys_state_t state, char *args)
+FLASHMEM static status_code_t enter_bootloader (sys_state_t state, char *args)
 {
     report_message("Entering bootloader", Message_Warning);
     hal.delay_ms(100, NULL);
@@ -3226,7 +3226,7 @@ FLASHMEM bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "260128";
+    hal.driver_version = "260215";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;

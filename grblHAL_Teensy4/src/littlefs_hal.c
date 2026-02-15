@@ -100,25 +100,26 @@ static int t4_hal_sync (const struct lfs_config *c)
     return LFS_ERR_OK;
 }
 
-static struct lfs_config t4_cfg = {
-    // block device operations
-    .read = t4_hal_read,
-    .prog = t4_hal_prog,
-    .erase = t4_hal_erase,
-    .sync = t4_hal_sync,
-    // block device configuration
-    .read_size = 128,
-    .prog_size = 128,
-    .block_size = SECTOR_SIZE,
-    .block_count = FS_SIZE / SECTOR_SIZE,
-    .cache_size = 128,
-    .lookahead_size = 128,
-    .block_cycles = 800
-};
-
-struct lfs_config *t4_littlefs_hal (void)
+FLASHMEM struct lfs_config *t4_littlefs_hal (void)
 {
     const uint32_t program_size = (uint32_t)&_flashimagelen;
+
+    static struct lfs_config t4_cfg = {
+        // block device operations
+        .read = t4_hal_read,
+        .prog = t4_hal_prog,
+        .erase = t4_hal_erase,
+        .sync = t4_hal_sync,
+        // block device configuration
+        .read_size = 128,
+        .prog_size = 128,
+        .block_size = SECTOR_SIZE,
+        .block_count = FS_SIZE / SECTOR_SIZE,
+        .cache_size = 128,
+        .lookahead_size = 128,
+        .block_cycles = 800
+    };
+
     if (program_size >= FLASH_SIZE)
         return NULL;
 
