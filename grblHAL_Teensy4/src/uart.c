@@ -126,6 +126,32 @@ static const uart_hardware_t uart_hardware =
     }
 };
 
+#elif SERIAL_PORT == 7
+
+#define RX_PIN 28
+#define TX_PIN 29
+
+PROGMEM static const uart_hardware_t uart_hardware =
+{
+    .port = &IMXRT_LPUART7,
+    .ccm_register = &CCM_CCGR5,
+    .ccm_value = CCM_CCGR5_LPUART7(CCM_CCGR_ON),
+    .irq = IRQ_LPUART7,
+    .irq_handler = uart_interrupt_handler,
+    .rx_pin = {
+        .pin = RX_PIN,
+        .mux_val = 2,
+        .select_reg = &IOMUXC_LPUART7_RX_SELECT_INPUT,
+        .select_val = 1
+    },
+    .tx_pin = {
+        .pin = TX_PIN,
+        .mux_val = 2,
+        .select_reg = NULL,
+        .select_val = 0
+    }
+};
+
 #elif SERIAL_PORT == 8
 
 #define RX_PIN 21
@@ -240,6 +266,32 @@ PROGMEM static const uart_hardware_t uart1_hardware =
         .pin = RX1_PIN,
         .mux_val = 2,
         .select_reg = &IOMUXC_LPUART6_RX_SELECT_INPUT,
+        .select_val = 1
+    },
+    .tx_pin = {
+        .pin = TX1_PIN,
+        .mux_val = 2,
+        .select_reg = NULL,
+        .select_val = 0
+    }
+};
+
+#elif SERIAL1_PORT == 7
+
+#define RX1_PIN 28
+#define TX1_PIN 29
+
+PROGMEM static const uart_hardware_t uart1_hardware =
+{
+    .port = &IMXRT_LPUART7,
+    .ccm_register = &CCM_CCGR5,
+    .ccm_value = CCM_CCGR5_LPUART7(CCM_CCGR_ON),
+    .irq = IRQ_LPUART7,
+    .irq_handler = uart1_interrupt_handler,
+    .rx_pin = {
+        .pin = RX1_PIN,
+        .mux_val = 2,
+        .select_reg = &IOMUXC_LPUART7_RX_SELECT_INPUT,
         .select_val = 1
     },
     .tx_pin = {

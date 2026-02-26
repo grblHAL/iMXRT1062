@@ -5,7 +5,7 @@
 
   Board by Phil Barrett: https://github.com/phil-barrett/grblHAL-teensy-4.x
 
-  Copyright (c) 2020-2024 Terje Io
+  Copyright (c) 2020-2026 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -61,7 +61,9 @@
 #define M4_AVAILABLE
 #define M4_STEP_PIN         (26u)
 #define M4_DIRECTION_PIN    (27u)
+#ifndef M4_LIMIT_ENABLE
 #define M4_LIMIT_PIN        (28u)
+#endif
 #define M4_ENABLE_PIN       (37u)
 #endif
 
@@ -110,10 +112,8 @@
 
 // Define auxiliary input pins
 #define AUXINPUT0_PIN       (36u) // ST0
-#if !QEI_ENABLE
 #define AUXINPUT1_PIN       (30u) // ST1
 #define AUXINPUT2_PIN       (34u) // ST2
-#endif
 #define AUXINPUT3_PIN       (35u) // ST3
 #define AUXINPUT4_PIN       (41u) // I2C strobe
 #if !defined(M4_LIMIT_PIN)
@@ -142,6 +142,8 @@
 
 #if SAFETY_DOOR_ENABLE
 #define SAFETY_DOOR_PIN     AUXINPUT6_PIN
+#elif TOOLSETTER_ENABLE
+#define TOOLSETTER_PIN      AUXINPUT6_PIN
 #endif
 
 #if MPG_ENABLE == 1 && defined(AUXINPUT5_PIN)
@@ -160,10 +162,12 @@
 #define MOTOR_WARNING_PIN   AUXINPUT1_PIN
 #endif
 
-#if QEI_ENABLE
-#define QEI_A_PIN           (30u) // ST1
-#define QEI_B_PIN           (34u) // ST2
-#define QEI_SELECT_PIN      AUXINPUT3_PIN // ST3
+#if ENCODER_ENABLE
+#define QEI_A_PIN           AUXINPUT1_PIN
+#define QEI_B_PIN           AUXINPUT2_PIN
+#if (ENCODER_ENABLE & 1)
+#define QEI_SELECT_PIN      AUXINPUT3_PIN
+#endif
 #endif
 
 #if I2C_ENABLE

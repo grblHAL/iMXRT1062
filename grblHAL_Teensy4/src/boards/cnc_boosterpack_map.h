@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2024 Terje Io
+  Copyright (c) 2020-2026 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -90,14 +90,10 @@
 #define COOLANT_MIST_PIN        AUXOUTPUT4_PIN
 #endif
 
-#if !QEI_ENABLE
 #define AUXINPUT0_PIN       (3u)
-#endif
 #define AUXINPUT1_PIN       (29u)
 #define AUXINPUT2_PIN       (27u)
-#if !QEI_ENABLE
 #define AUXINPUT3_PIN       (2u)
-#endif
 #define AUXINPUT4_PIN       (28u) // I2C strobe
 #define AUXINPUT5_PIN       (9u)  // Safety door
 #define AUXINPUT6_PIN       (15u) // Probe
@@ -128,11 +124,12 @@
 #define I2C_STROBE_PIN      AUXINPUT4_PIN
 #endif
 
-#if QEI_ENABLE
-    #define QEI_A_PIN       (3u)
-    #define QEI_B_PIN       (2u)
-//    #define QEI_INDEX_PIN  GPIO2_PIN
-    #define QEI_SELECT_PIN AUXINPUT1_PIN
+#if ENCODER_ENABLE
+#define QEI_A_PIN           AUXINPUT0_PIN
+#define QEI_B_PIN           AUXINPUT3_PIN
+#if (ENCODER_ENABLE & 1) && defined(AUXINPUT1_PIN)
+#define QEI_SELECT_PIN      AUXINPUT1_PIN
+#endif
 #endif
 
 /* EOF */

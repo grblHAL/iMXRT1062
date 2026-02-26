@@ -49,6 +49,10 @@
 #include "ioports.h"
 #endif
 
+#if QEI_ENABLE
+#include "grbl/encoders.h"
+#endif
+
 #if SDCARD_ENABLE
 #include "uSDFS.h"
 #include "sdcard/sdcard.h"
@@ -82,33 +86,6 @@ static void ppi_timeout_isr (void);
 #define F_BUS_MHZ (F_BUS_ACTUAL / 1000000)
 
 #include "grbl/motor_pins.h"
-
-#if QEI_ENABLE
-
-#define QEI_DEBOUNCE 3
-#define QEI_VELOCITY_TIMEOUT 100
-
-typedef union {
-    uint_fast8_t pins;
-    struct {
-        uint_fast8_t a :1,
-                     b :1;
-    };
-} qei_state_t;
-
-typedef struct {
-    encoder_t encoder;
-    int32_t count;
-    int32_t vel_count;
-    uint_fast16_t state;
-    volatile uint32_t dbl_click_timeout;
-    volatile uint32_t vel_timeout;
-    uint32_t vel_timestamp;
-} qei_t;
-
-static qei_t qei = {0};
-
-#endif
 
 // Standard inputs
 static gpio_t Reset, FeedHold, CycleStart, LimitX, LimitY, LimitZ;
@@ -228,15 +205,6 @@ static gpio_t enableY;
 #endif
 #ifdef Z_ENABLE_PIN
 static gpio_t enableZ;
-#endif
-
-#if QEI_ENABLE
-static bool qei_enable = false;
-static gpio_t QEI_A, QEI_B;
- #ifdef QEI_INDEX_PIN
-  #define QEI_INDEX_ENABLED 1
-  static gpio_t QEI_Index;
- #endif
 #endif
 
 #ifdef X2_STEP_PIN
@@ -424,16 +392,6 @@ input_signal_t inputpin[] = {
 // End limit pin definitions
 #ifdef SPINDLE_INDEX_PIN
   , { .id = Input_SpindleIndex,   .port = &SpindleIndex,   .pin = SPINDLE_INDEX_PIN,   .group = PinGroup_SpindleIndex }
-#endif
-#if QEI_ENABLE
-  , { .id = Input_QEI_A,          .port = &QEI_A,          .pin = QEI_A_PIN,           .group = PinGroup_QEI }
-  , { .id = Input_QEI_B,          .port = &QEI_B,          .pin = QEI_B_PIN,           .group = PinGroup_QEI }
-  #if QEI_SELECT_ENABLED
-  , { .id = Input_QEI_Select,     .port = &QEI_Select,     .pin = QEI_SELECT_PIN,      .group = PinGroup_QEI_Select }
-  #endif
-  #if QEI_INDEX_ENABLED
-  , { .id = Input_QEI_Index,      .port = &QEI_Index,      .pin = QEI_INDEX_PIN,       .group = PinGroup_QEI }
-  #endif
 #endif
 // Aux input pins must be consecutive
 #ifdef AUXINPUT0_PIN
@@ -644,9 +602,6 @@ static input_signal_t *motor_fault_pin;
 #endif
 #ifdef MOTOR_WARNING_PIN
 static input_signal_t *motor_warning_pin;
-#endif
-#ifdef QEI_SELECT_PIN
-static input_signal_t *qei_select_pin;
 #endif
 #ifdef MPG_MODE_PIN
 static uint8_t mpg_port;
@@ -1623,24 +1578,6 @@ static void mpg_enable (void *data)
 
 #endif
 
-#if QEI_SELECT_ENABLE
-
-static void qei_select_handler (void)
-{
-//    if(DIGITAL_IN(QEI_SELECT_PORT, QEI_SELECT_PIN))
-//        return;
-
-    if(!qei.dbl_click_timeout)
-        qei.dbl_click_timeout = qei.encoder.settings->dbl_click_window;
-    else if(qei.dbl_click_timeout < qei.encoder.settings->dbl_click_window - 40) {
-        qei.dbl_click_timeout = 0;
-        qei.encoder.event.dbl_click = On;
-        hal.encoder.on_event(&qei.encoder, qei.count);
-    }
-}
-
-#endif
-
 static void aux_irq_handler (uint8_t port, bool state)
 {
     aux_ctrl_t *aux_in;
@@ -1648,11 +1585,6 @@ static void aux_irq_handler (uint8_t port, bool state)
     
     if((aux_in = aux_ctrl_in_get(port))) {
         switch(aux_in->function) {
-#ifdef QEI_SELECT_PIN
-            case Input_QEI_Select:
-                qei_select_handler();
-                break;
-#endif
 #ifdef I2C_STROBE_PIN
             case Input_I2CStrobe:
                 if(i2c_strobe.callback)
@@ -1734,19 +1666,17 @@ FLASHMEM static bool aux_claim_explicit (aux_ctrl_t *aux_ctrl)
                 motor_warning_pin = (input_signal_t *)aux_ctrl->input;
                 break;
 #endif
-#ifdef QEI_SELECT_PIN
-            case Input_QEI_Select:
-                qei_select_pin = (input_signal_t *)aux_ctrl->input;
-                qei_select_pin->mode.debounce = hal.driver_cap.software_debounce;
-                break;
-#endif
 #ifdef MPG_MODE_PIN
             case Input_MPGSelect:
                 mpg_port = aux_ctrl->port;
                 mpg_pin = (input_signal_t *)aux_ctrl->input;
                 break;
 #endif
-            default: break;
+            default:
+#if QEI_ENABLE && defined(QEI_A_PIN) && defined(QEI_B_PIN)
+                encoder_pin_claimed(aux_ctrl->port, pin);
+#endif
+                break;
         }
     }
 
@@ -2647,33 +2577,6 @@ FLASHMEM static void settings_changed (settings_t *settings, settings_changed_fl
                     signal->mode.irq_mode = IRQ_Mode_Rising;
                     break;
 #endif
-#if QEI_ENABLE
-                case Input_QEI_A:
-                    if(qei_enable)
-                        signal->mode.irq_mode = IRQ_Mode_Change;
-                    break;
-
-                case Input_QEI_B:
-                    if(qei_enable)
-                        signal->mode.irq_mode = IRQ_Mode_Change;
-                    break;
-
-  #if QEI_INDEX_ENABLED
-                case Input_QEI_Index:
-                    if(qei_enable)
-                        signal->mode.irq_mode = IRQ_Mode_None;
-                    break;
-  #endif
-
-  #if QEI_SELECT_ENABLED
-                case Input_QEI_Select:
-                    signal->mode.pull_mode = PullMode_Up;
-                    signal->mode.debounce = hal.driver_cap.software_debounce;
-                    if(qei_enable)
-                        signal->mode.irq_mode = IRQ_Mode_Falling;
-                    break;
-  #endif
-#endif
                 default:
                     break;
             }
@@ -2838,62 +2741,6 @@ FLASHMEM void pinEnableIRQ (const input_signal_t *signal, pin_irq_mode_t irq_mod
     if(!(irq_mode == IRQ_Mode_None || (signal->group & (PinGroup_Limit|PinGroup_LimitMax))))    // If pin is not a limit pin
         signal->gpio.reg->IMR |= signal->gpio.bit;                                              // enable interrupt
 }
-
-#if QEI_ENABLE
-
-static void qei_raise_event (void *data)
-{
-    hal.encoder.on_event(&qei.encoder, qei.count);
-}
-
-static void qei_update (void)
-{
-    const uint8_t encoder_valid_state[] = {0, 1, 1, 0, 1, 0, 0, 1, 1, 0, 0, 1, 0, 1, 1, 0};
-
-    uint_fast8_t idx;
-    qei_state_t state = {0};
-
-    state.a = (QEI_A.reg->DR & QEI_A.bit) != 0;
-    state.b = (QEI_B.reg->DR & QEI_B.bit) != 0;
-
-    idx = (((qei.state << 2) & 0x0F) | state.pins);
-
-    if(encoder_valid_state[idx] ) {
-
-        qei.state = ((qei.state << 4) | idx) & 0xFF;
-
-        if (qei.state == 0x42 || qei.state == 0xD4 || qei.state == 0x2B || qei.state == 0xBD) {
-            qei.count--;
-            if(qei.vel_timeout == 0) {
-                qei.encoder.event.position_changed = hal.encoder.on_event != NULL;
-                task_add_immediate(qei_raise_event, NULL);
-            }
-        } else if(qei.state == 0x81 || qei.state == 0x17 || qei.state == 0xE8 || qei.state == 0x7E) {
-            qei.count++;
-            if(qei.vel_timeout == 0) {
-                qei.encoder.event.position_changed = hal.encoder.on_event != NULL;
-                task_add_immediate(qei_raise_event, NULL);
-            }
-        }
-    }
-}
-
-static void qei_reset (uint_fast8_t id)
-{
-    qei.vel_timeout = 0;
-    qei.count = qei.vel_count = 0;
-    qei.vel_timestamp = millis();
-    qei.vel_timeout = qei.encoder.axis != 0xFF ? QEI_VELOCITY_TIMEOUT : 0;
-}
-
-// dummy handler, called on events if plugin init fails
-static void encoder_event (encoder_t *encoder, int32_t position)
-{
-    UNUSED(position);
-    encoder->event.events = 0;
-}
-
-#endif
 
 #if SDCARD_ENABLE
 
@@ -3088,11 +2935,6 @@ FLASHMEM static bool driver_setup (settings_t *settings)
     grbl_enet_start();
 #endif
 
-#if QEI_ENABLE
-    if(qei_enable)
-        encoder_start(&qei.encoder);
-#endif
-
     return IOInitDone;
 }
 
@@ -3226,7 +3068,7 @@ FLASHMEM bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "260215";
+    hal.driver_version = "260222";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -3312,12 +3154,6 @@ FLASHMEM bool driver_init (void)
     hal.nvs.memcpy_to_flash = nvsWrite;
 #endif
 
-#if QEI_ENABLE
-    hal.encoder.reset = qei_reset;
-    hal.encoder.on_event = encoder_event;
-#endif
-
-
 // Driver capabilities
 // See driver_cap_t union i grbl/hal.h for available flags.
 
@@ -3350,7 +3186,6 @@ FLASHMEM bool driver_init (void)
                 aux_digital_in.pins.inputs = input;
             input->user_port = aux_digital_in.n_pins++;
             input->id = (pin_function_t)(Input_Aux0 + input->user_port);
-            input->cap.irq_mode = IRQ_Mode_All;
             input->mode.pull_mode = PullMode_Up;
             input->cap.irq_mode = IRQ_Mode_All;
             input->cap.pull_mode = PullMode_UpDown;
@@ -3539,10 +3374,6 @@ FLASHMEM bool driver_init (void)
     grbl_enet_init();
 #endif
 
-#if QEI_ENABLE
-    qei_enable = encoder_init(QEI_ENABLE);
-#endif
-
 #ifdef NEOPIXEL_UART_PIN
     extern void neopixel_init (void);
     neopixel_init();
@@ -3674,10 +3505,6 @@ void pin_debounce (void *pin)
     if(input->id == Input_SafetyDoor)
         debounce.safety_door = Off;
 #endif
-#ifdef QEI_SELECT_PIN
-    if(input->id == Input_QEI_Select)
-        debounce.qei_select = Off;
-#endif
 
     if(input->mode.irq_mode == IRQ_Mode_Change ||
         !!(input->gpio.reg->DR & input->gpio.bit) == (input->mode.irq_mode == IRQ_Mode_Falling ? 0 : 1)) {
@@ -3701,11 +3528,6 @@ void pin_debounce (void *pin)
                 ioports_event(input);
                 break;
 
-#ifdef QEI_SELECT_PIN
-            case PinGroup_QEI_Select:
-                qei_select_handler();
-                break;
-#endif
             default:
                 break;
         }
@@ -3743,14 +3565,7 @@ static void gpio_isr (void)
                     inputpin[i].gpio.reg->IMR &= ~inputpin[i].gpio.bit; // Disable pin interrupt
                     if(inputpin[i].id == Input_SafetyDoor)
                         debounce.safety_door = On;
-                    else if(inputpin[i].id == Input_QEI_Select)
-                        debounce.qei_select = On;
                 }  else switch(inputpin[i].group) {
-#if QEI_ENABLE
-                    case PinGroup_QEI:
-                        qei_update();
-                        break;
-#endif
 
 #if SPINDLE_ENCODER_ENABLE && defined(SPINDLE_INDEX_PIN)
                     case PinGroup_SpindleIndex:
@@ -3788,33 +3603,12 @@ static void gpio_isr (void)
 
     if(grp & PinGroup_Control)
         hal.control.interrupt_callback(systemGetState());
-
-#if QEI_SELECT_ENABLED
-    if(grp & PinGroup_QEI_Select)
-        qei_select_handler
-#endif
 }
 
 // Interrupt handler for 1 ms interval timer
 static void systick_isr (void)
 {
     systick_isr_org();
-
-#if QEI_ENABLE
-      if(qei.vel_timeout && !(--qei.vel_timeout)) {
-          qei.encoder.velocity = abs(qei.count - qei.vel_count) * 1000 / (millis() - qei.vel_timestamp);
-          qei.vel_timestamp = millis();
-          qei.vel_timeout = QEI_VELOCITY_TIMEOUT;
-          if((qei.encoder.event.position_changed = !qei.dbl_click_timeout || qei.encoder.velocity == 0))
-              task_add_immediate(qei_raise_event, NULL);
-          qei.vel_count = qei.count;
-      }
-
-      if(qei.dbl_click_timeout && !(--qei.dbl_click_timeout)) {
-          qei.encoder.event.click = On;
-          task_add_immediate(qei_raise_event, NULL);
-      }
-#endif
 
     if(grbl_delay.ms && !(--grbl_delay.ms)) {
         if(grbl_delay.callback) {

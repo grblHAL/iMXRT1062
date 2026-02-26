@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2025 Terje Io
+  Copyright (c) 2020-2026 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -205,10 +205,6 @@
 #define EEPROM_IS_FRAM  0
 #endif
 
-#if QEI_ENABLE
-#include "encoder/encoder.h"
-#endif
-
 #if USB_SERIAL_CDC
 #define SP0 1
 #else
@@ -226,10 +222,6 @@
 
 #if QEI_ENABLE > 1
   #error "Max number of quadrature interfaces is 1!"
-#endif
-
-#if QEI_ENABLE > 0 && !(defined(QEI_A_PIN) && defined(QEI_B_PIN))
-  #error "QEI_ENABLE requires encoder input pins A and B to be defined!"
 #endif
 
 typedef struct {

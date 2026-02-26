@@ -7,7 +7,7 @@
 
   Board by Phil Barrett: https://github.com/phil-barrett/grblHAL-teensy-4.x
 
-  Copyright (c) 2020-2024 Terje Io
+  Copyright (c) 2020-2026 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -104,13 +104,9 @@
 
 // Define auxiliary input pins
 #define AUXINPUT0_PIN       (36u) // ST0
-#if !QEI_ENABLE
 #define AUXINPUT1_PIN       (30u) // ST1
-#endif
-#if !SPINDLE_SYNC_ENABLE && !QEI_ENABLE
-#define AUXINPUT2_PIN       (34u) // ST2
-#endif
 #if !SPINDLE_SYNC_ENABLE
+#define AUXINPUT2_PIN       (34u) // ST2
 #define AUXINPUT3_PIN       (14u) // ST3
 #endif
 #define AUXINPUT4_PIN       (41u) // I2C strobe
@@ -163,6 +159,14 @@
 #define QEI_B_PIN           (34u) // ST2
 #ifdef AUXINPUT3_PIN
 #define QEI_SELECT_PIN      AUXINPUT3_PIN // ST3
+#endif
+#endif
+
+#if ENCODER_ENABLE && defined(AUXINPUT2_PIN)
+#define QEI_A_PIN           AUXINPUT1_PIN
+#define QEI_B_PIN           AUXINPUT2_PIN
+#if (ENCODER_ENABLE & 1)
+#define QEI_SELECT_PIN      AUXINPUT3_PIN
 #endif
 #endif
 

@@ -5,7 +5,7 @@
 
   Board by Maker Store: https://www.makerstore.com.au/product/elec-e5xmcst41/
 
-  Copyright (c) 2020-2024 Terje Io
+  Copyright (c) 2020-2026 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -96,10 +96,8 @@
 
 // Define auxiliary input pins
 #define AUXINPUT0_PIN       (36u) // ST0
-#if !QEI_ENABLE
 #define AUXINPUT1_PIN       (30u) // ST1
 #define AUXINPUT2_PIN       (34u) // ST2
-#endif
 #define AUXINPUT3_PIN       (35u) // ST3
 #define AUXINPUT4_PIN       (41u) // I2C strobe
 #if !defined(M4_LIMIT_PIN)
@@ -146,10 +144,12 @@
 #define MPG_MODE_PIN        AUXINPUT5_PIN
 #endif
 
-#if QEI_ENABLE
-#define QEI_A_PIN           (30u) // ST1
-#define QEI_B_PIN           (34u) // ST2
-#define QEI_SELECT_PIN      AUXINPUT3_PIN // ST3
+#if ENCODER_ENABLE
+#define QEI_A_PIN           AUXINPUT1_PIN
+#define QEI_B_PIN           AUXINPUT2_PIN
+#if (ENCODER_ENABLE & 1) && defined(AUXINPUT3_PIN)
+#define QEI_SELECT_PIN      AUXINPUT3_PIN
+#endif
 #endif
 
 #if I2C_ENABLE

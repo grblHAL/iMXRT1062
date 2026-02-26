@@ -120,10 +120,8 @@
 #endif
 
 // Define auxiliary input pins
-#if !QEI_ENABLE
 #define AUXINPUT0_PIN       (36u) // ST0
 #define AUXINPUT1_PIN       (30u) // ST1
-#endif
 #if !SPINDLE_SYNC_ENABLE
 #define AUXINPUT2_PIN       (31u) // ST2
 #define AUXINPUT3_PIN       (41u) // ST3
@@ -173,10 +171,10 @@
 #define MOTOR_WARNING_PIN   AUXINPUT1_PIN
 #endif
 
-#if QEI_ENABLE
-#define QEI_A_PIN           (36u) // ST0
-#define QEI_B_PIN           (30u) // ST1
-#ifdef AUXINPUT2_PIN
+#if ENCODER_ENABLE
+#define QEI_A_PIN           AUXINPUT0_PIN
+#define QEI_B_PIN           AUXINPUT1_PIN
+#if (ENCODER_ENABLE & 1) && defined(AUXINPUT2_PIN)
 #define QEI_SELECT_PIN      AUXINPUT2_PIN
 #endif
 #endif
