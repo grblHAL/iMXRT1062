@@ -1674,7 +1674,7 @@ FLASHMEM static bool aux_claim_explicit (aux_ctrl_t *aux_ctrl)
 #endif
             default:
 #if QEI_ENABLE && defined(QEI_A_PIN) && defined(QEI_B_PIN)
-                encoder_pin_claimed(aux_ctrl->port, pin);
+                _encoder_pin_claimed(aux_ctrl->port, pin);
 #endif
                 break;
         }

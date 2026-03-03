@@ -61,7 +61,7 @@
 #define M4_AVAILABLE
 #define M4_STEP_PIN         (26u)
 #define M4_DIRECTION_PIN    (27u)
-#ifndef M4_LIMIT_ENABLE
+#ifdef M4_LIMIT_ENABLE
 #define M4_LIMIT_PIN        (28u)
 #endif
 #define M4_ENABLE_PIN       (37u)
