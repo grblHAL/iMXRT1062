@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Some parts of this code is Copyright (c) 2020-2025 Terje Io
+  Some parts of this code is Copyright (c) 2020-2026 Terje Io
 
   Some parts are derived/pulled from WireIMXRT.cpp in the Teensyduino Core Library (no copyright header)
 
@@ -14,6 +14,7 @@
 #ifdef I2C_PORT
 
 #include <string.h>
+#include <strings.h>
 
 #include "i2c.h"
 

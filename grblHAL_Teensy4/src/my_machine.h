@@ -3,7 +3,7 @@
 
   Part of grblHAL
 
-  Copyright (c) 2020-2025 Terje Io
+  Copyright (c) 2020-2026 Terje Io
 
   grblHAL is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -118,6 +118,7 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 //#define MCP3221_ENABLE          1 // MCP3221 I2C ADC input, default address is 0x9A (MCP3221_ADDRESS).
 //#define PCA9654E_ENABLE         1 // PCA9654E I2C digital I/O, default address is 0x40 (PCA9654E_ADDRESS).
 //#define FNC_EXPANDER_ENABLE     1 // FluidNC STM32F103 based I/O expander (Airedale)
+//#define THCAD2_ENABLE           1 // Mesa THCAD2 analog to frequency converter. Not yet completed!
 
 // Optional control signals:
 // These will be assigned to aux input pins. Use the $pins command to check which pins are assigned.

@@ -107,7 +107,9 @@
 #define AUXINPUT1_PIN       (30u) // ST1
 #if !SPINDLE_SYNC_ENABLE
 #define AUXINPUT2_PIN       (34u) // ST2
+#if !THCAD2_ENABLE
 #define AUXINPUT3_PIN       (14u) // ST3
+#endif
 #endif
 #define AUXINPUT4_PIN       (41u) // I2C strobe
 #if !defined(M4_LIMIT_PIN)
@@ -173,6 +175,8 @@
 #if SPINDLE_SYNC_ENABLE
 #define SPINDLE_INDEX_PIN   (34u) // ST2
 #define SPINDLE_PULSE_PIN   (14u) // ST3
+#elif THCAD2_ENABLE
+#define THCAD2_PIN          (14u) // ST3
 #endif
 
 #if I2C_ENABLE
