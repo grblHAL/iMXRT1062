@@ -52,7 +52,7 @@ static xbar_t thcad2 = {
     .id = 0,
     .function = Input_Analog_Aux0,
     .group = PinGroup_AuxInputAnalog,
-    .port = &csr_stopval,
+    .port = (void *)&csr_stopval,
     .description = NULL,
     .pin = THCAD2_PIN,
 };
