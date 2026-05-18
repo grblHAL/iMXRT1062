@@ -10,6 +10,7 @@
     "spindle_sync": 1,
     "serial_ports": 1,
     "eeprom": 1,
+    "i2c_ports": 1,
     "i2c_strobe": 1,
     "ganged_axes": 1,
     "auto_square": 1,
@@ -22,7 +23,7 @@
     "mpg_mode": 1,
     "sdcard": 1,
     "ethernet": 1,
-    "mcp3221_adc": 1,
+    "frequency_in": 1,
     "pio_board": "teensy41",
     "build_dir": "grblHAL_Teensy4",
     "plugins": [
@@ -82,7 +83,8 @@
         "sdcard": 1,
         "ethernet": 1,
         "eeprom": 1,
-        "spindle_sync": 1
+        "spindle_sync": 1,
+        "frequency_in": 1
       }
     },
     {
@@ -102,7 +104,8 @@
         "sdcard": 1,
         "ethernet": 1,
         "eeprom": 1,
-        "spindle_sync": 1
+        "spindle_sync": 1,
+        "frequency_in": 1
       }
     },
     {
@@ -139,7 +142,8 @@
         "ethernet": 1,
         "eeprom": 1,
         "fram": 1,
-        "spindle_sync": 1
+        "spindle_sync": 1,
+        "frequency_in": 1
       }
     },
     {
