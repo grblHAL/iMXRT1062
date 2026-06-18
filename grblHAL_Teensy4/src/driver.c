@@ -2536,7 +2536,7 @@ FLASHMEM static void settings_changed (settings_t *settings, settings_changed_fl
                 case Input_LimitC:
                 case Input_LimitC_Max:
                     signal->mode.pull_mode = settings->limits.disable_pullup.c ? PullMode_Down : PullMode_Up;
-                    signal->mode.irq_mode = limit_fei.b ? IRQ_Mode_Falling : IRQ_Mode_Rising;
+                    signal->mode.irq_mode = limit_fei.c ? IRQ_Mode_Falling : IRQ_Mode_Rising;
                     break;
 #endif
 #ifdef U_AXIS
@@ -3068,7 +3068,7 @@ FLASHMEM bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "260222";
+    hal.driver_version = "260616";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
