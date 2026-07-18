@@ -961,7 +961,7 @@ FLASHMEM static const io_stream_t *serial1Init (uint32_t baud_rate)
 
         tx1_fifo_size = uartConfig(&UART1, baud_rate);
 
-        serial[0].flags.init_ok = On;
+        serial[1].flags.init_ok = On;
     }
 
     stream_set_defaults(&stream, baud_rate);
