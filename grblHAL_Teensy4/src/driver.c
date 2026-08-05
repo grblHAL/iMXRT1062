@@ -2917,20 +2917,6 @@ FLASHMEM static bool driver_setup (settings_t *settings)
     hal.settings_changed(settings, (settings_changed_flags_t){0});
     hal.stepper.go_idle(true);
 
-#if IOPORTS_ENABLE
-    ioports_init();
-#endif
-
-#if SDCARD_ENABLE
-    sdcard_events_t *card = sdcard_init();
-    card->on_mount = sdcard_mount;
-    card->on_unmount = sdcard_unmount;
-#endif
-
-#if LITTLEFS_ENABLE
-    fs_littlefs_mount(LITTLEFS_MOUNT_DIR, t4_littlefs_hal());
-#endif
-
 #if ETHERNET_ENABLE
     grbl_enet_start();
 #endif
@@ -3361,6 +3347,16 @@ FLASHMEM bool driver_init (void)
  #endif
 
 #endif // DRIVER_SPINDLE1_ENABLE
+
+#if SDCARD_ENABLE
+    sdcard_events_t *card = sdcard_init();
+    card->on_mount = sdcard_mount;
+    card->on_unmount = sdcard_unmount;
+#endif
+
+#if LITTLEFS_ENABLE
+    fs_littlefs_mount(LITTLEFS_MOUNT_DIR, t4_littlefs_hal());
+#endif
 
 #if TRINAMIC_SPI_ENABLE
     extern void tmc_spi_init (void);
