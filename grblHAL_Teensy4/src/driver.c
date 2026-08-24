@@ -2376,7 +2376,7 @@ static void disable_irq (void)
 }
 
 // Configures perhipherals when settings are initialized or changed
-FLASHMEM static void settings_changed (settings_t *settings, settings_changed_flags_t changed)
+FLASHMEM static void on_settings_changed (settings_t *settings, settings_changed_flags_t changed)
 {
     if(IOInitDone) {
 
@@ -2914,7 +2914,7 @@ FLASHMEM static bool driver_setup (settings_t *settings)
 
     IOInitDone = settings->version.id == 23;
 
-    hal.settings_changed(settings, (settings_changed_flags_t){0});
+    grbl.on_settings_changed(settings, (settings_changed_flags_t){0});
     hal.stepper.go_idle(true);
 
 #if ETHERNET_ENABLE
@@ -3072,7 +3072,7 @@ FLASHMEM bool driver_init (void)
     hal.rx_buffer_size = RX_BUFFER_SIZE;
     hal.get_free_mem = get_free_mem;
     hal.delay_ms = driver_delay_ms;
-    hal.settings_changed = settings_changed;
+    grbl.on_settings_changed = on_settings_changed;
 
     hal.stepper.wake_up = stepperWakeUp;
     hal.stepper.go_idle = stepperGoIdle;
