@@ -671,7 +671,7 @@ static void driver_delay_ms (uint32_t ms, delay_callback_ptr callback)
         grbl_delay.ms = ms;
         if(!(grbl_delay.callback = callback)) {
             while(grbl_delay.ms)
-                grbl.on_execute_delay(state_get());
+                task_execute(true);
         }
     } else {
         if(grbl_delay.ms) {
@@ -3054,7 +3054,7 @@ FLASHMEM bool driver_init (void)
         options[strlen(options) - 1] = '\0';
 
     hal.info = "iMXRT1062";
-    hal.driver_version = "260616";
+    hal.driver_version = "261003";
     hal.driver_url = GRBL_URL "/iMXRT1062";
 #ifdef BOARD_NAME
     hal.board = BOARD_NAME;
@@ -3225,7 +3225,8 @@ FLASHMEM bool driver_init (void)
     aux_ctrl_claim_out_ports(aux_out_claim_explicit, NULL);
 
     PROGMEM static const sys_command_t boot_command_list[] = {
-        {"BL", enter_bootloader, { .allow_blocking = On, .noargs = On }, { .str = "enter bootloader" } },
+        { "BL", enter_bootloader, { .allow_blocking = On, .noargs = On }, { .str = "enter bootloader" } },
+        { "BOOTLOADER", enter_bootloader, { .allow_blocking = On, .noargs = On }, { .str = "enter bootloader" } }
     };
 
     static sys_commands_t boot_commands = {
