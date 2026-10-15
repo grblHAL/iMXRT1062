@@ -622,12 +622,22 @@ static bool serialPutC (const uint8_t c)
     txbuffer.data[txbuffer.head] = c;               // Add data to buffer
     txbuffer.head = next_head;                      // and update head pointer
 
+#ifdef WEB_BUILD
+
+    __disable_irq();
+    UART.port->CTRL |= LPUART_CTRL_TIE; // (may need to handle this issue)BITBAND_SET_BIT(LPUART0_CTRL, TIE_BIT); // Enable TX interrupts
+    __enable_irq();
+
+#else
+
     uint32_t irq = __get_PRIMASK();
     __set_PRIMASK(1);
 
     UART.port->CTRL |= LPUART_CTRL_TIE; // (may need to handle this issue)BITBAND_SET_BIT(LPUART0_CTRL, TIE_BIT); // Enable TX interrupts
 
     __set_PRIMASK(irq);
+
+#endif
 
     return true;
 }
@@ -852,12 +862,23 @@ static bool serial1PutC (const uint8_t c)
     tx1buffer.data[tx1buffer.head] = c;                             // Add data to buffer
     tx1buffer.head = next_head;                                     // and update head pointer
 
+#if WEB_BUILD
+
+    __disable_irq();
+    UART1.port->CTRL |= LPUART_CTRL_TIE; // (may need to handle this issue)BITBAND_SET_BIT(LPUART0_CTRL, TIE_BIT); // Enable TX interrupts
+    __enable_irq();
+
+#else
+
     uint32_t irq = __get_PRIMASK();
+
     __set_PRIMASK(1);
 
     UART1.port->CTRL |= LPUART_CTRL_TIE; // (may need to handle this issue)BITBAND_SET_BIT(LPUART0_CTRL, TIE_BIT); // Enable TX interrupts
 
     __set_PRIMASK(irq);
+
+#endif
 
     return true;
 }

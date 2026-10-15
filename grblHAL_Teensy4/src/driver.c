@@ -2337,6 +2337,48 @@ static coolant_state_t coolantGetState (void)
     return state;
 }
 
+#ifdef WEB_BUILD
+
+// Helper functions for setting/clearing/inverting individual bits atomically (uninterruptable)
+static void bitsSetAtomic (volatile uint_fast16_t *ptr, uint_fast16_t bits)
+{
+    __disable_irq();
+    *ptr |= bits;
+    __enable_irq();
+}
+
+static uint_fast16_t bitsClearAtomic (volatile uint_fast16_t *ptr, uint_fast16_t bits)
+{
+    __disable_irq();
+    uint_fast16_t prev = *ptr;
+    *ptr &= ~bits;
+    __enable_irq();
+
+    return prev;
+}
+
+static uint_fast16_t valueSetAtomic (volatile uint_fast16_t *ptr, uint_fast16_t value)
+{
+    __disable_irq();
+    uint_fast16_t prev = *ptr;
+    *ptr = value;
+    __enable_irq();
+
+    return prev;
+}
+
+static void enable_irq (void)
+{
+    __enable_irq();
+}
+
+static void disable_irq (void)
+{
+    __disable_irq();
+}
+
+#else
+
 static volatile uint32_t lock;
 
 static void disable_irq (void)
@@ -2389,6 +2431,8 @@ static uint_fast16_t valueSetAtomic (volatile uint_fast16_t *ptr, uint_fast16_t 
 
     return prev;
 }
+
+#endif
 
 // Configures perhipherals when settings are initialized or changed
 FLASHMEM static void on_settings_changed (settings_t *settings, settings_changed_flags_t changed)
