@@ -197,10 +197,6 @@
 #define STEP_PULSE_LATENCY 0.2f // microseconds
 #endif
 
-#ifndef IOPORTS_ENABLE
-#define IOPORTS_ENABLE 0
-#endif
-
 #if EEPROM_ENABLE && !defined(EEPROM_IS_FRAM)
 #define EEPROM_IS_FRAM  0
 #endif

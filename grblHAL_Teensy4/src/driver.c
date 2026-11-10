@@ -23,8 +23,11 @@
 #pragma GCC diagnostic ignored "-Wunused-function"
 
 #include <math.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+
+#include "cmsis_gcc.h"
 
 #include "pwm.h"
 #include "uart.h"

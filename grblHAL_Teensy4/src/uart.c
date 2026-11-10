@@ -42,6 +42,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "cmsis_gcc.h"
+
 #include "driver.h"
 #include "uart.h"
 
