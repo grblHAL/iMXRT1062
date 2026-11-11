@@ -83,6 +83,15 @@
 #define AUXOUTPUT6_PIN      (19u) // Coolant flood
 #define AUXOUTPUT7_PIN      (18u) // Coolant mist
 
+// Keep the board's spindle-linked vacuum output active with a Modbus VFD.
+#if VFD_ENABLE && !(DRIVER_SPINDLE_ENABLE & SPINDLE_ENA) && !TRINAMIC_SPI_ENABLE && !SPI_ENABLE && !defined(VFD_SPINDLE_ENABLE_PORT)
+#ifdef AUXOUTPUT2_PIN
+#define VFD_SPINDLE_ENABLE_PORT 3
+#else
+#define VFD_SPINDLE_ENABLE_PORT 2 // Pin 33 is PWM, so the digital output pool is packed.
+#endif
+#endif
+
 // Define driver spindle pins
 #if DRIVER_SPINDLE_ENABLE & SPINDLE_ENA
 #define SPINDLE_ENABLE_PIN      AUXOUTPUT3_PIN
