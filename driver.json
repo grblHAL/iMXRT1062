@@ -41,6 +41,7 @@
       { "id": "laser_coolant" },
       { "id": "laser_overdrive" },
       { "id": "fans" },
+      { "id": "eventout" },
       { "id": "odometer" },
       { "id": "openpnp" },
       { "id": "bluetooth" },
