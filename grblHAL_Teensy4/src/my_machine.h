@@ -69,6 +69,8 @@ N_AXIS has a default value of 3, edit grbl\config.h to increase.
 //#define SPINDLE2_ENABLE         SPINDLE_NONE
 //#define SPINDLE2_ENABLE         SPINDLE_NONE
 //#define SPINDLE_OFFSET          1 // Uncomment to enable settings for laser spindle XY-offset.
+//#define VFD_SPINDLE_ENABLE_PORT 3 // Optional local enable output with a Modbus VFD; stable auxiliary-output number.
+                                   // T41U5XBB, T41U5XBB Spindle Sync and T41BB5X Pro use Aux out 3 for spindle enable.
 // **********************
 //#define MODBUS_ENABLE           1 // Set to 1 for auto direction, 2 for direction signal on auxiliary output pin.
 //#define WEBUI_ENABLE            3 // Enable ESP3D-WEBUI plugin along with networking and SD card plugins.

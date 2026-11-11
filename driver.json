@@ -54,6 +54,7 @@
       "URL": "https://github.com/phil-barrett/grbl-teensy-4",
       "MAP": "grblHAL_Teensy4/src/boards/T41U5XBB_map.h",
       "caps": {
+        "vfd_spindle_enable_port": 3,
         "axes": 5,
         "ganged_axes": 2,
         "auto_square": 2,
@@ -73,6 +74,7 @@
       "URL": "https://www.grbl.org/single-post/modifying-a-t41u5xbb-for-lathe-spindle-sync",
       "MAP": "grblHAL_Teensy4/src/boards/T41U5XBB_ss_map.h",
       "caps": {
+        "vfd_spindle_enable_port": 3,
         "axes": 5,
         "ganged_axes": 2,
         "auto_square": 2,
@@ -93,6 +95,7 @@
       "URL": "https://github.com/phil-barrett/grbl-teensy-4",
       "MAP": "grblHAL_Teensy4/src/boards/T41BB5X_Pro_map.h",
       "caps": {
+        "vfd_spindle_enable_port": 3,
         "axes": 5,
         "ganged_axes": 2,
         "auto_square": 2,
